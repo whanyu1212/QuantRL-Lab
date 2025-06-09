@@ -35,17 +35,26 @@ class AlpacaDataLoader(
     """Alpaca implementation that provides market data from Alpaca
     APIs."""
 
-    def __init__(self, api_key=None, secret_key=None, historical_client=None, stream_client=None):
+    def __init__(
+        self,
+        api_key: str = None,
+        secret_key: str = None,
+        stock_historical_client: StockHistoricalDataClient = None,
+        stock_stream_client: StockDataStream = None,
+    ):
         # `or` operator works by returning the first truthy value or the last value if all are falsy # noqa E501
         self.api_key = api_key or os.environ.get("ALPACA_API_KEY")
         self.secret_key = secret_key or os.environ.get("ALPACA_SECRET_KEY")
 
-        # Initialize both clients
-        if historical_client is not None and stream_client is not None:
-            self.historical_client = historical_client
-            self.stream_client = stream_client
+        if stock_historical_client is not None and stock_stream_client is not None:
+            self.stock_historical_client = stock_historical_client
+            self.stock_stream_client = stock_stream_client
         else:
-            self.historical_client, self.stream_client = self.connect()
+
+            (
+                self.stock_historical_client,
+                self.stock_stream_client,
+            ) = self.connect()
 
         # event subscribers
         self.subscribers = {"quotes": [], "trades": [], "bars": []}
@@ -55,10 +64,15 @@ class AlpacaDataLoader(
     def source_name(self) -> str:
         return "Alpaca"
 
-    def connect(self) -> Tuple[StockHistoricalDataClient, StockDataStream]:
+    def connect(
+        self,
+    ) -> Tuple[
+        StockHistoricalDataClient,
+        StockDataStream,
+    ]:
         """
-        Connect to both the historical data and streaming clients of
-        Alpaca using the provided API key and Secret key.
+        Connect to the various data clients of Alpaca using the provided
+        API key and Secret key.
 
         Raises:
             ValueError: If API credentials are not provided
@@ -68,26 +82,42 @@ class AlpacaDataLoader(
         """
         if not self.api_key or not self.secret_key:
             raise ValueError("Alpaca API credentials not provided")
+
+        # Initialize the clients
         historical_client = StockHistoricalDataClient(self.api_key, self.secret_key)
-        stream_client = StockDataStream(self.api_key, self.secret_key)
-        return historical_client, stream_client
+        stock_stream_client = StockDataStream(self.api_key, self.secret_key)
+
+        return historical_client, stock_stream_client
 
     def disconnect(self) -> None:
         """Disconnect from both the historical data and streaming
         clients."""
-        if self.historical_client:
-            self.historical_client.close()
-        if self.stream_client:
-            self.stream_client.close()
+        if self.stock_historical_client:
+            self.stock_historical_client.close()
+        if self.stock_stream_client:
+            self.stock_stream_client.close()
 
     def is_connected(self) -> bool:
         """
-        Check if both historical and streaming clients are connected.
+        Check if the clients are initialized and credentials are valid.
 
         Returns:
-            bool: True if both clients are connected, False otherwise
+            bool: True if clients are initialized with valid credentials, False otherwise
         """
-        return self.historical_client.is_connected() and self.stream_client.is_connected()
+        try:
+            clients_exist = all(
+                [
+                    self.stock_historical_client is not None,
+                    self.stock_stream_client is not None,
+                ]
+            )
+
+            credentials_valid = self.api_key is not None and self.secret_key is not None
+
+            return clients_exist and credentials_valid
+
+        except Exception:
+            return False
 
     def list_available_instruments(
         self,
@@ -95,6 +125,7 @@ class AlpacaDataLoader(
         market: Optional[str] = None,
         **kwargs,
     ) -> List[str]:
+        # TODO
         pass
 
     def get_historical_ohlcv_data(
@@ -119,6 +150,9 @@ class AlpacaDataLoader(
         Returns:
             pd.DataFrame: raw OHLCV data
         """
+
+        logger.info(f"Fetching historical data for {symbols} from {start} to {end} with timeframe {timeframe}")
+
         # Convert string inputs to proper types
         if isinstance(start, str):
             start = dateutil.parser.parse(start)
@@ -156,7 +190,7 @@ class AlpacaDataLoader(
         )
 
         # Get the bars
-        bars = self.historical_client.get_stock_bars(request_params)
+        bars = self.stock_historical_client.get_stock_bars(request_params)
 
         # Return as DataFrame
         bars_df = bars.df.reset_index()
@@ -190,8 +224,8 @@ class AlpacaDataLoader(
             Dict: output dictionary
         """
 
-        request_params = StockLatestQuoteRequest(symbol)
-        return self.historical_client.get_stock_latest_quote(request_params)
+        request_params = StockLatestQuoteRequest(symbol_or_symbols=symbol)
+        return self.stock_historical_client.get_stock_latest_quote(request_params)
 
     def get_latest_trade(self, symbol: str, **kwargs) -> Dict:
         """
@@ -204,8 +238,8 @@ class AlpacaDataLoader(
         Returns:
             Dict: output dictionary
         """
-        request_params = StockLatestTradeRequest(symbol)
-        return self.historical_client.get_stock_latest_trade(request_params)
+        request_params = StockLatestTradeRequest(symbol_or_symbols=symbol)
+        return self.stock_historical_client.get_stock_latest_trade(request_params)
 
     async def subscribe_to_updates(self, symbol: str) -> None:
         """
@@ -224,7 +258,9 @@ class AlpacaDataLoader(
         async def quote_data_handler(data):
             logger.info(f"Received quote: {data}\n")
 
-        self.stream_client.subscribe_quotes(quote_data_handler, symbol)
+            # TODO: Process the quote data as needed and execute strategies
+
+        self.stock_stream_client.subscribe_quotes(quote_data_handler, symbol)
 
     async def start_streaming(self):
         """
@@ -233,14 +269,14 @@ class AlpacaDataLoader(
         This is a blocking call that should be run in an async context.
         """
         try:
-            await self.stream_client.run()
+            await self.stock_stream_client.run()
         except Exception as e:
             print(f"Error in WebSocket stream: {e}")
             raise
 
     async def stop_streaming(self):
         """Stop the WebSocket connection and clean up resources."""
-        await self.stream_client.stop_ws()
+        await self.stock_stream_client.stop_ws()
 
     def get_news_data(
         self,
