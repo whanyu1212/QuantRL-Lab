@@ -152,3 +152,17 @@ class StreamingCapable(Protocol):
     async def stop_streaming(self):
         """Stop the data stream."""
         ...
+
+
+@runtime_checkable
+class FundamentalDataCapable(Protocol):
+    """
+    Protocol for data sources that provide fundamental data.
+
+    It checks if the class has the following methods:
+    - get_fundamental_data
+    """
+
+    def get_fundamental_data(self, symbols: Union[str, List[str]], metrics: List[str], **kwargs) -> pd.DataFrame:
+        """Get fundamental data for specified symbols and metrics."""
+        ...
