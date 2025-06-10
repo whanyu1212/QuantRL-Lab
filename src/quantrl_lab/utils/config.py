@@ -6,6 +6,29 @@ from pydantic import BaseModel, Field
 FMP_DOMAIN = "https://financialmodelingprep.com"
 FMP_API_BASE = f"{FMP_DOMAIN}/stable"
 
+ALPHA_VANTAGE_DOMAIN = "https://www.alphavantage.co"
+ALPHA_VANTAGE_API_BASE = f"{ALPHA_VANTAGE_DOMAIN}/query"
+
+
+class FundamentalMetric(Enum):
+    """Enum for available fundamental data metrics from Alpha
+    Vantage."""
+
+    COMPANY_OVERVIEW = ("company_overview", "Company overview and key statistics")
+    # ETF_PROFILE = ("etf_profile", "ETF profile and holding information")
+    DIVIDENDS = ("dividends", "Dividend payment history")
+    SPLITS = ("splits", "Stock split history")
+    INCOME_STATEMENT = ("income_statement", "Income statement data")
+    BALANCE_SHEET = ("balance_sheet", "Balance sheet data")
+    CASH_FLOW = ("cash_flow", "Cash flow statement data")
+    EARNINGS = ("earnings", "Earnings data")
+
+    def __new__(cls, value, description):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.description = description
+        return obj
+
 
 class YFinanceInterval(str, Enum):
     """Valid intervals for YFinance data fetching."""

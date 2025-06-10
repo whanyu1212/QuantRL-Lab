@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import List, Optional, Protocol, Union, runtime_checkable
+from typing import Dict, List, Optional, Protocol, Union, runtime_checkable
 
 import pandas as pd
 
@@ -163,6 +163,26 @@ class FundamentalDataCapable(Protocol):
     - get_fundamental_data
     """
 
-    def get_fundamental_data(self, symbols: Union[str, List[str]], metrics: List[str], **kwargs) -> pd.DataFrame:
+    def get_fundamental_data(self, symbols: str, metrics: List[str], **kwargs) -> Union[pd.DataFrame, Dict]:
         """Get fundamental data for specified symbols and metrics."""
+        ...
+
+
+@runtime_checkable
+class MacroDataCapable(Protocol):
+    """
+    Protocol for data sources that provide macroeconomic data.
+
+    It checks if the class has the following methods:
+    - get_macro_data
+    """
+
+    def get_macro_data(
+        self,
+        indicators: Union[str, List[str]],
+        start: Union[str, datetime],
+        end: Union[str, datetime],
+    ) -> pd.DataFrame:
+        """Get macroeconomic data for specified indicators and time
+        range."""
         ...
