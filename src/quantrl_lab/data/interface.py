@@ -100,7 +100,7 @@ class NewsDataCapable(Protocol):
         start: Union[str, datetime],
         end: Optional[Union[str, datetime]] = None,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, Dict]:
         """Get news for specified symbols and time range."""
         ...
 
@@ -182,7 +182,7 @@ class MacroDataCapable(Protocol):
         indicators: Union[str, List[str]],
         start: Union[str, datetime],
         end: Union[str, datetime],
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, Dict]:
         """Get macroeconomic data for specified indicators and time
         range."""
         ...

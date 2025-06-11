@@ -30,6 +30,28 @@ class FundamentalMetric(Enum):
         return obj
 
 
+class MacroIndicator(Enum):
+    """Enumeration of macro economic indicators available from Alpha
+    Vantage."""
+
+    REAL_GDP = ("real_gdp", "Real Gross Domestic Product data")
+    REAL_GDP_PER_CAPITA = ("real_gdp_per_capita", "Real GDP per capita data")
+    TREASURY_YIELD = ("treasury_yield", "Treasury yield rates for various maturities")
+    FEDERAL_FUNDS_RATE = ("federal_funds_rate", "Federal funds interest rate")
+    CPI = ("cpi", "Consumer Price Index inflation data")
+    INFLATION = ("inflation", "Annual inflation rate")
+    RETAIL_SALES = ("retail_sales", "Monthly retail sales data")
+    DURABLE_GOODS = ("durable_goods", "Durable goods orders data")
+    UNEMPLOYMENT_RATE = ("unemployment_rate", "Monthly unemployment rate")
+    NON_FARM_PAYROLL = ("non_farm_payroll", "Non-farm payroll employment data")
+
+    def __new__(cls, value, description):
+        obj = object.__new__(cls)
+        obj._value_ = value
+        obj.description = description
+        return obj
+
+
 class YFinanceInterval(str, Enum):
     """Valid intervals for YFinance data fetching."""
 

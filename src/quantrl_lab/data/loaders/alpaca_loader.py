@@ -286,7 +286,7 @@ class AlpacaDataLoader(
         limit: int = 50,
         include_content: bool = False,
         **kwargs,
-    ) -> pd.DataFrame:
+    ) -> Union[pd.DataFrame, Dict]:
         """
         Get news for specified symbols from Alpaca News API.
 

@@ -11,11 +11,24 @@ from quantrl_lab.data.interface import (
     DataSource,
     FundamentalDataCapable,
     HistoricalDataCapable,
+    MacroDataCapable,
+    NewsDataCapable,
 )
-from quantrl_lab.utils.config import ALPHA_VANTAGE_API_BASE, FundamentalMetric
+from quantrl_lab.utils.common import convert_datetime_to_alpha_vantage_format
+from quantrl_lab.utils.config import (
+    ALPHA_VANTAGE_API_BASE,
+    FundamentalMetric,
+    MacroIndicator,
+)
 
 
-class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataCapable):
+class AlphaVantageDataLoader(
+    DataSource,
+    FundamentalDataCapable,
+    HistoricalDataCapable,
+    MacroDataCapable,
+    NewsDataCapable,
+):
     """Alpha Vantage implementation that provides various datasets."""
 
     def __init__(
@@ -61,7 +74,7 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         logger.warning("Alpha Vantage does not support listing available instruments.")
         return []
 
-    # Historical Data Methods #
+    # Historical Data Method #
     def get_historical_ohlcv_data(
         self,
         symbol: str,
@@ -194,6 +207,7 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
 
         return df.reset_index()
 
+    # Fundamental Data Method #
     def get_fundamental_data(
         self, symbol: str, metrics: List[Union[FundamentalMetric, str]], **kwargs
     ) -> Union[pd.DataFrame, Dict]:
@@ -262,18 +276,290 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         # else:
         return results
 
-    # Common methods for API requests #
-    def _make_api_request(self, function: str, symbol: str, **params) -> Optional[Dict[str, Any]]:
+    # News Data Method #
+    def get_news_data(
+        self,
+        symbols: Union[str, List[str]],
+        start: Union[str, datetime],
+        end: Optional[Union[str, datetime]] = None,
+        limit: int = 50,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        Fetch news data for given symbols from Alpha Vantage. This
+        method retrieves news articles related to the specified symbols
+        within the given date range. It supports additional parameters
+        like 'sort' and 'topics' to customize the news data.
+
+        Args:
+            symbols (Union[str, List[str]]): Symbols to fetch news for.
+            start (Union[str, datetime]): Start datetime for news data.
+            end (Optional[Union[str, datetime]], optional): End datetime for news.
+            Defaults to None, which means current time.
+            limit (int, optional): Maximum number of news items to fetch.
+            Defaults to 50.
+            **kwargs: Additional parameters for the API request,
+            such as 'sort' or 'topics'.
+
+        Returns:
+            Dict[str, Any]: Dictionary containing news data for the
+            specified symbols.
+        """
+        # Convert dates to Alpha Vantage format
+        time_from = convert_datetime_to_alpha_vantage_format(start)
+
+        if end is None:
+            end = datetime.now()
+        time_to = convert_datetime_to_alpha_vantage_format(end)
+
+        # Handle symbols - can be string or list
+        if isinstance(symbols, str):
+            tickers = symbols
+        else:
+            tickers = ",".join(symbols)
+
+        logger.info(f"Fetching news for {tickers} from {time_from} to {time_to}")
+
+        params = {
+            "tickers": tickers,
+            "time_from": time_from,
+            "time_to": time_to,
+            "limit": str(limit),
+        }
+
+        # Check for additional sort parameter in kwargs
+        if "sort" in kwargs:
+            params["sort"] = kwargs.pop("sort")
+            logger.info(f"Using sort order: {params['sort']}")
+
+        # Check for additional topics parameter in kwargs
+        if "topics" in kwargs:
+            params["topics"] = kwargs.pop("topics")
+            logger.info(f"Using topics from kwargs: {params['topics']}")
+
+        params.update(kwargs)
+
+        # Make the API request (note: NEWS_SENTIMENT doesn't use symbol parameter,
+        # it uses tickers instead, so we pass an empty string for symbol)
+        return self._make_api_request("NEWS_SENTIMENT", symbol="", **params)
+
+    # TODO: fix overengineering
+    def get_macro_data(
+        self,
+        indicators: Union[str, List[str], Dict[str, Dict]],
+        start: Union[str, datetime],
+        end: Union[str, datetime],
+        **kwargs,
+    ) -> Dict[str, Any]:
+        """
+        Get macroeconomic data for specified indicators. This method
+        supports both standard indicator names and advanced dictionary
+        format where each indicator can have its own parameters. e.g.: {
+        "real_gdp": {"interval": "quarterly"}, "treasury_yield":
+        {"interval": "monthly", "maturity": "10year"} }
+
+        Args:
+            indicators (Union[str, List[str], Dict[str, Dict]]): indicator(s) to fetch data for.
+            start (Union[str, datetime]): time from
+            end (Union[str, datetime]): time to
+            **kwargs: Additional parameters for the API request
+
+        Returns:
+            Dict[str, Any]: Dictionary containing macroeconomic data for the
+            specified indicators. Each key is the indicator name, and the value
+            is the data fetched from Alpha Vantage.
+        """
+
+        # Handle different input formats
+        if isinstance(indicators, dict):
+            # Advanced dict format with per-indicator params
+            return self._get_macro_data_with_params(indicators, **kwargs)
+        else:
+            # Standard format - convert to dict format internally
+            if isinstance(indicators, (str, MacroIndicator)):
+                indicators = [indicators]
+
+            # Create dict with empty params for each indicator
+            indicator_params = {ind: {} for ind in indicators}
+            return self._get_macro_data_with_params(indicator_params, **kwargs)
+
+    def _get_macro_data_with_params(
+        self, indicator_params: Dict[Union[str, MacroIndicator], Dict], **global_kwargs
+    ) -> Dict[str, Any]:
+        """
+        _summary_
+
+        Args:
+            indicator_params (Dict[Union[str, MacroIndicator], Dict]): _description_
+
+        Returns:
+            Dict[str, Any]: _description_
+        """
+
+        results = {}
+
+        # Map indicators to private methods
+        indicator_methods = {
+            MacroIndicator.REAL_GDP: self._get_real_gdp_data,
+            MacroIndicator.REAL_GDP_PER_CAPITA: self._get_real_gdp_per_capita_data,
+            MacroIndicator.TREASURY_YIELD: self._get_treasury_yield_data,
+            MacroIndicator.FEDERAL_FUNDS_RATE: self._get_federal_funds_rate_data,
+            MacroIndicator.CPI: self._get_cpi_data,
+            MacroIndicator.INFLATION: self._get_inflation_data,
+            MacroIndicator.RETAIL_SALES: self._get_retail_sales_data,
+            MacroIndicator.DURABLE_GOODS: self._get_durable_goods_data,
+            MacroIndicator.UNEMPLOYMENT_RATE: self._get_unemployment_rate_data,
+            MacroIndicator.NON_FARM_PAYROLL: self._get_non_farm_payroll_data,
+        }
+
+        logger.info(f"Fetching macro data for indicators: {list(indicator_params.keys())}")
+
+        for indicator, ind_kwargs in indicator_params.items():
+            # Convert string to enum if needed
+            if isinstance(indicator, str):
+                try:
+                    indicator_enum = MacroIndicator(indicator.lower())
+                except ValueError:
+                    logger.warning(f"Unknown macro indicator '{indicator}'")
+                    results[indicator] = None
+                    continue
+            else:
+                indicator_enum = indicator
+
+            if indicator_enum in indicator_methods:
+                method = indicator_methods[indicator_enum]
+
+                merged_kwargs = {**global_kwargs, **ind_kwargs}
+
+                try:
+                    method_kwargs = self._get_method_specific_kwargs(indicator_enum, merged_kwargs)
+
+                    data = method(**method_kwargs)
+                    if data:
+                        results[indicator_enum.value] = data
+                        logger.info(f"Successfully fetched {indicator_enum.value} data")
+                    else:
+                        logger.warning(f"Failed to fetch {indicator_enum.value} data")
+                        results[indicator_enum.value] = None
+
+                except ValueError as e:
+                    logger.error(f"Parameter validation error for {indicator_enum.value}: {e}")
+                    results[indicator_enum.value] = None
+                except Exception as e:
+                    logger.error(f"Error fetching {indicator_enum.value} data: {e}")
+                    results[indicator_enum.value] = None
+            else:
+                logger.warning(f"Unsupported macro indicator '{indicator_enum}'")
+                results[indicator_enum.value] = None
+
+        return results
+
+    def _get_method_specific_kwargs(self, indicator: MacroIndicator, kwargs: Dict) -> Dict:
+        """
+        Get method-specific parameters for macroeconomic indicators.
+
+        Args:
+            indicator (MacroIndicator): enum to filter kwargs for.
+            kwargs (Dict): additional parameters for the API request.
+
+        Raises:
+            ValueError: If the interval or maturity parameters are invalid
+            ValueError: If the indicator is not supported
+
+        Returns:
+            Dict: Filtered kwargs for the specific indicator method.
+        """
+
+        indicator_config = {
+            MacroIndicator.REAL_GDP: {
+                "params": ["interval"],
+                "valid_intervals": ["quarterly", "annual"],
+                "default_interval": "annual",
+            },
+            MacroIndicator.REAL_GDP_PER_CAPITA: {
+                "params": [],
+            },
+            MacroIndicator.TREASURY_YIELD: {
+                "params": ["interval", "maturity"],
+                "valid_intervals": ["daily", "weekly", "monthly"],
+                "valid_maturities": [
+                    "3month",
+                    "2year",
+                    "5year",
+                    "7year",
+                    "10year",
+                    "30year",
+                ],
+                "default_interval": "monthly",
+                "default_maturity": "10year",
+            },
+            MacroIndicator.FEDERAL_FUNDS_RATE: {
+                "params": ["interval"],
+                "valid_intervals": ["daily", "weekly", "monthly"],
+                "default_interval": "monthly",
+            },
+            MacroIndicator.CPI: {
+                "params": ["interval"],
+                "valid_intervals": ["semiannual", "monthly"],
+                "default_interval": "monthly",
+            },
+            MacroIndicator.INFLATION: {"params": []},
+            MacroIndicator.RETAIL_SALES: {"params": []},
+            MacroIndicator.DURABLE_GOODS: {"params": []},
+            MacroIndicator.UNEMPLOYMENT_RATE: {"params": []},
+            MacroIndicator.NON_FARM_PAYROLL: {"params": []},
+        }
+
+        config = indicator_config.get(indicator, {"params": []})
+        filtered_kwargs = {}
+
+        # Handle interval parameter with validation
+        if "interval" in config.get("params", []):
+            interval = kwargs.get("interval", config.get("default_interval"))
+            valid_intervals = config.get("valid_intervals", [])
+
+            if interval and valid_intervals and interval not in valid_intervals:
+                raise ValueError(
+                    f"Invalid interval '{interval}' for {indicator.value}. " f"Valid options: {valid_intervals}"
+                )
+
+            if interval:
+                filtered_kwargs["interval"] = interval
+
+        # Handle maturity parameter with validation
+        if "maturity" in config.get("params", []):
+            maturity = kwargs.get("maturity", config.get("default_maturity"))
+            valid_maturities = config.get("valid_maturities", [])
+
+            if maturity and valid_maturities and maturity not in valid_maturities:
+                raise ValueError(
+                    f"Invalid maturity '{maturity}' for {indicator.value}. " f"Valid options: {valid_maturities}"
+                )
+
+            if maturity:
+                filtered_kwargs["maturity"] = maturity
+
+        for key, value in kwargs.items():
+            if key not in ["interval", "maturity"] and key not in filtered_kwargs:
+                filtered_kwargs[key] = value
+
+        return filtered_kwargs
+
+    # Common method for API requests #
+    def _make_api_request(self, function: str, symbol: str = "", **params) -> Optional[Dict[str, Any]]:
         """Centralized private method for making Alpha Vantage API
         requests."""
 
         # Build URL parameters
         url_params = {
             "function": function,
-            "symbol": symbol,
             "apikey": self.api_key,
             **params,
         }
+
+        # Only add symbol if it's provided (NEWS_SENTIMENT doesn't use symbol)
+        if symbol:
+            url_params["symbol"] = symbol
 
         for attempt in range(self.max_retries):
             try:
@@ -284,18 +570,28 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
 
                     # Check for Alpha Vantage specific errors
                     if "Error Message" in data:
-                        logger.error(f"API Error for {symbol}: {data['Error Message']}")
+                        error_msg = f"API Error: {data['Error Message']}"
+                        if symbol:
+                            error_msg += f" for {symbol}"
+                        logger.error(error_msg)
                         return None
 
                     if "Note" in data and "API call frequency" in data.get("Note", ""):
-                        logger.warning(f"Rate limit hit for {symbol}, retrying...")
+                        warning_msg = "Rate limit hit"
+                        if symbol:
+                            warning_msg += f" for {symbol}"
+                        logger.warning(f"{warning_msg}, retrying...")
+
                         if attempt < self.max_retries - 1:
                             wait_time = self.delay * (2**attempt)
                             time.sleep(wait_time)
                             continue
                         return None
 
-                    logger.info(f"Successfully fetched {function} data for {symbol}")
+                    success_msg = f"Successfully fetched {function} data"
+                    if symbol:
+                        success_msg += f" for {symbol}"
+                    logger.info(success_msg)
                     return data
 
                 elif response.status_code == 429:  # Rate limit
@@ -308,16 +604,28 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
                 response.raise_for_status()
 
             except requests.exceptions.Timeout:
-                logger.warning(f"Timeout for {symbol} (attempt {attempt + 1})")
+                timeout_msg = f"Timeout (attempt {attempt + 1})"
+                if symbol:
+                    timeout_msg = f"Timeout for {symbol} (attempt {attempt + 1})"
+                logger.warning(timeout_msg)
             except requests.exceptions.ConnectionError:
-                logger.warning(f"Connection error for {symbol} (attempt {attempt + 1})")
+                conn_msg = f"Connection error (attempt {attempt + 1})"
+                if symbol:
+                    conn_msg = f"Connection error for {symbol} (attempt {attempt + 1})"
+                logger.warning(conn_msg)
             except requests.exceptions.RequestException as e:
-                logger.warning(f"Request error for {symbol}: {e} (attempt {attempt + 1})")
+                req_msg = f"Request error: {e} (attempt {attempt + 1})"
+                if symbol:
+                    req_msg = f"Request error for {symbol}: {e} (attempt {attempt + 1})"
+                logger.warning(req_msg)
 
             if attempt < self.max_retries - 1:
                 time.sleep(self.delay * (attempt + 1))
 
-        logger.error(f"Failed to fetch {function} data for {symbol} after {self.max_retries} attempts")
+        error_msg = f"Failed to fetch {function} data after {self.max_retries} attempts"
+        if symbol:
+            error_msg = f"Failed to fetch {function} data for {symbol} after {self.max_retries} attempts"
+        logger.error(error_msg)
         return None
 
     # Private Fundamental Data Methods #
@@ -430,6 +738,8 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         """
         return self._make_api_request("EARNINGS", symbol)
 
+    # Private Historical Data Methods #
+
     def _get_intraday_data(
         self,
         symbol: str,
@@ -500,3 +810,171 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         params.update(kwargs)
 
         return self._make_api_request("TIME_SERIES_DAILY_ADJUSTED", symbol, **params)
+
+    # Private Macro Data Methods #
+    def _get_real_gdp_data(self, interval: str = "annual", **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch real GDP data from Alpha Vantage.
+
+        Args:
+            interval (str, optional): Defaults to "annual". Available options are
+            "quarterly" and "annual". Determines the frequency of the data.
+
+            **kwargs: Additional parameters for the API request.
+
+        Raises:
+            ValueError: If the interval is not one of the valid options.
+
+        Returns:
+            Optional[Dict[str, Any]]: Real GDP data in dictionary format or
+            None if request fails.
+        """
+
+        # Validate interval parameter
+        if interval not in ["quarterly", "annual"]:
+            raise ValueError(f"Invalid interval '{interval}'. Use 'quarterly' or 'annual'.")
+
+        params = {"interval": interval}
+        params.update(kwargs)
+
+        return self._make_api_request("REAL_GDP", symbol="", **params)
+
+    def _get_real_gdp_per_capita_data(self, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch real GDP per capita data from Alpha Vantage.
+
+        Returns:
+            Optional[Dict[str, Any]]: Real GDP per capita data in dictionary format or
+            None if request fails.
+        """
+        return self._make_api_request("REAL_GDP_PER_CAPITA", symbol="", **kwargs)
+
+    def _get_treasury_yield_data(
+        self, interval: str = "monthly", maturity: str = "10year", **kwargs
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Fetch treasury yield data from Alpha Vantage.
+
+        Args:
+            interval (str, optional): Defaults to "monthly".
+            maturity (str, optional): Defaults to "10year".
+
+        Raises:
+            ValueError: If the interval or maturity parameters are invalid.
+            ValueError: If the maturity is not one of the valid options.
+
+        Returns:
+            Optional[Dict[str, Any]]: Treasury yield data in dictionary format or
+            None if request fails.
+        """
+
+        # Validate interval parameter
+        valid_intervals = ["daily", "weekly", "monthly"]
+        if interval not in valid_intervals:
+            raise ValueError(f"Invalid interval '{interval}'. Use one of: {valid_intervals}")
+
+        # Validate maturity parameter
+        valid_maturities = ["3month", "2year", "5year", "7year", "10year", "30year"]
+        if maturity not in valid_maturities:
+            raise ValueError(f"Invalid maturity '{maturity}'. Use one of: {valid_maturities}")
+
+        params = {"interval": interval, "maturity": maturity}
+        params.update(kwargs)
+
+        return self._make_api_request("TREASURY_YIELD", symbol="", **params)
+
+    def _get_federal_funds_rate_data(self, interval: str = "monthly", **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch federal funds rate data from Alpha Vantage.
+
+        Args:
+            interval (str, optional): Defaults to "monthly".
+
+        Raises:
+            ValueError: If the interval is not one of the valid options.
+
+        Returns:
+            Optional[Dict[str, Any]]: Federal funds rate data in dictionary format or
+            None if request fails.
+        """
+        valid_intervals = ["daily", "weekly", "monthly"]
+        if interval not in valid_intervals:
+            raise ValueError(f"Invalid interval '{interval}'. Use one of: {valid_intervals}")
+
+        params = {"interval": interval}
+        params.update(kwargs)
+
+        return self._make_api_request("FEDERAL_FUNDS_RATE", symbol="", **params)
+
+    def _get_cpi_data(self, interval: str = "monthly", **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch Consumer Price Index (CPI) data from Alpha Vantage.
+
+        Args:
+            interval (str, optional): Defaults to "monthly".
+
+        Raises:
+            ValueError: If the interval is not one of the valid options.
+
+        Returns:
+            Optional[Dict[str, Any]]: CPI data in dictionary format or
+            None if request fails.
+        """
+        valid_intervals = ["semiannual", "monthly"]
+        if interval not in valid_intervals:
+            raise ValueError(f"Invalid interval '{interval}'. Use one of: {valid_intervals}")
+
+        params = {"interval": interval}
+        params.update(kwargs)
+
+        return self._make_api_request("CPI", symbol="", **params)
+
+    def _get_inflation_data(self, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch inflation data from Alpha Vantage.
+
+        Returns:
+            Optional[Dict[str, Any]]: Inflation data in dictionary format or
+            None if request fails.
+        """
+        return self._make_api_request("INFLATION", symbol="", **kwargs)
+
+    def _get_retail_sales_data(self, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch retail sales data from Alpha Vantage.
+
+        Returns:
+            Optional[Dict[str, Any]]: Retail sales data in dictionary format or
+            None if request fails.
+        """
+        return self._make_api_request("RETAIL_SALES", symbol="", **kwargs)
+
+    def _get_durable_goods_data(self, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch durable goods data from Alpha Vantage.
+
+        Returns:
+            Optional[Dict[str, Any]]: Durable goods data in dictionary format or
+            None if request fails.
+        """
+        return self._make_api_request("DURABLE_GOODS", symbol="", **kwargs)
+
+    def _get_unemployment_rate_data(self, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch unemployment rate data from Alpha Vantage.
+
+        Returns:
+            Optional[Dict[str, Any]]: Unemployment rate data in dictionary format or
+            None if request fails.
+        """
+        return self._make_api_request("UNEMPLOYMENT", symbol="", **kwargs)
+
+    def _get_non_farm_payroll_data(self, **kwargs) -> Optional[Dict[str, Any]]:
+        """
+        Fetch non-farm payroll data from Alpha Vantage.
+
+        Returns:
+            Optional[Dict[str, Any]]: Non-farm payroll data in dictionary format or
+            None if request fails.
+        """
+        return self._make_api_request("NONFARM_PAYROLL", symbol="", **kwargs)
