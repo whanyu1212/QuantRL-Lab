@@ -61,6 +61,7 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         logger.warning("Alpha Vantage does not support listing available instruments.")
         return []
 
+    # Historical Data Methods #
     def get_historical_ohlcv_data(
         self,
         symbol: str,
@@ -68,54 +69,200 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         end_date: Union[str, datetime],
         interval: str = "1d",
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> pd.DataFrame:
         """
         Get historical OHLCV data from Alpha Vantage.
 
         Args:
             symbol: Stock symbol to fetch data for
-            start_date: Start date for filtering (note: Alpha Vantage returns all data)
-            end_date: End date for filtering (note: Alpha Vantage returns all data)
+            start_date: Start date for filtering
+            end_date: End date for filtering
             interval: Time interval - "1d" for daily, or intraday intervals like "5min", "15min"
             **kwargs: Additional parameters including 'adjusted' (bool, default=True), 'outputsize', 'month', etc.
 
         Returns:
-            Dict[str, Any]: Raw Alpha Vantage API response
+            pd.DataFrame: OHLCV data filtered by date range
         """
-        # Extract adjusted parameter from kwargs, default to False because
-        # daily adjusted data is behind the paywall
-
+        # Extract adjusted parameter from kwargs, default to False
+        # Because adjusted daily data is behind paywall
         adjusted = kwargs.pop("adjusted", False)
 
-        logger.info(f"Fetching {interval} data for {symbol}")
+        # Convert dates to datetime objects for filtering
+        if isinstance(start_date, str):
+            start_date = pd.to_datetime(start_date)
+        if isinstance(end_date, str):
+            end_date = pd.to_datetime(end_date)
+
+        logger.info(f"Fetching {interval} data for {symbol} from {start_date.date()} to {end_date.date()}")
 
         # Determine which API endpoint to use based on interval
         if interval == "1d":
             if adjusted:
                 # Use daily adjusted data (includes dividend/split adjustments)
                 raw_data = self._get_daily_adjusted_data(symbol, **kwargs)
-                logger.debug(f"Using adjusted daily data for {symbol}")
+                logger.info(f"Using adjusted daily data for {symbol}")
             else:
                 # Use regular daily data (raw prices)
                 raw_data = self._get_daily_data(symbol, **kwargs)
-                logger.debug(f"Using raw daily data for {symbol}")
+                logger.info(f"Using raw daily data for {symbol}")
+
+            # Both daily APIs return the same key structure
+            time_series_key = "Time Series (Daily)"
 
         elif interval in ["1min", "5min", "15min", "30min", "60min"]:
             # Use intraday data (adjusted parameter doesn't apply to intraday)
             if adjusted:
                 logger.warning("Adjusted prices not available for intraday data, using raw prices")
             raw_data = self._get_intraday_data(symbol, interval=interval, **kwargs)
-            logger.debug(f"Using {interval} intraday data for {symbol}")
+            time_series_key = f"Time Series ({interval})"
+            logger.info(f"Using {interval} intraday data for {symbol}")
         else:
             raise ValueError(f"Unsupported interval: {interval}. Use '1d' or intraday intervals like '5min'")
 
         if not raw_data:
             logger.error(f"Failed to fetch data for {symbol}")
-            return {}
+            return pd.DataFrame()
 
-        logger.info(f"Successfully retrieved {interval} data for {symbol}")
-        return raw_data
+        # Extract time series data
+        if time_series_key not in raw_data:
+            logger.error(
+                f"Expected key '{time_series_key}' not found in API response,"
+                "you may have hit the rate limit or the symbol may not exist."
+            )
+            available_keys = list(raw_data.keys())
+            logger.info(f"Available keys in response: {available_keys}")
+            return pd.DataFrame()
 
+        time_series = raw_data[time_series_key]
+
+        if not time_series:
+            logger.warning(f"Empty time series data for {symbol}")
+            return pd.DataFrame()
+
+        # Convert to DataFrame
+        df = pd.DataFrame.from_dict(time_series, orient="index")
+
+        # Create a comprehensive column mapping that handles both regular and adjusted data
+        column_mapping = {
+            "1. open": "open",
+            "2. high": "high",
+            "3. low": "low",
+            "4. close": "close",
+            "5. adjusted close": "adj_close",  # Only in adjusted data
+            "5. volume": "volume",  # In regular daily data
+            "6. volume": "volume",  # In adjusted daily data
+            "7. dividend amount": "dividend",  # Only in adjusted data
+            "8. split coefficient": "split_coeff",  # Only in adjusted data
+        }
+
+        # Apply column mapping
+        df = df.rename(columns=column_mapping)
+
+        # Drop any columns that weren't in our mapping
+        expected_columns = list(set(column_mapping.values()))  # Remove duplicates
+        df = df[df.columns.intersection(expected_columns)]
+
+        # Convert string values to numeric
+        numeric_columns = ["open", "high", "low", "close", "volume"]
+        if "adj_close" in df.columns:
+            numeric_columns.append("adj_close")
+        if "dividend" in df.columns:
+            numeric_columns.append("dividend")
+        if "split_coeff" in df.columns:
+            numeric_columns.append("split_coeff")
+
+        for col in numeric_columns:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        # Convert index to datetime
+        df.index = pd.to_datetime(df.index)
+        df.index.name = "date"
+
+        # Sort by date (Alpha Vantage returns newest first)
+        df = df.sort_index()
+
+        # Filter by date range
+        mask = (df.index >= start_date) & (df.index <= end_date)
+        df = df[mask]
+
+        if df.empty:
+            logger.warning(f"No data found for {symbol} in date range {start_date.date()} to {end_date.date()}")
+        else:
+            data_type = "adjusted daily" if (interval == "1d" and adjusted) else interval
+            logger.info(f"Retrieved {len(df)} {data_type} records for {symbol}")
+
+        return df.reset_index()
+
+    def get_fundamental_data(
+        self, symbol: str, metrics: List[Union[FundamentalMetric, str]], **kwargs
+    ) -> Union[pd.DataFrame, Dict]:
+        """
+        Get fundamental data for a single symbol by combining multiple
+        Alpha Vantage API calls.
+
+        Args:
+            symbol: Stock symbol to fetch data for
+            metrics: List of FundamentalMetric enums or strings
+            return_format: 'dict' or 'dataframe' (default: 'dict')
+            **kwargs: Additional parameters, e.g., 'return_format'
+
+        Returns:
+            Dict with combined fundamental data or DataFrame
+        """
+        # return_format = kwargs.get("return_format", "dict")
+        results = {}
+
+        # Map metrics to private methods - use enum objects as keys consistently
+        metric_methods = {
+            FundamentalMetric.COMPANY_OVERVIEW: self._get_company_overview,
+            # Remark: etf profile not useful in our context
+            # FundamentalMetric.ETF_PROFILE: self._get_etf_profile,
+            FundamentalMetric.DIVIDENDS: self._get_dividend_data,
+            FundamentalMetric.SPLITS: self._get_splits_data,
+            FundamentalMetric.INCOME_STATEMENT: self._get_income_statement_data,
+            FundamentalMetric.BALANCE_SHEET: self._get_balance_sheet_data,
+            FundamentalMetric.CASH_FLOW: self._get_cash_flow_data,
+            FundamentalMetric.EARNINGS: self._get_earnings_data,
+        }
+
+        logger.info(f"Fetching fundamental data for {symbol}")
+
+        for metric in metrics:
+            # Handle both enum and string inputs
+            if isinstance(metric, str):
+                try:
+                    metric_enum = FundamentalMetric(metric.lower())
+                except ValueError:
+                    logger.warning(f"Unknown metric '{metric}' for symbol {symbol}")
+                    results[metric] = None
+                    continue
+            else:
+                metric_enum = metric
+
+            if metric_enum in metric_methods:
+                method = metric_methods[metric_enum]
+                data = method(symbol)
+
+                if data:
+                    results[metric_enum.value] = data
+                    logger.info(f"Successfully fetched {metric_enum.value} for {symbol}")
+                else:
+                    logger.warning(f"Failed to fetch {metric_enum.value} for {symbol}")
+                    results[metric_enum.value] = None
+            else:
+                logger.warning(f"Unsupported metric '{metric_enum}' for symbol {symbol}")
+                results[metric_enum.value] = None
+
+        # TODO: Implement DataFrame conversion for cleaner output
+
+        # Return format based on user preference
+        # if return_format.lower() == "dataframe":
+        #     return self._convert_to_dataframe(results, symbol)
+        # else:
+        return results
+
+    # Common methods for API requests #
     def _make_api_request(self, function: str, symbol: str, **params) -> Optional[Dict[str, Any]]:
         """Centralized private method for making Alpha Vantage API
         requests."""
@@ -173,6 +320,7 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         logger.error(f"Failed to fetch {function} data for {symbol} after {self.max_retries} attempts")
         return None
 
+    # Private Fundamental Data Methods #
     def _get_company_overview(self, symbol: str) -> Optional[Dict[str, Any]]:
         """
         Fetch company overview data from Alpha Vantage. This includes
@@ -231,28 +379,64 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         return self._make_api_request("SPLITS", symbol)
 
     def _get_income_statement_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch income statement data from Alpha Vantage."""
+        """
+        Fetch income statement data from Alpha Vantage.
+
+        Args:
+            symbol (str): Stock symbol to fetch income statement for.
+
+        Returns:
+            Optional[Dict[str, Any]]: Income statement data in dictionary format or
+            None if request fails.
+        """
         return self._make_api_request("INCOME_STATEMENT", symbol)
 
     def _get_balance_sheet_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch balance sheet data from Alpha Vantage."""
+        """
+        Fetch balance sheet data from Alpha Vantage.
+
+        Args:
+            symbol (str): Stock symbol to fetch balance sheet for.
+
+        Returns:
+            Optional[Dict[str, Any]]: Balance sheet data in dictionary format or
+            None if request fails.
+        """
         return self._make_api_request("BALANCE_SHEET", symbol)
 
     def _get_cash_flow_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch cash flow data from Alpha Vantage."""
+        """
+        Fetch cash flow statement data from Alpha Vantage.
+
+        Args:
+            symbol (str): Stock symbol to fetch cash flow statement for.
+
+        Returns:
+            Optional[Dict[str, Any]]: Cash flow statement data in dictionary format or
+            None if request fails.
+        """
         return self._make_api_request("CASH_FLOW", symbol)
 
     def _get_earnings_data(self, symbol: str) -> Optional[Dict[str, Any]]:
-        """Fetch earnings data from Alpha Vantage."""
+        """
+        Fetch earnings data from Alpha Vantage. This includes.
+
+        Args:
+            symbol (str): Stock symbol to fetch earnings data for.
+
+        Returns:
+            Optional[Dict[str, Any]]: Earnings data in dictionary format or
+            None if request fails.
+        """
         return self._make_api_request("EARNINGS", symbol)
 
     def _get_intraday_data(
         self,
         symbol: str,
-        interval: str = "5min",
+        interval: str = "5min",  # Valid Time intervals: 1min, 5min, 15min, 30min, 60min
         outputsize: str = "full",
         month: Optional[str] = None,
-        **kwargs,
+        **kwargs,  # not required but for future extensibility
     ) -> Optional[Dict[str, Any]]:
         """
         Fetch intraday data from Alpha Vantage.
@@ -267,7 +451,6 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         Returns:
             Optional[Dict[str, Any]]: Intraday data or None if request fails
         """
-        # Build parameters, only include non-None values
         params = {
             "interval": interval,
             "outputsize": outputsize,
@@ -298,6 +481,8 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
 
         return self._make_api_request("TIME_SERIES_DAILY", symbol, **params)
 
+    # Daily Adjusted Data Method #
+    # Only available if you have a premium Alpha Vantage key #
     def _get_daily_adjusted_data(self, symbol: str, outputsize: str = "full", **kwargs) -> Optional[Dict[str, Any]]:
         """
         Fetch daily adjusted time series data from Alpha Vantage. This
@@ -315,71 +500,3 @@ class AlphaVantageDataLoader(DataSource, FundamentalDataCapable, HistoricalDataC
         params.update(kwargs)
 
         return self._make_api_request("TIME_SERIES_DAILY_ADJUSTED", symbol, **params)
-
-    def get_fundamental_data(
-        self, symbol: str, metrics: List[Union[FundamentalMetric, str]], **kwargs
-    ) -> Union[pd.DataFrame, Dict]:
-        """
-        Get fundamental data for a single symbol by combining multiple
-        Alpha Vantage API calls.
-
-        Args:
-            symbol: Stock symbol to fetch data for
-            metrics: List of FundamentalMetric enums or strings
-            return_format: 'dict' or 'dataframe' (default: 'dict')
-            **kwargs: Additional parameters
-
-        Returns:
-            Dict with combined fundamental data or DataFrame
-        """
-        # return_format = kwargs.get("return_format", "dict")
-        results = {}
-
-        # Map metrics to private methods - use enum objects as keys consistently
-        metric_methods = {
-            FundamentalMetric.COMPANY_OVERVIEW: self._get_company_overview,
-            # Remark: etf profile not useful in our context
-            # FundamentalMetric.ETF_PROFILE: self._get_etf_profile,
-            FundamentalMetric.DIVIDENDS: self._get_dividend_data,
-            FundamentalMetric.SPLITS: self._get_splits_data,
-            FundamentalMetric.INCOME_STATEMENT: self._get_income_statement_data,
-            FundamentalMetric.BALANCE_SHEET: self._get_balance_sheet_data,
-            FundamentalMetric.CASH_FLOW: self._get_cash_flow_data,
-            FundamentalMetric.EARNINGS: self._get_earnings_data,
-        }
-
-        logger.info(f"Fetching fundamental data for {symbol}")
-
-        for metric in metrics:
-            # Handle both enum and string inputs
-            if isinstance(metric, str):
-                try:
-                    metric_enum = FundamentalMetric(metric.lower())
-                except ValueError:
-                    logger.warning(f"Unknown metric '{metric}' for symbol {symbol}")
-                    results[metric] = None
-                    continue
-            else:
-                metric_enum = metric
-
-            if metric_enum in metric_methods:
-                method = metric_methods[metric_enum]
-                data = method(symbol)
-
-                if data:
-                    results[metric_enum.value] = data
-                    logger.debug(f"Successfully fetched {metric_enum.value} for {symbol}")
-                else:
-                    logger.warning(f"Failed to fetch {metric_enum.value} for {symbol}")
-                    results[metric_enum.value] = None
-            else:
-                logger.warning(f"Unsupported metric '{metric_enum}' for symbol {symbol}")
-                results[metric_enum.value] = None
-
-        # TODO: Implement DataFrame conversion for cleaner output
-
-        # Return format based on user preference
-        # if return_format.lower() == "dataframe":
-        #     return self._convert_to_dataframe(results, symbol)
-        # else:
-        return results
