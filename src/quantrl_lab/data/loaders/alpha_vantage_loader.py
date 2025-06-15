@@ -78,9 +78,9 @@ class AlphaVantageDataLoader(
     def get_historical_ohlcv_data(
         self,
         symbol: str,
-        start_date: Union[str, datetime],
-        end_date: Union[str, datetime],
         interval: str = "1d",
+        start_date: Optional[Union[str, datetime]] = None,
+        end_date: Optional[Union[str, datetime]] = None,
         **kwargs,
     ) -> pd.DataFrame:
         """
@@ -88,49 +88,80 @@ class AlphaVantageDataLoader(
 
         Args:
             symbol: Stock symbol to fetch data for
-            start_date: Start date for filtering
-            end_date: End date for filtering
-            interval: Time interval - "1d" for daily, or intraday intervals like "5min", "15min"
-            **kwargs: Additional parameters including 'adjusted' (bool, default=True), 'outputsize', 'month', etc.
+            interval: Time interval - "1d" for daily, or intraday intervals like "1min", "5min",
+            "15min", "30min", "60min"
+            start_date: Optional start date for filtering. If None, no start filtering is applied.
+            end_date: Optional end date for filtering. If None, no end filtering is applied.
+            **kwargs: Additional parameters including:
+                     - 'adjusted' (bool, default=False): For daily data only
+                     - 'outputsize' (str): "compact" or "full"
+                     - 'month' (str): For intraday data, specify "YYYY-MM" for historical month
+
+        For daily data: If start_date/end_date are None, defaults to outputsize='full'
+        For intraday data: If 'month' is not specified, returns recent data (typically last 15-30 days)
 
         Returns:
-            pd.DataFrame: OHLCV data filtered by date range
+            pd.DataFrame: OHLCV data, optionally filtered by date range
         """
         # Extract adjusted parameter from kwargs, default to False
-        # Because adjusted daily data is behind paywall
         adjusted = kwargs.pop("adjusted", False)
 
-        # Convert dates to datetime objects for filtering
-        if isinstance(start_date, str):
-            start_date = pd.to_datetime(start_date)
-        if isinstance(end_date, str):
-            end_date = pd.to_datetime(end_date)
+        # Convert dates to datetime objects for filtering if provided
+        parsed_start_date = None
+        parsed_end_date = None
 
-        logger.info(f"Fetching {interval} data for {symbol} from {start_date.date()} to {end_date.date()}")
+        if start_date is not None:
+            parsed_start_date = pd.to_datetime(start_date) if isinstance(start_date, str) else start_date
+        if end_date is not None:
+            parsed_end_date = pd.to_datetime(end_date) if isinstance(end_date, str) else end_date
+
+        # Log what we're fetching
+        log_msg = f"Fetching {interval} data for {symbol}"
+        if parsed_start_date or parsed_end_date:
+            if parsed_start_date and parsed_end_date:
+                log_msg += f" from {parsed_start_date.date()} to {parsed_end_date.date()}"
+            elif parsed_start_date:
+                log_msg += f" from {parsed_start_date.date()} onwards"
+            elif parsed_end_date:
+                log_msg += f" up to {parsed_end_date.date()}"
+        else:
+            log_msg += " (all available data for given parameters)"
+        logger.info(log_msg)
 
         # Determine which API endpoint to use based on interval
         if interval == "1d":
+            # For daily data, default to full if no date filtering
+            if not parsed_start_date and not parsed_end_date and "outputsize" not in kwargs:
+                kwargs["outputsize"] = "full"
+                logger.info("Defaulting to outputsize='full' for daily data with no date range specified")
+
             if adjusted:
-                # Use daily adjusted data (includes dividend/split adjustments)
                 raw_data = self._get_daily_adjusted_data(symbol, **kwargs)
                 logger.info(f"Using adjusted daily data for {symbol}")
             else:
-                # Use regular daily data (raw prices)
                 raw_data = self._get_daily_data(symbol, **kwargs)
                 logger.info(f"Using raw daily data for {symbol}")
 
-            # Both daily APIs return the same key structure
             time_series_key = "Time Series (Daily)"
 
         elif interval in ["1min", "5min", "15min", "30min", "60min"]:
-            # Use intraday data (adjusted parameter doesn't apply to intraday)
             if adjusted:
                 logger.warning("Adjusted prices not available for intraday data, using raw prices")
+
+            # Log info about intraday data fetching
+            if "month" in kwargs:
+                logger.info(f"Fetching {interval} intraday data for {symbol} for month: {kwargs['month']}")
+            else:
+                logger.info(f"Fetching {interval} intraday data for {symbol} (recent data - typically last 15-30 days)")
+                logger.info("For historical intraday data, specify 'month=\"YYYY-MM\"' in kwargs")
+
             raw_data = self._get_intraday_data(symbol, interval=interval, **kwargs)
             time_series_key = f"Time Series ({interval})"
-            logger.info(f"Using {interval} intraday data for {symbol}")
         else:
-            raise ValueError(f"Unsupported interval: {interval}. Use '1d' or intraday intervals like '5min'")
+            raise ValueError(
+                f"Unsupported interval: {interval}. Use '1d' or intraday intervals like",
+                "'1min', '5min', '15min', '30min', '60min'",
+            )
 
         if not raw_data:
             logger.error(f"Failed to fetch data for {symbol}")
@@ -139,8 +170,8 @@ class AlphaVantageDataLoader(
         # Extract time series data
         if time_series_key not in raw_data:
             logger.error(
-                f"Expected key '{time_series_key}' not found in API response,"
-                "you may have hit the rate limit or the symbol may not exist."
+                f"Expected key '{time_series_key}' not found in API response for {symbol}. "
+                "This may be due to rate limits, invalid symbol, or no data available."
             )
             available_keys = list(raw_data.keys())
             logger.info(f"Available keys in response: {available_keys}")
@@ -195,14 +226,23 @@ class AlphaVantageDataLoader(
         # Sort by date (Alpha Vantage returns newest first)
         df = df.sort_index()
 
-        # Filter by date range
-        mask = (df.index >= start_date) & (df.index <= end_date)
-        df = df[mask]
+        # Apply date filtering if dates are provided
+        if parsed_start_date is not None:
+            df = df[df.index >= parsed_start_date]
+        if parsed_end_date is not None:
+            df = df[df.index <= parsed_end_date]
 
         if df.empty:
-            logger.warning(f"No data found for {symbol} in date range {start_date.date()} to {end_date.date()}")
+            warning_msg = f"No data found for {symbol}"
+            if parsed_start_date or parsed_end_date:
+                warning_msg += " matching the specified date criteria"
+            logger.warning(warning_msg)
         else:
-            data_type = "adjusted daily" if (interval == "1d" and adjusted) else interval
+            data_type = (
+                "adjusted daily"
+                if (interval == "1d" and adjusted)
+                else (f"{interval} intraday" if interval != "1d" else "daily")
+            )
             logger.info(f"Retrieved {len(df)} {data_type} records for {symbol}")
 
         return df.reset_index()
