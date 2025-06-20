@@ -87,6 +87,8 @@ class AlpacaDataLoader(
         historical_client = StockHistoricalDataClient(self.api_key, self.secret_key)
         stock_stream_client = StockDataStream(self.api_key, self.secret_key)
 
+        # TODO: There are more clients for other asset classes
+
         return historical_client, stock_stream_client
 
     def disconnect(self) -> None:
@@ -162,6 +164,7 @@ class AlpacaDataLoader(
         elif isinstance(end, str):
             end = dateutil.parser.parse(end)
 
+        # TODO: may need error handling for intraday data
         # Convert timeframe string to Alpaca TimeFrame object
         tf_mapping = {
             "1m": TimeFrame.Minute,
