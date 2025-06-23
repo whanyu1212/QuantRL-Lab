@@ -1,32 +1,32 @@
-from enum import IntEnum
 from typing import Dict, Optional, Tuple
 
 import gymnasium as gym
 import numpy as np
 from gymnasium import spaces
 
-from quantrl_lab.custom_envs.stock.config import EnvConfig
-
-
-# Define the actions using IntEnum
-class Actions(IntEnum):
-    Hold = 0
-    Buy = 1  # Market Buy
-    Sell = 2  # Market Sell
-    LimitBuy = 3  # Limit Order Buy
-    LimitSell = 4  # Limit Order Sell
-    StopLoss = 5  # Stop loss order
-    TakeProfit = 6  # Take Profit order
+from quantrl_lab.custom_envs.stock.env_config import EnvConfig
+from quantrl_lab.custom_envs.stock.strategies.actions.base_action import (
+    BaseActionStrategy,
+)
+from quantrl_lab.custom_envs.stock.strategies.actions.types.basic_market_actions import (
+    Actions,
+)
+from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
+    BaseRewardStrategy,
+)
 
 
 class StockTradingEnv(gym.Env):
     # Added metadata for Gymnasium compatibility
     metadata = {"render_modes": ["human", "ansi"], "render_fps": 4}
 
+    # TODO: Switch to use DataSourceRegistry for data loading and management
     def __init__(
         self,
         data: np.ndarray,  # Multidimensional array of market data + additional features
         config: EnvConfig,  # Configuration object for environment settings
+        action_strategy: BaseActionStrategy,  # Strategy for defining action space and handling actions,
+        reward_strategy: BaseRewardStrategy,  # Strategy for calculating rewards
     ):
         super().__init__()
 
@@ -37,7 +37,7 @@ class StockTradingEnv(gym.Env):
             raise ValueError("Data length must be greater than window_size.")
         if not (0 <= config.price_column_index < data.shape[1]):
             raise ValueError(f"price_column_index ({config.price_column_index}) is out of bounds.")
-
+        self.Actions = Actions  # Expose the Actions enum for convenience
         # === Attributes ===
         self.data = data.astype(np.float32)  # float32 for more efficiency(?)
         self.num_steps, self.num_features = self.data.shape
@@ -58,22 +58,10 @@ class StockTradingEnv(gym.Env):
         self.take_profit_orders = []  # Active Take Profit orders
         self.executed_orders_history = []  # Log of executed/expired/placed orders
 
-        # === Define Box action space ===
-        # Shape: (3,) corresponding to [action_type, amount, price_modifier]
-        action_type_low = 0
-        action_type_high = len(Actions) - 1
-        amount_low = 0.0
-        amount_high = 1.0
-        price_mod_low = 0.9  # effective stop loss range is 0.9 to 0.999
-        price_mod_high = 1.1  # effective take profit range is 1.001 to 1.1
+        # === Store the strategy and define action space via the strategy ===
+        self.action_strategy = action_strategy
+        self.action_space = self.action_strategy.define_action_space()  # <-- DELEGATION!
 
-        # Define the action space as a Box space
-        self.action_space = spaces.Box(
-            low=np.array([action_type_low, amount_low, price_mod_low], dtype=np.float32),
-            high=np.array([action_type_high, amount_high, price_mod_high], dtype=np.float32),
-            shape=(3,),
-            dtype=np.float32,
-        )
         # === Example action space values:
         # Market Buy 50% of available balance
         # [1.0, 0.5, 1.0]  # Action type 1, 50% amount, price modifier ignored
@@ -85,12 +73,6 @@ class StockTradingEnv(gym.Env):
         # [5.0, 1.0, 0.9]  # Action type 5, 100% amount, 10% below price
         # ================================================================
 
-        # Some private attributes for internal use
-        # Store bounds for easy clipping/scaling in step
-        self._action_type_bounds = (action_type_low, action_type_high)
-        self._amount_bounds = (amount_low, amount_high)
-        self._price_mod_bounds = (price_mod_low, price_mod_high)
-
         # --- Define Observation Space ---
         # Shape: (window_size * num_features) for market data + 6 for portfolio info
         obs_market_shape = self.window_size * self.num_features
@@ -98,6 +80,13 @@ class StockTradingEnv(gym.Env):
         total_obs_dim = obs_market_shape + obs_portfolio_shape
 
         self.observation_space = spaces.Box(low=-np.inf, high=np.inf, shape=(total_obs_dim,), dtype=np.float32)
+
+        # === Reward Strategy ===
+        self.reward_strategy = reward_strategy
+
+        self.prev_portfolio_value = 0.0
+        self.action_type = None
+        self.decoded_action_info = {}
 
     def _get_current_price(self) -> float:
         """
@@ -673,12 +662,14 @@ class StockTradingEnv(gym.Env):
 
     def step(self, action: np.ndarray) -> Tuple[np.ndarray, float, bool, bool, Dict]:
         """
-        Execute one time step within the environment using a flattened
-        Box action.
+        Execute one time step within the environment.
+
+        This method now delegates the complex action decoding and execution logic
+        to the injected action_strategy, making it much cleaner and more modular.
 
         Args:
-            action: A numpy array (Box action) with shape (3,) representing
-                    [action_type, amount, price_modifier].
+            action: The action provided by the agent, in the format expected
+                    by the current action_strategy.
 
         Returns:
             Tuple[np.ndarray, float, bool, bool, Dict]:
@@ -689,151 +680,57 @@ class StockTradingEnv(gym.Env):
                 f"Invalid action format received in step: {action}. Expected shape {self.action_space.shape}"
             )
 
-        # 1. Decode the flattened Box action
-        action_type_raw = np.clip(action[0], self._action_type_bounds[0], self._action_type_bounds[1])
-        amount_pct = np.clip(action[1], self._amount_bounds[0], self._amount_bounds[1])
-        price_modifier = np.clip(action[2], self._price_mod_bounds[0], self._price_mod_bounds[1])
+        # 1. Store the portfolio value BEFORE any changes happen in this step.
+        # The reward strategies will access this via `env.prev_portfolio_value`.
+        self.prev_portfolio_value = self._get_portfolio_value()
 
-        action_type_int = int(np.round(action_type_raw))
-        action_type_int = max(
-            int(self._action_type_bounds[0]),
-            min(action_type_int, int(self._action_type_bounds[1])),
-        )
-        try:
-            action_type = Actions(action_type_int)
-        except ValueError:
-            print(f"Warning: Invalid action type integer {action_type_int} after rounding. Defaulting to Hold.")
-            action_type = Actions.Hold
+        # 2. Process orders from previous steps (no change here).
+        prev_price = self._get_current_price()  # Still need prev_price for order processing
+        self._process_pending_orders(prev_price)
+        self._process_risk_management_orders(prev_price)
 
-        # 2. Store previous portfolio value and price for reward calculation
-        prev_portfolio_value = self._get_portfolio_value()
+        # 3. Handle the new action and STORE the results on `self`.
+        # The reward strategies will access these via `env.action_type` and `env.decoded_action_info`.
+        self.action_type, self.decoded_action_info = self.action_strategy.handle_action(self, action)
 
-        # This is not a redundant step, we will be comparing the price to assess if a hold is worth it
-        prev_price = self._get_current_price()
-
-        current_price = prev_price
-        if current_price <= 1e-9:
-            print(f"Warning: Near-zero price ({current_price}) at step {self.current_step}. Holding.")
-            action_type = Actions.Hold
-
-        # 4. Process existing orders based on current price (whether limit orders or stop orders can be fulfilled)
-        self._process_pending_orders(current_price)
-        self._process_risk_management_orders(current_price)
-
-        # 5. Track if an invalid risk management order was attempted
-        invalid_action_attempt = False
-        had_no_shares = self._get_total_shares() <= 0
-
-        # 6. Execute the agent's chosen action
-        if action_type == Actions.Hold:
-            pass
-        elif action_type == Actions.Buy:
-            self._execute_market_order(action_type, current_price, amount_pct)
-        elif action_type == Actions.Sell:
-            if had_no_shares:
-                invalid_action_attempt = True
-            self._execute_market_order(action_type, current_price, amount_pct)
-        elif action_type == Actions.LimitBuy:
-            self._place_limit_order(action_type, current_price, amount_pct, price_modifier)
-        elif action_type == Actions.LimitSell:
-            if had_no_shares:
-                invalid_action_attempt = True
-            self._place_limit_order(action_type, current_price, amount_pct, price_modifier)
-        elif action_type == Actions.StopLoss or action_type == Actions.TakeProfit:
-            # Check if there are no shares held before attempting a risk management order
-            if had_no_shares:
-                invalid_action_attempt = True
-                # Still call the function because it has its own validation
-                # (it will return early if no shares are held)
-            self._place_risk_management_order(action_type, current_price, amount_pct, price_modifier)
-
-        # 7. Move to the next time step
+        # 4. Advance time and get new state (no change here).
         self.current_step += 1
-
-        # 8. Get new price after step update (for reward calculation and next step)
-        current_price = self._get_current_price()  # Now this is the updated price
-
-        # 9. Check termination condition
+        current_price = self._get_current_price()
         terminated = self.current_step >= self._max_steps
-
-        # 10. Calculate reward
-        current_portfolio_value = self._get_portfolio_value()
-
-        # Calculate basic portfolio value change reward
-        if prev_portfolio_value > 1e-9:
-            reward = 0.5 * (current_portfolio_value - prev_portfolio_value) / prev_portfolio_value
-        elif self.initial_balance > 1e-9:
-            reward = 0.5 * (current_portfolio_value - self.initial_balance) / self.initial_balance
-        else:
-            reward = 0.0
-
-        trend = self.calculate_trend_strength(lookback=10)
-        trend_strength = abs(trend)
-        is_uptrend = trend > 0
-        is_downtrend = trend < 0
-
-        # Incentivize risk management based on trend
-        if invalid_action_attempt:
-            reward -= 1.0  # Keep harsh penalty for invalid attempts
-        elif action_type == Actions.TakeProfit:
-            if is_uptrend:
-                # Encourage take profit in uptrend
-                reward += 0.05 * (1 + trend_strength)
-            else:
-                # Discourage take profit in downtrend
-                reward -= 0.05 * (1 - trend_strength)
-        elif action_type == Actions.StopLoss:
-            if is_downtrend:
-                reward += 0.05 * (1 + trend_strength)
-            else:
-                # Discourage stop loss in uptrend
-                reward -= 0.05 * (1 - trend_strength)
-        elif action_type in [Actions.LimitBuy, Actions.LimitSell]:
-            reward += 0.01  # Keep moderate bonus for limit orders
-        elif action_type == Actions.Hold:
-            reward -= 0.01  # penalize overly aggressive actions
-
-        # Add trend-aware holding bonus
-        if self._get_total_shares() > 0:
-            position_size = (self._get_total_shares() * current_price) / self.initial_balance
-            if is_uptrend:
-                # Bigger bonus for holding during uptrend
-                reward += 0.1 * position_size * (1 + trend_strength)
-            elif is_downtrend:
-                # Penalty for holding during downtrend without stop loss
-                if len(self.stop_loss_orders) == 0:
-                    reward -= 0.1 * position_size * trend_strength
-
-        # Optional: Clip reward to prevent extreme values
-        reward = np.clip(reward, -5.0, 5.0).item()
-
-        # 11. Get next observation and prepare return values
-        observation = self._get_observation()
         truncated = False
 
-        # 12. Info dictionary
+        # 5. ### REWARD CALCULATION: DELEGATE TO STRATEGY ###
+        # The entire complex if/elif reward block is replaced by this single line.
+        # We pass `self` so the strategy has full access to the environment's state.
+        reward = self.reward_strategy.calculate_reward(self)
+
+        # 6. Clip the final, combined reward (good practice to keep this).
+        reward = np.clip(reward, -5.0, 5.0).item()
+
+        # 7. Call the 'on_step_end' hook for stateful strategies to update their internal memory.
+        self.reward_strategy.on_step_end(self)
+
+        # 8. Get next observation (no change here).
+        observation = self._get_observation()
+
+        # 9. Assemble info dict (no significant change here).
         info = {
             "step": self.current_step,
-            "portfolio_value": current_portfolio_value,
+            "portfolio_value": self._get_portfolio_value(),
             "balance": self.balance,
             "shares_held": self.shares_held,
             "total_shares": self._get_total_shares(),
             "current_price": current_price,
-            "prev_price": prev_price,  # Include previous price in info for analysis
-            "price_change": current_price - prev_price,  # Add price change for easier analysis
+            "prev_price": prev_price,
+            "price_change": current_price - prev_price,
             "reward": reward,
-            "action_decoded": {
-                "type": action_type.name,
-                "amount_pct": amount_pct,
-                "price_modifier": price_modifier,
-                "raw_input": action,
-            },
+            "action_decoded": self.decoded_action_info,  # Use the stored info
             "orders_info": {
                 "pending_count": len(self.pending_orders),
                 "stop_loss_count": len(self.stop_loss_orders),
                 "take_profit_count": len(self.take_profit_orders),
             },
-            "invalid_action_attempt": invalid_action_attempt,  # Add this flag to the info dict
+            "invalid_action_attempt": self.decoded_action_info["invalid_action_attempt"],
             "last_order_event": (self.executed_orders_history[-1] if self.executed_orders_history else None),
         }
 

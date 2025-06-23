@@ -21,11 +21,25 @@ class BaseActionStrategy(ABC):
 
     @abstractmethod
     def define_action_space(self) -> gym.spaces.Space:
-        """Defines and returns the action space for the environment."""
+        """
+        Defines the action space for the environment.
+
+        Returns:
+            gym.spaces.Space: The action space for the environment.
+        """
         pass
 
     @abstractmethod
     def handle_action(self, env_self: StockTradingEnv, action: Any) -> Tuple[Any, Dict[str, Any]]:
-        """Processes the raw action from the agent and executes the
-        trade."""
+        """
+        Handles the action taken by the agent in the environment.
+
+        Args:
+            env_self (StockTradingEnv): The environment instance where the action is taken.
+            action (Any): The action taken by the agent,
+            which should be compatible with the defined action space.
+
+        Returns:
+            Tuple[Any, Dict[str, Any]]: The outcome of the action taken in the environment
+        """
         pass
