@@ -48,6 +48,16 @@ class BasicActionStrategy(BaseActionStrategy):
         )
 
     def handle_action(self, env_self: StockTradingEnv, action: np.ndarray) -> Tuple[Any, Dict[str, Any]]:
+        """
+        Handles the action taken by the agent in the environment.
+
+        Args:
+            env_self (StockTradingEnv): The environment instance where the action is taken.
+            action (np.ndarray): The action taken by the agent.
+
+        Returns:
+            Tuple[Any, Dict[str, Any]]: The outcome of the action taken in the environment.
+        """
 
         # 1. Decode the flattened Box action
         action_type_raw = np.clip(action[0], 0, len(Actions) - 1)
