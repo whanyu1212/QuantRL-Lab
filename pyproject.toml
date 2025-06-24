@@ -1,0 +1,36 @@
+[project]
+name = "quantrl-lab"
+version = "0.1.0"
+description = "A lightweight Python library for developing and backtesting RL Agents in financial markets"
+authors = [
+    {name = "whanyu1212",email = "whanyu1212@hotmail.com"}
+]
+license = {text = "MIT"}
+readme = "README.md"
+requires-python = ">=3.10,<4.0"
+dependencies = [
+    "pandas (>=2.2.3,<3.0.0)",
+    "numpy (>=2.2.6,<3.0.0)",
+    "yfinance (>=0.2.61,<0.3.0)",
+    "python-dotenv (>=1.1.0,<2.0.0)",
+    "pytest (>=8.4.0,<9.0.0)",
+    "black (>=25.1.0,<26.0.0)",
+    "isort (>=6.0.1,<7.0.0)",
+    "flake8 (>=7.2.0,<8.0.0)",
+    "docformatter (>=1.7.7,<2.0.0)",
+    "ipykernel (>=6.29.5,<7.0.0)",
+    "pre-commit (>=4.2.0,<5.0.0)",
+    "gymnasium (>=1.1.1,<2.0.0)",
+    "stable-baselines3 (>=2.6.0,<3.0.0)",
+    "seaborn (>=0.13.2,<0.14.0)",
+    "loguru (>=0.7.3,<0.8.0)",
+    "alpaca-py (>=0.40.1,<0.41.0)",
+    "nbformat (>=5.10.4,<6.0.0)",
+    "pyarrow (>=20.0.0,<21.0.0)",
+    "mypy (>=1.16.0,<2.0.0)"
+]
+
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"
