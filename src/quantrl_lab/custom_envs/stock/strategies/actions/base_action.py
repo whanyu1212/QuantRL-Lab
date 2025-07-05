@@ -7,7 +7,7 @@ import gymnasium as gym
 
 # Solves circular import issues by using TYPE_CHECKING
 if TYPE_CHECKING:
-    from quantrl_lab.custom_envs.stock.envs.stock_trading_env import StockTradingEnv
+    from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
 
 class BaseActionStrategy(ABC):
@@ -30,12 +30,12 @@ class BaseActionStrategy(ABC):
         pass
 
     @abstractmethod
-    def handle_action(self, env_self: StockTradingEnv, action: Any) -> Tuple[Any, Dict[str, Any]]:
+    def handle_action(self, env_self: TradingEnvProtocol, action: Any) -> Tuple[Any, Dict[str, Any]]:
         """
         Handles the action taken by the agent in the environment.
 
         Args:
-            env_self (StockTradingEnv): The environment instance where the action is taken.
+            env_self (TradingEnvProtocol): The environment instance where the action is taken.
             action (Any): The action taken by the agent,
             which should be compatible with the defined action space.
 
