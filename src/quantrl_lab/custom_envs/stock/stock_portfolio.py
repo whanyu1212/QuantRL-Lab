@@ -88,10 +88,13 @@ class StockPortfolio(Portfolio):
         Returns:
             None
         """
+        # Clip amount_pct to valid range
+        # During training, the env.action_space.sample() function can generate values:
+        # - Slightly below 0 due to floating-point precision
+        # - Slightly above 1 due to the same reason
+        amount_pct = max(0.0, min(1.0, amount_pct))
 
         # === Runtime error checks ===
-        if amount_pct <= 0 or amount_pct > 1:
-            raise ValueError("amount_pct must be between 0 and 1")
         if self.balance <= 0 and action_type == Actions.Buy:
             raise ValueError("Insufficient balance to execute buy order")
         if action_type not in [Actions.Buy, Actions.Sell]:
