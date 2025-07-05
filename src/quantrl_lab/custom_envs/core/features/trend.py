@@ -1,36 +1,26 @@
 from __future__ import annotations
 
-from typing import TYPE_CHECKING, Protocol, Union
+from typing import TYPE_CHECKING
 
-import gymnasium as gym
 import numpy as np
 
 if TYPE_CHECKING:
-    from quantrl_lab.custom_envs.stock.stock_env import StockTradingEnv
+    from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
 
-class TrendCalculable(Protocol):
-    """Protocol for environments that support trend calculation."""
-
-    current_step: int
-    data: np.ndarray
-    price_column_index: int
-
-
-def calculate_trend_strength(env: Union[TrendCalculable, gym.Env, 'StockTradingEnv'], lookback: int = 10) -> float:
+def calculate_trend_strength(env: TradingEnvProtocol, lookback: int = 10) -> float:
     """
-    Calculates the normalized slope of the price trend over a lookback
-    period.
+    Calculate the trend strength of the environment's price data.
 
     Args:
-        env (Union[TrendCalculable, gym.Env, 'StockTradingEnv']): The environment to calculate the trend from.
-        lookback (int, optional): The number of steps to look back for the trend calculation. Defaults to 10.
+        env (TradingEnvProtocol): The trading environment to analyze.
+        lookback (int, optional): The number of steps to look back for trend calculation. Defaults to 10.
 
     Raises:
         AttributeError: If the environment is missing required attributes.
 
     Returns:
-        float: The normalized trend strength, typically between -1 and 1.
+        float: The calculated trend strength.
     """
     # Ensure env has the required attributes
     if not hasattr(env, 'current_step') or not hasattr(env, 'data') or not hasattr(env, 'price_column_index'):
