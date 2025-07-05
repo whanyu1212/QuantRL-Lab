@@ -7,7 +7,7 @@ from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
 )
 
 if TYPE_CHECKING:
-    from quantrl_lab.custom_envs.stock.env_single_stock import StockTradingEnv
+    from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
 
 class InvalidActionPenalty(BaseRewardStrategy):
@@ -20,17 +20,17 @@ class InvalidActionPenalty(BaseRewardStrategy):
     def __init__(self, penalty: float = -1.0):
         self.penalty = penalty
 
-    def calculate_reward(self, env: StockTradingEnv) -> float:
+    def calculate_reward(self, env: TradingEnvProtocol) -> float:
         """
         Calculate the reward based on the action taken in the
         environment. If an invalid action is attempted, a penalty is
         applied.
 
         Args:
-            env (StockTradingEnv): StockTradingEnv instance
+            env (TradingEnvProtocol): The trading environment instance.
 
         Returns:
-            float: penalty for invalid action attempt
+            float: The penalty for invalid action attempt.
         """
         if env.decoded_action_info.get("invalid_action_attempt", False):
             return self.penalty

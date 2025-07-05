@@ -3,8 +3,9 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from quantrl_lab.custom_envs.stock.env_single_stock import StockTradingEnv
+    from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
+from quantrl_lab.custom_envs.core.features.trend import calculate_trend_strength
 from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
     BaseRewardStrategy,
 )
@@ -27,7 +28,7 @@ class TrendFollowingReward(BaseRewardStrategy):
         super().__init__()
         self.reward_multiplier = reward_multiplier
 
-    def calculate_reward(self, env: StockTradingEnv) -> float:
+    def calculate_reward(self, env: TradingEnvProtocol) -> float:
         """
         Calculate the reward based on the action taken in the
         environment. This reward is based on the current price trend. It
@@ -36,13 +37,13 @@ class TrendFollowingReward(BaseRewardStrategy):
         not apply a reward.
 
         Args:
-            env (StockTradingEnv): StockTradingEnv instance
+            env (TradingEnvProtocol): The trading environment instance.
 
         Returns:
             float: reward based on the trend following actions
         """
         action_type = env.action_type
-        trend = env.calculate_trend_strength(lookback=10)
+        trend = calculate_trend_strength(env, lookback=10)
         trend_strength = abs(trend)
         is_uptrend = trend > 0
         is_downtrend = trend < 0
