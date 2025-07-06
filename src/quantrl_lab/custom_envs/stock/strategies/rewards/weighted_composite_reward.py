@@ -7,7 +7,7 @@ from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
 )
 
 if TYPE_CHECKING:
-    from quantrl_lab.custom_envs.stock.env_single_stock import StockTradingEnv
+    from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
 
 class WeightedCompositeReward(BaseRewardStrategy):
@@ -25,16 +25,16 @@ class WeightedCompositeReward(BaseRewardStrategy):
         self.strategies = strategies
         self.weights = weights
 
-    def calculate_reward(self, env: StockTradingEnv) -> float:
+    def calculate_reward(self, env: TradingEnvProtocol) -> float:
         """
         Calculate the weighted composite reward based on the child
         strategies.
 
         Args:
-            env (StockTradingEnv): StockTradingEnv instance
+            env (TradingEnvProtocol): The trading environment instance.
 
         Returns:
-            float: weighted composite reward based on the child strategies
+            float: The weighted composite reward based on the child strategies.
         """
         total_reward = 0.0
         for strategy, weight in zip(self.strategies, self.weights):
@@ -44,12 +44,12 @@ class WeightedCompositeReward(BaseRewardStrategy):
 
         return total_reward
 
-    def on_step_end(self, env: StockTradingEnv):
+    def on_step_end(self, env: TradingEnvProtocol):
         """Optional: A hook to update any internal state if needed.
         This method is called at the end of each step in the environment.
 
         Args:
-            env (StockTradingEnv): StockTradingEnv instance
+            env (TradingEnvProtocol): The trading environment instance.
         """
         for strategy in self.strategies:
             strategy.on_step_end(env)

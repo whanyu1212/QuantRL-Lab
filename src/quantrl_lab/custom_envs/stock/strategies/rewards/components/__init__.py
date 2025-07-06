@@ -1,6 +1,3 @@
-from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (  # noqa: F401
-    BaseRewardStrategy,
-)
 from quantrl_lab.custom_envs.stock.strategies.rewards.components.hold_penalty import (  # noqa: F401
     HoldPenalty,
 )

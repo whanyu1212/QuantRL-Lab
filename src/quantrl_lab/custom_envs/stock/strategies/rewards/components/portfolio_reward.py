@@ -7,27 +7,33 @@ from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
 )
 
 if TYPE_CHECKING:
-    from quantrl_lab.custom_envs.stock.env_single_stock import StockTradingEnv
+    from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
 
 class PortfolioValueChangeReward(BaseRewardStrategy):
     """Calculates reward based on the % change in portfolio value."""
 
-    def calculate_reward(self, env: StockTradingEnv) -> float:
+    def calculate_reward(self, env: TradingEnvProtocol) -> float:
         """
-        Calculate the reward based on the percentage change in portfolio
-        value. This reward is calculated as the percentage change in
-        portfolio value from the previous step to the current step.
+        Calculates the reward based on the percentage change in
+        portfolio value.
+
+        This method now correctly interacts with the environment's portfolio
+        component to get the current value.
 
         Args:
-            env (StockTradingEnv): StockTradingEnv instance
+            env (TradingEnvProtocol): The environment instance.
 
         Returns:
-            float: percentage change in portfolio value
+            float: The percentage change in portfolio value since the previous step.
         """
         prev_val = env.prev_portfolio_value
-        current_val = env._get_portfolio_value()
+
+        current_price = env._get_current_price()
+
+        current_val = env.portfolio.get_value(current_price)
 
         if prev_val > 1e-9:
             return (current_val - prev_val) / prev_val
+
         return 0.0
