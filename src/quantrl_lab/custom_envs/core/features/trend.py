@@ -23,7 +23,7 @@ def calculate_trend_strength(env: TradingEnvProtocol, lookback: int = 10) -> flo
         float: The calculated trend strength.
     """
     # Ensure env has the required attributes
-    if not hasattr(env, 'current_step') or not hasattr(env, 'data') or not hasattr(env, 'price_column_index'):
+    if not hasattr(env, "current_step") or not hasattr(env, "data") or not hasattr(env, "price_column_index"):
         raise AttributeError("Environment must have current_step, data, and price_column_index attributes")
 
     if env.current_step < lookback or len(env.data) < lookback:
