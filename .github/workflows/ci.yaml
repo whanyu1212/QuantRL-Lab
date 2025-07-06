@@ -1,0 +1,162 @@
+name: QuantRL-Lab CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch: # Allows manual triggering
+
+jobs:
+  lint:
+    name: Run Linting
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction
+
+      - name: Run linting
+        run: |
+          poetry run flake8 src tests
+          poetry run black --check src tests
+          poetry run isort --check-only src tests
+
+  test:
+    name: Run Tests
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction
+          poetry add pytest-cov  # Add pytest-cov explicitly
+
+      - name: Run tests
+        run: |
+          poetry run pytest tests/ --cov=src/quantrl_lab --cov-report=xml
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  rl-compatibility:
+    name: RL Framework Compatibility
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}-rl
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction
+
+      - name: Create compatibility test script
+        run: |
+          cat > check_env.py << 'EOL'
+          import numpy as np
+          from stable_baselines3.common.env_checker import check_env
+          from quantrl_lab.custom_envs.stock import SingleStockTradingEnv, SingleStockEnvConfig
+          from quantrl_lab.custom_envs.stock.strategies.actions.types.standard_market_action_strategy import StandardMarketActionStrategy
+          from quantrl_lab.custom_envs.stock.strategies.rewards import PortfolioValueChangeReward
+          from quantrl_lab.custom_envs.stock.strategies.observations import PortfolioWithTrendObservation
+
+          # Create test data
+          data_size = 100
+          PRICE_COLUMN_INDEX = 3
+          test_data = np.random.rand(data_size, 5).astype(np.float32)
+          test_data[:, PRICE_COLUMN_INDEX] = 50 + np.arange(data_size) * 0.2 + np.random.randn(data_size) * 0.5
+
+          # Create config
+          config = SingleStockEnvConfig(
+              price_column_index=PRICE_COLUMN_INDEX,
+              window_size=10,
+              initial_balance=10000.0,
+              transaction_cost_pct=0.001,
+              slippage=0.0005,
+              order_expiration_steps=5
+          )
+
+          # Create environment
+          env = SingleStockTradingEnv(
+              data=test_data,
+              config=config,
+              action_strategy=StandardMarketActionStrategy(),
+              reward_strategy=PortfolioValueChangeReward(),
+              observation_strategy=PortfolioWithTrendObservation()
+          )
+
+          # Check environment
+          check_env(env)
+          print('✅ Environment is compatible with StableBaselines3')
+          EOL
+
+      - name: Run StableBaselines3 compatibility test
+        run: |
+          poetry run python check_env.py
