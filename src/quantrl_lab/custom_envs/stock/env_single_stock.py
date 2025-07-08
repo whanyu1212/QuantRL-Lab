@@ -47,7 +47,15 @@ class SingleStockTradingEnv(gym.Env):
         self.num_steps, self.num_features = self.data.shape
         self.price_column_index = config.price_column_index
         self.window_size = config.window_size
-        self._max_steps = self.num_steps - 1  # Max indexable step
+        self._max_steps = self.num_steps - 1  # Max indexable step (data limit)
+
+        # Set max episode steps - if None, use full data length
+        self.max_episode_steps = config.max_episode_steps
+        if self.max_episode_steps is None:
+            self.max_episode_steps = self._max_steps - self.window_size + 1
+
+        # Track episode steps separately from data steps
+        self.episode_step = 0
 
         # Initialize the portfolio
         self.portfolio = StockPortfolio(
@@ -120,17 +128,20 @@ class SingleStockTradingEnv(gym.Env):
         # The reward strategies will access these via `env.action_type` and `env.decoded_action_info`.
         self.action_type, self.decoded_action_info = self.action_strategy.handle_action(self, action)
 
-        # 4. Advance time and get new state (no change here).
-        # Increment the current step and check if we have reached the end of the episode.
-        # This is done before calculating the reward to ensure the reward is based on the state after
-        # the action has been applied.
+        # 4. Advance time and check termination/truncation conditions
+        # Increment the current step and episode step
         if self.current_step >= self._max_steps:
             raise ValueError("Cannot step beyond the maximum number of steps in the environment.")
-        # Increment the step count
+
         self.current_step += 1
+        self.episode_step += 1
         current_price = self._get_current_price()
+
+        # Determine termination and truncation
+        # terminated: natural end of episode (reached end of data)
+        # truncated: artificial time limit (max_episode_steps reached)
         terminated = self.current_step >= self._max_steps
-        truncated = False
+        truncated = self.episode_step >= self.max_episode_steps
 
         # 5. Reward Calculation. This is delegated to the reward strategy.
         # We pass `self` so the strategy has full access to the environment's state.
@@ -174,6 +185,9 @@ class SingleStockTradingEnv(gym.Env):
         # and to avoid index errors.
         self.current_step = self.window_size
 
+        # Reset episode step counter
+        self.episode_step = 0
+
         # 2. Reset the portfolio to its initial state.
         # This clears any pending orders, resets the balance, and prepares the portfolio
         # for a new episode.
@@ -206,7 +220,8 @@ class SingleStockTradingEnv(gym.Env):
         total_shares = self.portfolio.total_shares
 
         print("-" * 40)
-        print(f"Step:         {self.current_step}/{self._max_steps}")
+        print(f"Data Step:    {self.current_step}/{self._max_steps}")
+        print(f"Episode Step: {self.episode_step}/{self.max_episode_steps}")
         print(f"Current Price:{current_price:>15.2f}")
         print(f"Balance:      {self.portfolio.balance:>15.2f}")
         print(f"Shares Held:  {self.portfolio.shares_held:>15} (Free)")
@@ -257,7 +272,8 @@ class SingleStockTradingEnv(gym.Env):
             last_event_str = f"{last_event['type']} (S:{last_event.get('shares', 'N/A')}, P:{price_str})"
 
         return (
-            f"Step: {self.current_step}/{self._max_steps} | "
+            f"Data Step: {self.current_step}/{self._max_steps} | "
+            f"Episode Step: {self.episode_step}/{self.max_episode_steps} | "
             f"Price: {current_price:.2f} | "
             f"Balance: {self.portfolio.balance:.2f} | "
             f"Shares(F/T): {self.portfolio.shares_held}/{total_shares} | "
@@ -305,6 +321,8 @@ class SingleStockTradingEnv(gym.Env):
         current_price = self._get_current_price()
         return {
             "step": self.current_step,
+            "episode_step": self.episode_step,
+            "max_episode_steps": self.max_episode_steps,
             "portfolio_value": self.portfolio.get_value(current_price),
             "balance": self.portfolio.balance,
             "shares_held": self.portfolio.shares_held,

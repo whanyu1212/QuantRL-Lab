@@ -18,6 +18,8 @@ class SingleStockEnvConfig(CoreEnvConfig):
     slippage: float = 0.001  # 0.1% slippage
     order_expiration_steps: int = 5
     reward_clip_range: Tuple[float, float] = (-5.0, 5.0)
+    max_episode_steps: int = None  # If None, uses full data length;
+    # otherwise truncates episodes to accommodate different strategies
 
     class Config:
         from_attributes = True  # "ORM Mode"
