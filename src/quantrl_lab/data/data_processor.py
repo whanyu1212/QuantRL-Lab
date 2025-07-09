@@ -20,7 +20,7 @@ class SentimentConfig:  # default
     device: int = -1  # -1 for CPU, 0 for GPU
     max_length: Optional[int] = None
     truncation: bool = True
-    return_all_scores: bool = False
+    top_k: int = 1  # `return_all_scores` is deprecated
 
     # Supported models for validation
     SUPPORTED_MODELS: List[str] = field(
@@ -34,8 +34,6 @@ class SentimentConfig:  # default
 
     def __post_init__(self):
         """Validate configuration after initialization."""
-        if self.batch_size <= 0:
-            raise ValueError("batch_size must be positive")
 
         if self.device < -1:
             raise ValueError("device must be -1 (CPU) or >= 0 (GPU)")
@@ -52,17 +50,16 @@ class SentimentConfig:  # default
             'model_name': self.model_name,
             'text_column': self.text_column,
             'date_column': self.date_column,
-            'batch_size': self.batch_size,
             'device': self.device,
             'max_length': self.max_length,
             'truncation': self.truncation,
-            'return_all_scores': self.return_all_scores,
+            'top_k': self.top_k,
         }
 
 
 class DataProcessor:
     def __init__(self, olhcv_data: pd.DataFrame, **kwargs):
-        self.olhcv_data = olhcv_data
+        self.olhcv_data = olhcv_data  # minimal required data
         self.news_data = kwargs.get('news_data', None)
         self.fundamental_data = kwargs.get('fundamental_data', None)
         self.macro_data = kwargs.get('macro_data', None)
@@ -90,7 +87,7 @@ class DataProcessor:
                     'tokenizer': self.sentiment_config.model_name,
                     'device': device,
                     'truncation': self.sentiment_config.truncation,
-                    'return_all_scores': self.sentiment_config.return_all_scores,
+                    'top_k': self.sentiment_config.top_k,
                 }
 
                 if self.sentiment_config.max_length:
@@ -148,7 +145,15 @@ class DataProcessor:
 
         sentiments = sentiment_pipeline(texts_to_analyze)
 
-        news_data['sentiment_score'] = [result['score'] for result in sentiments]
+        # Handle cases where each result might itself be a list
+        scores = []
+        for result in sentiments:
+            if isinstance(result, list):
+                scores.append(result[0]['score'])
+            else:
+                scores.append(result['score'])
+
+        news_data['sentiment_score'] = scores
 
         # === Process date column ===
         news_data[self.sentiment_config.date_column] = pd.to_datetime(
@@ -218,7 +223,7 @@ class DataProcessor:
                 custom_params = kwargs.get(f"{indicator_name}_params", {})
 
                 # Apply the indicator with custom parameters
-                logger.debug(f"Applying {indicator_name} with params: {custom_params}")
+                logger.info(f"Applying {indicator_name} with params: {custom_params}")
                 result = IndicatorRegistry.apply(indicator_name, result, **custom_params)
 
             except Exception as e:
@@ -226,13 +231,13 @@ class DataProcessor:
 
         return result
 
-    def append_news_sentiment_data(self, df: pd.DataFrame, strategy="neutral") -> pd.DataFrame:
+    def append_news_sentiment_data(self, df: pd.DataFrame, fillna_strategy="neutral") -> pd.DataFrame:
         """
         Append news sentiment data to the OHLCV DataFrame.
 
         Args:
             df (pd.DataFrame): Input OHLCV DataFrame.
-            strategy (str, optional): Strategy for handling missing sentiment scores. Defaults to "neutral".
+            fillna_strategy (str, optional): Strategy for handling missing sentiment scores. Defaults to "neutral".
 
         Raises:
             ValueError: If the input DataFrame is empty or if the strategy is unsupported.
@@ -244,9 +249,9 @@ class DataProcessor:
         if df.empty:
             raise ValueError("Input DataFrame is empty. Cannot append news sentiment data.")
 
-        if strategy not in ["neutral", "fill_forward"]:
+        if fillna_strategy not in ["neutral", "fill_forward"]:
             raise ValueError(
-                f"Unsupported strategy: {strategy}. Supported strategies are 'neutral' and 'fill_forward'."
+                f"Unsupported strategy: {fillna_strategy}. Supported strategies are 'neutral' and 'fill_forward'."
             )
 
         sentiment_scores = self._get_news_sentiment_scores(self.news_data)
@@ -254,46 +259,38 @@ class DataProcessor:
         # Merge sentiment scores with OHLCV data
         merged_data = pd.merge(df, sentiment_scores, on='Date', how='left')
 
-        if strategy == "neutral":
+        if fillna_strategy == "neutral":
             # Fill NaN sentiment scores with 0.0 for neutral strategy
             merged_data['sentiment_score'] = merged_data['sentiment_score'].fillna(0.0)
-        elif strategy == "fill_forward":
+        elif fillna_strategy == "fill_forward":
             # Fill NaN sentiment scores with forward fill for fill-forward strategy
             merged_data['sentiment_score'] = merged_data['sentiment_score'].fillna(method='ffill')
         else:
             raise ValueError(
-                f"Unsupported strategy: {strategy}. Supported strategies are 'neutral' and 'fill_forward'."
+                f"Unsupported strategy: {fillna_strategy}. Supported strategies are 'neutral' and 'fill_forward'."
             )
 
         return merged_data
 
     def data_processing_pipeline(
-        self, indicators: Optional[List[Union[str, Dict]]] = None, strategy: str = "neutral", **kwargs
+        self, indicators: Optional[List[Union[str, Dict]]] = None, fillna_strategy: str = "neutral", **kwargs
     ) -> pd.DataFrame:
         """
         Main data processing pipeline.
 
         Args:
             indicators (Optional[List[Union[str, Dict]]], optional):
-            List of indicators to apply. Defaults to None.
+                List of indicators to apply. Defaults to None.
             strategy (str, optional): Strategy for handling missing sentiment scores.
-            Defaults to "neutral".
+                Defaults to "neutral".
 
         Returns:
             pd.DataFrame: Processed DataFrame with technical indicators and sentiment scores.
         """
-
-        # Append technical indicators
         processed_data = self.append_technical_indicators(self.olhcv_data, indicators, **kwargs)
 
-        # Append news sentiment data
-        processed_data = self.append_news_sentiment_data(processed_data, strategy)
+        if self.news_data is None:
+            logger.warning("No news data provided. Skipping sentiment analysis.")
+            return processed_data
 
-        return processed_data
-        # Append technical indicators
-        processed_data = self.append_technical_indicators(self.olhcv_data, indicators, **kwargs)
-
-        # Append news sentiment data
-        processed_data = self.append_news_sentiment_data(processed_data, strategy)
-
-        return processed_data
+        return self.append_news_sentiment_data(processed_data, fillna_strategy)
