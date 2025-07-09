@@ -1,14 +1,11 @@
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import List, Optional, Union
 
 import pandas as pd
-from loguru import logger
 
-from quantrl_lab.data.indicators.indicator_registry import IndicatorRegistry
-from quantrl_lab.data.indicators.technical_indicators import *  # noqa: F401, F403
 from quantrl_lab.data.loaders.alpaca_loader import AlpacaDataLoader
-from quantrl_lab.data.loaders.alpha_vantage_loader import AlphaVantageDataLoader
-from quantrl_lab.data.loaders.yfinance_loader import YfinanceDataloader
+from quantrl_lab.data.loaders.alpha_vantage_loader import AlphaVantageDataLoader  # noqa: F401
+from quantrl_lab.data.loaders.yfinance_loader import YfinanceDataloader  # noqa: F401
 
 
 class DataSourceRegistry:
@@ -17,8 +14,8 @@ class DataSourceRegistry:
     # can be overridden by passing sources dict to constructor
     DEFAULT_SOURCES = {
         "primary_source": AlpacaDataLoader,
-        "fundamental_source": YfinanceDataloader,
-        "macro_source": AlphaVantageDataLoader,
+        # "fundamental_source": YfinanceDataloader,
+        # "macro_source": AlphaVantageDataLoader,
         "news_source": AlpacaDataLoader,
         # "analyst_source": FMPDataLoader,
         # "calendar_events_source": FMPDataLoader,
@@ -59,6 +56,18 @@ class DataSourceRegistry:
         timeframe: str = "1d",
         **kwargs,
     ) -> pd.DataFrame:
+        """
+        Fetch historical OHLCV data from the primary data source.
+
+        Args:
+            symbols (Union[str, List[str]]): Stock symbol(s) to fetch data for.
+            start (Union[str, datetime]): Start date for the data.
+            end (Optional[Union[str, datetime]], optional): End date for the data. Defaults to None.
+            timeframe (str, optional): Timeframe for the data. Defaults to "1d".
+
+        Returns:
+            pd.DataFrame: Historical OHLCV data.
+        """
 
         # Use primary source to fetch historical data
         return self.primary_source.get_historical_ohlcv_data(
@@ -69,65 +78,24 @@ class DataSourceRegistry:
             **kwargs,
         )
 
-    def get_technical_indicators(
+    def get_news_data(
         self,
-        df: pd.DataFrame,
-        indicators: Optional[List[Union[str, Dict]]] = None,
+        symbols: str,
+        start: Union[str, datetime],
+        end: Optional[Union[str, datetime]] = None,
         **kwargs,
     ) -> pd.DataFrame:
         """
-        Add technical indicators to existing OHLCV DataFrame.
+        Get news data for a symbol or list of symbols.
 
         Args:
-            df (pd.DataFrame): raw OHLCV data
-            indicators (Optional[List[Union[str, Dict]]], optional): Defaults to None.
-
-        Raises:
-            ValueError: if input DataFrame is empty
-            ValueError: if required columns are missing
+            symbols (str): stock symbol(s)
+            start (Union[str, datetime]): start date or timestamp
+            end (Optional[Union[str, datetime]], optional): end date or timestamp.
+            Defaults to None.
 
         Returns:
-            pd.DataFrame: DataFrame with added technical indicators
+            pd.DataFrame: raw news data
         """
 
-        # Validate input DataFrame
-        if df.empty:
-            raise ValueError("Input DataFrame is empty. Technical indicators cannot be added.")
-
-        # Check for required columns (case-insensitive)
-        column_check = {col.lower(): col for col in df.columns}
-        required_cols = ["open", "high", "low", "close", "volume"]
-        missing_cols = []
-
-        for req_col in required_cols:
-            if req_col not in column_check and req_col.upper() not in column_check:
-                missing_cols.append(req_col)
-
-        if missing_cols:
-            raise ValueError(f"Missing required columns in DataFrame: {', '.join(missing_cols)}")
-
-        result = df.copy()
-
-        # Return original if no indicators specified
-        if not indicators:
-            return result
-
-        available_indicators = set(IndicatorRegistry.list_all())
-
-        for indicator_name in indicators:
-            if indicator_name not in available_indicators:
-                logger.warning(f"Indicator '{indicator_name}' not found in registry. Skipping.")
-                continue
-            try:
-                # Extract custom parameters for this indicator if provided
-                # Look for {indicator_name}_params in the kwargs
-                custom_params = kwargs.get(f"{indicator_name}_params", {})
-
-                # Apply the indicator with custom parameters
-                logger.debug(f"Applying {indicator_name} with params: {custom_params}")
-                result = IndicatorRegistry.apply(indicator_name, result, **custom_params)
-
-            except Exception as e:
-                logger.error(f"Failed to apply indicator '{indicator_name}' - {e}")
-
-        return result
+        return self.news_source.get_news_data(symbols=symbols, start=start, end=end, **kwargs)
