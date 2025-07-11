@@ -1,5 +1,14 @@
 # QuantRL-Lab
-A Python testbed for Reinforcement Learning in finance
+A Python testbed for Reinforcement Learning in finance, designed to enable researchers and developers to experiment with and evaluate RL algorithms in financial contexts. The project emphasizes modularity and configurability, allowing users to tailor the environment, data sources, and algorithmic settings to their specific needs.
+
+### Why Configurability Matters
+QuantRL-Lab is built with configurability at its core, ensuring that:
+- **Flexibility**: Users can easily adapt the testbed to different financial instruments, data sources, and RL algorithms.
+- **Reproducibility**: Configurable settings make it straightforward to replicate experiments and share results.
+- **Scalability**: Modular design allows for seamless integration of new features, such as custom environments, policies, or data pipelines.
+- **Efficiency**: By enabling fine-grained control over configurations, users can optimize computational resources and focus on specific aspects of their research.
+
+Whether you're exploring single-stock trading strategies or multi-agent portfolio optimization, QuantRL-Lab provides the tools and framework to accelerate your research and development.
 
 ### Setup Guide
 
@@ -71,3 +80,8 @@ git commit -m "your message" --no-verify
 ```
 
 For more details, please refer to `.pre-commit-config.yaml` file.
+
+### Literature Review
+
+
+### TODO
