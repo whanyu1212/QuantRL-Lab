@@ -14,7 +14,8 @@ from alpaca.data.requests import (
     StockLatestTradeRequest,
 )
 from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
-from loguru import logger
+from rich.console import Console
+from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 
 from quantrl_lab.data.interface import (
     DataSource,
@@ -23,6 +24,8 @@ from quantrl_lab.data.interface import (
     NewsDataCapable,
     StreamingCapable,
 )
+
+console = Console()
 
 
 class AlpacaDataLoader(
@@ -153,7 +156,9 @@ class AlpacaDataLoader(
             pd.DataFrame: raw OHLCV data
         """
 
-        logger.info(f"Fetching historical data for {symbols} from {start} to {end} with timeframe {timeframe}")
+        console.print(
+            f"[green]Fetching historical data for {symbols} from {start} to {end} with timeframe {timeframe}[/green]"
+        )
 
         # Convert string inputs to proper types
         if isinstance(start, str):
@@ -259,7 +264,7 @@ class AlpacaDataLoader(
         """
 
         async def quote_data_handler(data):
-            logger.info(f"Received quote: {data}\n")
+            console.print(f"[green]Received quote: {data}[/green]")
 
             # TODO: Process the quote data as needed and execute strategies
 
@@ -274,7 +279,7 @@ class AlpacaDataLoader(
         try:
             await self.stock_stream_client.run()
         except Exception as e:
-            print(f"Error in WebSocket stream: {e}")
+            console.print(f"[red]Error in WebSocket stream: {e}[/red]")
             raise
 
     async def stop_streaming(self):
@@ -343,36 +348,51 @@ class AlpacaDataLoader(
         page_token = None
         page_count = 0
 
-        while True:
-            # Add page token if we have one
-            if page_token:
-                params["page_token"] = page_token
+        # Create progress bar for news fetching
+        with Progress(
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+            TimeRemainingColumn(),
+            console=console,
+        ) as progress:
+            # We don't know the total number of pages, so we'll use an indeterminate progress
+            task = progress.add_task(f"[cyan]Fetching news for {symbols}...", total=None)
 
-            try:
-                response = requests.get(base_url, headers=headers, params=params)
-                response.raise_for_status()  # Raise exception for HTTP errors
+            while True:
+                # Add page token if we have one
+                if page_token:
+                    params["page_token"] = page_token
 
-                data = response.json()
-                news_items = data.get("news", [])
+                try:
+                    response = requests.get(base_url, headers=headers, params=params)
+                    response.raise_for_status()  # Raise exception for HTTP errors
 
-                if not news_items:
+                    data = response.json()
+                    news_items = data.get("news", [])
+
+                    if not news_items:
+                        break
+
+                    all_news.extend(news_items)
+                    page_count += 1
+
+                    # Update progress description with current stats
+                    progress.update(
+                        task, description=f"[cyan]Fetched page {page_count} ({len(all_news)} news items total)..."
+                    )
+
+                    # Check if there's a next page
+                    page_token = data.get("next_page_token")
+                    if not page_token:
+                        break
+
+                except requests.exceptions.RequestException as e:
+                    console.print(f"[red]Error fetching news: {e}[/red]")
                     break
 
-                all_news.extend(news_items)
-                page_count += 1
-
-                logger.info(f"Fetched page {page_count} with {len(news_items)} news items")
-
-                # Check if there's a next page
-                page_token = data.get("next_page_token")
-                if not page_token:
-                    break
-
-            except requests.exceptions.RequestException as e:
-                logger.error(f"Error fetching news: {e}")
-                break
-
-        logger.info(f"Total news items fetched: {len(all_news)}")
+        console.print(f"[green]✓ Total news items fetched: {len(all_news)}[/green]")
 
         # Convert to DataFrame
         if all_news:
@@ -389,28 +409,28 @@ if __name__ == "__main__":
     async def main():
         alpaca_client = AlpacaDataLoader()
         # Test historical data
-        print("\nTesting historical data:")
+        console.print("\n[bold blue]Testing historical data:[/bold blue]")
         df = alpaca_client.get_historical_ohlcv_data("AAPL", start="2023-01-01", end="2023-01-10")
-        print(df.head())
+        console.print(df.head())
 
         # Test news data
-        print("\nTesting news data:")
+        console.print("\n[bold blue]Testing news data:[/bold blue]")
         news_df = alpaca_client.get_news_data("AAPL", start="2023-01-01", end="2023-01-10", limit=10)
         if not news_df.empty:
-            print(news_df.iloc[:5][["headline", "created_at", "summary"]])
+            console.print(news_df.iloc[:5][["headline", "created_at", "summary"]])
 
         # Set up the subscription
-        print("\nTesting websocket:")
+        console.print("\n[bold blue]Testing websocket:[/bold blue]")
 
         # Set up the subscription
         await alpaca_client.subscribe_to_updates("AAPL")
 
         # Start streaming data
         try:
-            logger.info("Starting WebSocket connection...")
+            console.print("[cyan]Starting WebSocket connection...[/cyan]")
             await alpaca_client.start_streaming()
         except KeyboardInterrupt:
-            logger.info("Closing connection...")
+            console.print("[yellow]Closing connection...[/yellow]")
         finally:
             await alpaca_client.stop_streaming()
 

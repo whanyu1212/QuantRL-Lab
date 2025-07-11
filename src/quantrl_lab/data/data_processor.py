@@ -3,11 +3,13 @@ from typing import Dict, List, Optional, Union
 
 import pandas as pd
 import torch
-from loguru import logger
+from rich.console import Console
 from transformers import pipeline
 
 from quantrl_lab.data.indicators.indicator_registry import IndicatorRegistry
 from quantrl_lab.data.indicators.technical_indicators import *  # noqa: F401, F403
+
+console = Console()
 
 
 @dataclass
@@ -39,10 +41,8 @@ class SentimentConfig:  # default
             raise ValueError("device must be -1 (CPU) or >= 0 (GPU)")
 
         if self.model_name not in self.SUPPORTED_MODELS:
-            print(
-                f"⚠️  Warning: Model '{self.model_name}' not in supported models list. "
-                f"Supported models: {self.SUPPORTED_MODELS}"
-            )
+            console.print(f"[yellow]⚠️  Warning: Model '{self.model_name}' not in supported models list.[/yellow]")
+            console.print(f"[cyan]Supported models: {self.SUPPORTED_MODELS}[/cyan]")
 
     def to_dict(self) -> Dict:
         """Convert config to dictionary."""
@@ -94,7 +94,10 @@ class DataProcessor:
                     pipeline_kwargs['max_length'] = self.sentiment_config.max_length
 
                 self._sentiment_pipeline = pipeline("sentiment-analysis", **pipeline_kwargs)
-                logger.info(f"Sentiment analysis pipeline initialized with model: {self.sentiment_config.model_name}")
+                console.print(
+                    "[green]✓ Sentiment analysis pipeline initialized with model: ",
+                    f"{self.sentiment_config.model_name}[/green]",
+                )
             except Exception as e:
                 raise RuntimeError(f"Failed to load sentiment model: {e}")
 
@@ -215,7 +218,7 @@ class DataProcessor:
 
         for indicator_name in indicators:
             if indicator_name not in available_indicators:
-                logger.warning(f"Indicator '{indicator_name}' not found in registry. Skipping.")
+                console.print(f"[yellow]⚠️  Indicator '{indicator_name}' not found in registry. Skipping.[/yellow]")
                 continue
             try:
                 # Extract custom parameters for this indicator if provided
@@ -223,11 +226,11 @@ class DataProcessor:
                 custom_params = kwargs.get(f"{indicator_name}_params", {})
 
                 # Apply the indicator with custom parameters
-                logger.info(f"Applying {indicator_name} with params: {custom_params}")
+                console.print(f"[cyan]Applying {indicator_name} with params: {custom_params}[/cyan]")
                 result = IndicatorRegistry.apply(indicator_name, result, **custom_params)
 
             except Exception as e:
-                logger.error(f"Failed to apply indicator '{indicator_name}' - {e}")
+                console.print(f"[red]❌ Failed to apply indicator '{indicator_name}' - {e}[/red]")
 
         return result
 
@@ -272,6 +275,36 @@ class DataProcessor:
 
         return merged_data
 
+    def drop_unwanted_columns(self, df: pd.DataFrame, columns_to_drop: Optional[List[str]] = None) -> pd.DataFrame:
+        """
+        Drop unwanted columns from the DataFrame.
+
+        Args:
+            df (pd.DataFrame): Input DataFrame.
+            columns_to_drop (Optional[List[str]], optional): List of column names to drop.
+                If None, will drop default columns ('Date', 'Timestamp', 'Symbol'). Defaults to None.
+
+        Returns:
+            pd.DataFrame: DataFrame with specified columns dropped.
+        """
+        if columns_to_drop is None:
+            columns_to_drop = ['Date', 'Timestamp', 'Symbol']
+        elif not isinstance(columns_to_drop, list):
+            raise ValueError("columns_to_drop must be a list of column names.")
+
+        return df.drop(columns=columns_to_drop, errors='ignore')
+
+    def convert_columns_to_numeric(self, df: pd.DataFrame, columns: Optional[List[str]] = None) -> pd.DataFrame:
+        if columns is None:
+            columns = df.columns
+        elif not isinstance(columns, list):
+            raise ValueError("columns must be a list of column names.")
+        for col in columns:
+            if df[col].dtype == "object":
+                df[col] = pd.to_numeric(df[col], errors="coerce")
+
+        return df
+
     def data_processing_pipeline(
         self, indicators: Optional[List[Union[str, Dict]]] = None, fillna_strategy: str = "neutral", **kwargs
     ) -> pd.DataFrame:
@@ -290,7 +323,23 @@ class DataProcessor:
         processed_data = self.append_technical_indicators(self.olhcv_data, indicators, **kwargs)
 
         if self.news_data is None:
-            logger.warning("No news data provided. Skipping sentiment analysis.")
+            console.print("[yellow]⚠️  No news data provided. Skipping sentiment analysis.[/yellow]")
             return processed_data
 
-        return self.append_news_sentiment_data(processed_data, fillna_strategy)
+        data_w_sentiment = self.append_news_sentiment_data(processed_data, fillna_strategy)
+
+        # Drop unwanted columns if specified
+        columns_to_drop = kwargs.get('columns_to_drop', None)
+        if columns_to_drop is not None:
+            data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment, columns_to_drop)
+        else:
+            data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment)
+
+        # Convert specified columns to numeric
+        columns_to_convert = kwargs.get('columns_to_convert', None)
+        if columns_to_convert is not None:
+            data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment, columns_to_convert)
+        else:
+            data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment)
+
+        return data_w_sentiment.dropna().reset_index(drop=True)
