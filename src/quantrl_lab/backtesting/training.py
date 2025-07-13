@@ -62,7 +62,9 @@ def train_model(
             # Use preset configuration
             preset_config = get_preset_config(algo_class, preset)
             if preset_config:
-                base_params.update(preset_config)
+                # Convert config object to dict
+                preset_config_dict = preset_config.__dict__.copy()
+                base_params.update(preset_config_dict)
 
         # Override with any additional kwargs
         base_params.update(kwargs)

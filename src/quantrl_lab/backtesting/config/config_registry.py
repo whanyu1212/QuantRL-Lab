@@ -101,3 +101,27 @@ class AlgorithmConfigRegistry:
             return SACConfig(learning_rate=0.0001)
         else:
             raise ValueError(f"Unsupported algorithm class: {algo_class.__name__}")
+
+    @staticmethod
+    def get_preset_config(algo_class: Type, preset: str) -> Union[PPOConfig, A2CConfig, SACConfig]:
+        """
+        Get configuration for algorithm based on preset name.
+
+        Args:
+            algo_class (Type): The algorithm class for which to get the config.
+            preset (str): The preset name ("default", "explorative", "conservative").
+
+        Raises:
+            ValueError: If the algorithm class or preset is not supported.
+
+        Returns:
+            Union[PPOConfig, A2CConfig, SACConfig]: The configuration for the algorithm and preset.
+        """
+        if preset == "default":
+            return AlgorithmConfigRegistry.get_default_config(algo_class)
+        elif preset == "explorative":
+            return AlgorithmConfigRegistry.get_explorative_config(algo_class)
+        elif preset == "conservative":
+            return AlgorithmConfigRegistry.get_conservative_config(algo_class)
+        else:
+            raise ValueError(f"Unsupported preset: {preset}. Available presets: default, explorative, conservative")
