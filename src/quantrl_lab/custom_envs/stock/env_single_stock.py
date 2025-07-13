@@ -1,7 +1,8 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import gymnasium as gym
 import numpy as np
+import pandas as pd
 
 from quantrl_lab.custom_envs.core.actions import Actions
 from quantrl_lab.custom_envs.stock.stock_config import SingleStockEnvConfig
@@ -21,33 +22,79 @@ class SingleStockTradingEnv(gym.Env):
     # Added metadata for Gymnasium compatibility
     metadata = {"render_modes": ["human", "ansi"], "render_fps": 4}
 
-    # TODO: Switch to use DataSourceRegistry for data loading and management
-
     def __init__(
         self,
-        data: np.ndarray,  # Multidimensional array of market data + additional features
+        data: Union[pd.DataFrame, np.ndarray],  # DataFrame or numpy array of market data + features
         config: SingleStockEnvConfig,  # Configuration object for environment settings
         action_strategy: BaseActionStrategy,  # Strategy for defining action space and handling actions,
         reward_strategy: BaseRewardStrategy,  # Strategy for calculating rewards
         observation_strategy: BaseObservationStrategy,
+        price_column: Optional[Union[str, int]] = None,  # Column name or index for price (auto-detected if None)
     ):
         super().__init__()
 
+        # === Handle DataFrame input with auto-detection ===
+        if isinstance(data, pd.DataFrame):
+            self.original_columns = data.columns.tolist()
+
+            # Auto-detect price column if not specified
+            if price_column is None:
+                self.price_column_index = self._auto_detect_price_column(data)
+            elif isinstance(price_column, str):
+                if price_column not in data.columns:
+                    raise ValueError(
+                        f"Price column '{price_column}' not found in DataFrame. Available columns: {list(data.columns)}"
+                    )
+                self.price_column_index = data.columns.get_loc(price_column)
+            elif isinstance(price_column, int):
+                if not (0 <= price_column < len(data.columns)):
+                    raise ValueError(
+                        f"Price column index {price_column} out of bounds. DataFrame has {len(data.columns)} columns."
+                    )
+                self.price_column_index = price_column
+            else:
+                raise ValueError("price_column must be a string (column name), integer (index), or None (auto-detect)")
+
+            # Convert DataFrame to numpy array
+            data_array = data.values.astype(np.float32)
+        else:
+            # Handle numpy array input (existing behavior)
+            self.original_columns = None
+            if price_column is None:
+                # Use config.price_column_index for backward compatibility
+                if hasattr(config, "price_column_index") and config.price_column_index is not None:
+                    self.price_column_index = config.price_column_index
+                else:
+                    raise ValueError("price_column must be provided when using numpy arrays")
+            elif isinstance(price_column, int):
+                self.price_column_index = price_column
+            else:
+                raise ValueError("price_column must be an integer index when using numpy arrays")
+
+            data_array = data.astype(np.float32)
+
         # === Runtime error handling ===
-        if not isinstance(data, np.ndarray) or data.ndim != 2:
-            raise ValueError("Data must be a 2D numpy array (num_steps, num_features).")
-        if data.shape[0] <= config.window_size:
+        if data_array.ndim != 2:
+            raise ValueError("Data must be a 2D array (num_steps, num_features).")
+        if data_array.shape[0] <= config.window_size:
             raise ValueError("Data length must be greater than window_size.")
-        if not (0 <= config.price_column_index < data.shape[1]):
-            raise ValueError(f"price_column_index ({config.price_column_index}) is out of bounds.")
+        if not (0 <= self.price_column_index < data_array.shape[1]):
+            raise ValueError(f"price_column_index ({self.price_column_index}) is out of bounds.")
 
         # === Attributes ===
         self.Actions = Actions  # reference to the Actions class for easy access
-        self.data = data.astype(np.float32)  # float32 for more efficiency and better compatibility
+        self.data = data_array  # Already converted to float32 above
         self.num_steps, self.num_features = self.data.shape
-        self.price_column_index = config.price_column_index
         self.window_size = config.window_size
-        self._max_steps = self.num_steps - 1  # Max indexable step
+        self._max_steps = self.num_steps - 1  # Max indexable step (data limit)
+
+        # Set max episode steps - if None, use full data length
+        self.max_episode_steps = config.max_episode_steps
+        if self.max_episode_steps is None:
+            self.max_episode_steps = self._max_steps - self.window_size + 1
+
+        # Track episode steps separately from data steps
+        self.episode_step = 0
 
         # Initialize the portfolio
         self.portfolio = StockPortfolio(
@@ -120,17 +167,20 @@ class SingleStockTradingEnv(gym.Env):
         # The reward strategies will access these via `env.action_type` and `env.decoded_action_info`.
         self.action_type, self.decoded_action_info = self.action_strategy.handle_action(self, action)
 
-        # 4. Advance time and get new state (no change here).
-        # Increment the current step and check if we have reached the end of the episode.
-        # This is done before calculating the reward to ensure the reward is based on the state after
-        # the action has been applied.
+        # 4. Advance time and check termination/truncation conditions
+        # Increment the current step and episode step
         if self.current_step >= self._max_steps:
             raise ValueError("Cannot step beyond the maximum number of steps in the environment.")
-        # Increment the step count
+
         self.current_step += 1
+        self.episode_step += 1
         current_price = self._get_current_price()
+
+        # Determine termination and truncation
+        # terminated: natural end of episode (reached end of data)
+        # truncated: artificial time limit (max_episode_steps reached)
         terminated = self.current_step >= self._max_steps
-        truncated = False
+        truncated = self.episode_step >= self.max_episode_steps
 
         # 5. Reward Calculation. This is delegated to the reward strategy.
         # We pass `self` so the strategy has full access to the environment's state.
@@ -174,6 +224,9 @@ class SingleStockTradingEnv(gym.Env):
         # and to avoid index errors.
         self.current_step = self.window_size
 
+        # Reset episode step counter
+        self.episode_step = 0
+
         # 2. Reset the portfolio to its initial state.
         # This clears any pending orders, resets the balance, and prepares the portfolio
         # for a new episode.
@@ -206,7 +259,8 @@ class SingleStockTradingEnv(gym.Env):
         total_shares = self.portfolio.total_shares
 
         print("-" * 40)
-        print(f"Step:         {self.current_step}/{self._max_steps}")
+        print(f"Data Step:    {self.current_step}/{self._max_steps}")
+        print(f"Episode Step: {self.episode_step}/{self.max_episode_steps}")
         print(f"Current Price:{current_price:>15.2f}")
         print(f"Balance:      {self.portfolio.balance:>15.2f}")
         print(f"Shares Held:  {self.portfolio.shares_held:>15} (Free)")
@@ -257,7 +311,8 @@ class SingleStockTradingEnv(gym.Env):
             last_event_str = f"{last_event['type']} (S:{last_event.get('shares', 'N/A')}, P:{price_str})"
 
         return (
-            f"Step: {self.current_step}/{self._max_steps} | "
+            f"Data Step: {self.current_step}/{self._max_steps} | "
+            f"Episode Step: {self.episode_step}/{self.max_episode_steps} | "
             f"Price: {current_price:.2f} | "
             f"Balance: {self.portfolio.balance:.2f} | "
             f"Shares(F/T): {self.portfolio.shares_held}/{total_shares} | "
@@ -273,6 +328,54 @@ class SingleStockTradingEnv(gym.Env):
         pass
 
     # === Private Methods ===
+
+    def _auto_detect_price_column(self, df: pd.DataFrame) -> int:
+        """
+        Auto-detect the price column index from a DataFrame.
+
+        Args:
+            df (pd.DataFrame): Input DataFrame with price data
+
+        Returns:
+            int: Index of the detected price column
+
+        Raises:
+            ValueError: If no suitable price column is found
+        """
+        columns = df.columns.tolist()
+
+        # Priority order for price column detection
+        price_candidates = [
+            "close",
+            "Close",
+            "CLOSE",  # Most common
+            "price",
+            "Price",
+            "PRICE",
+            "adj_close",
+            "Adj Close",
+            "ADJ_CLOSE",
+            "adjusted_close",
+            "Adjusted_Close",
+        ]
+
+        # First, try exact matches
+        for candidate in price_candidates:
+            if candidate in columns:
+                return columns.index(candidate)
+
+        # Then try case-insensitive partial matches
+        for i, col in enumerate(columns):
+            col_lower = col.lower()
+            if any(candidate.lower() in col_lower for candidate in ["close", "price"]):
+                return i
+
+        # If no obvious price column found, raise an error with helpful message
+        raise ValueError(
+            f"Could not auto-detect price column. Available columns: {columns}. "
+            f"Please ensure your DataFrame has a column named 'close', 'price', or similar, "
+            f"or specify the price_column parameter explicitly."
+        )
 
     def _get_current_price(self) -> float:
         """
@@ -305,6 +408,8 @@ class SingleStockTradingEnv(gym.Env):
         current_price = self._get_current_price()
         return {
             "step": self.current_step,
+            "episode_step": self.episode_step,
+            "max_episode_steps": self.max_episode_steps,
             "portfolio_value": self.portfolio.get_value(current_price),
             "balance": self.portfolio.balance,
             "shares_held": self.portfolio.shares_held,
