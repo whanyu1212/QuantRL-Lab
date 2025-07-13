@@ -32,18 +32,18 @@ class AlgorithmConfigRegistry:
             raise ValueError(f"Unsupported algorithm class: {algo_class.__name__}")
 
     @staticmethod
-    def get_exploration_config(algo_class: Type) -> Union[PPOConfig, A2CConfig, SACConfig]:
+    def get_explorative_config(algo_class: Type) -> Union[PPOConfig, A2CConfig, SACConfig]:
         """
-        Get exploration-friendly configuration for algorithm.
+        Get explorative configuration for algorithm.
 
         Args:
-            algo_class (Type): The algorithm class for which to get the exploration config.
+            algo_class (Type): The algorithm class for which to get the explorative config.
 
         Raises:
             ValueError: If the algorithm class is not supported.
 
         Returns:
-            Union[PPOConfig, A2CConfig, SACConfig]: The exploration-friendly configuration for the algorithm.
+            Union[PPOConfig, A2CConfig, SACConfig]: The explorative configuration for the algorithm.
         """
         if algo_class == PPO:
             return PPOConfig(
