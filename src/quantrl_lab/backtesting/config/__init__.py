@@ -5,9 +5,9 @@ from .config_registry import AlgorithmConfigRegistry
 get_preset_config = AlgorithmConfigRegistry.get_preset_config
 
 __all__ = [
-    'PPOConfig',
-    'A2CConfig',
-    'SACConfig',
-    'AlgorithmConfigRegistry',
-    'get_preset_config',
+    "PPOConfig",
+    "A2CConfig",
+    "SACConfig",
+    "AlgorithmConfigRegistry",
+    "get_preset_config",
 ]  # allows you to import * from quantrl_lab.backtesting.config

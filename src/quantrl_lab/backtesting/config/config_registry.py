@@ -71,8 +71,8 @@ class AlgorithmConfigRegistry:
                 tau=0.01,  # Faster target network updates
                 train_freq=1,  # Train every step
                 gradient_steps=2,  # More gradient steps per update
-                ent_coef='auto',  # Auto entropy tuning for exploration
-                target_entropy='auto',  # Auto target entropy
+                ent_coef="auto",  # Auto entropy tuning for exploration
+                target_entropy="auto",  # Auto target entropy
             )
         else:
             raise ValueError(f"Unsupported algorithm class: {algo_class.__name__}")

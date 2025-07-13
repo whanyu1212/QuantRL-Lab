@@ -46,9 +46,9 @@ def train_model(
 
         # Build model parameters
         base_params = {
-            'policy': policy,
-            'env': env,
-            'verbose': 0 if suppress_logs else verbose,  # Force verbose=0 when suppressing logs
+            "policy": policy,
+            "env": env,
+            "verbose": 0 if suppress_logs else verbose,  # Force verbose=0 when suppressing logs
         }
 
         # Handle both dict and config objects

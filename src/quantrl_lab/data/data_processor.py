@@ -47,24 +47,24 @@ class SentimentConfig:  # default
     def to_dict(self) -> Dict:
         """Convert config to dictionary."""
         return {
-            'model_name': self.model_name,
-            'text_column': self.text_column,
-            'date_column': self.date_column,
-            'device': self.device,
-            'max_length': self.max_length,
-            'truncation': self.truncation,
-            'top_k': self.top_k,
+            "model_name": self.model_name,
+            "text_column": self.text_column,
+            "date_column": self.date_column,
+            "device": self.device,
+            "max_length": self.max_length,
+            "truncation": self.truncation,
+            "top_k": self.top_k,
         }
 
 
 class DataProcessor:
     def __init__(self, olhcv_data: pd.DataFrame, **kwargs):
         self.olhcv_data = olhcv_data  # minimal required data
-        self.news_data = kwargs.get('news_data', None)
-        self.fundamental_data = kwargs.get('fundamental_data', None)
-        self.macro_data = kwargs.get('macro_data', None)
+        self.news_data = kwargs.get("news_data", None)
+        self.fundamental_data = kwargs.get("fundamental_data", None)
+        self.macro_data = kwargs.get("macro_data", None)
 
-        sentiment_config_input = kwargs.get('sentiment_config', {})
+        sentiment_config_input = kwargs.get("sentiment_config", {})
         if isinstance(sentiment_config_input, SentimentConfig):
             self.sentiment_config = sentiment_config_input
         elif isinstance(sentiment_config_input, dict):
@@ -83,15 +83,15 @@ class DataProcessor:
                 device = 0 if torch.cuda.is_available() and self.sentiment_config.device == 0 else -1
 
                 pipeline_kwargs = {
-                    'model': self.sentiment_config.model_name,
-                    'tokenizer': self.sentiment_config.model_name,
-                    'device': device,
-                    'truncation': self.sentiment_config.truncation,
-                    'top_k': self.sentiment_config.top_k,
+                    "model": self.sentiment_config.model_name,
+                    "tokenizer": self.sentiment_config.model_name,
+                    "device": device,
+                    "truncation": self.sentiment_config.truncation,
+                    "top_k": self.sentiment_config.top_k,
                 }
 
                 if self.sentiment_config.max_length:
-                    pipeline_kwargs['max_length'] = self.sentiment_config.max_length
+                    pipeline_kwargs["max_length"] = self.sentiment_config.max_length
 
                 self._sentiment_pipeline = pipeline("sentiment-analysis", **pipeline_kwargs)
                 console.print(
@@ -152,11 +152,11 @@ class DataProcessor:
         scores = []
         for result in sentiments:
             if isinstance(result, list):
-                scores.append(result[0]['score'])
+                scores.append(result[0]["score"])
             else:
-                scores.append(result['score'])
+                scores.append(result["score"])
 
-        news_data['sentiment_score'] = scores
+        news_data["sentiment_score"] = scores
 
         # === Process date column ===
         news_data[self.sentiment_config.date_column] = pd.to_datetime(
@@ -164,8 +164,8 @@ class DataProcessor:
         ).dt.date
 
         # === Group by date and calculate mean sentiment score ===
-        news_data = news_data.groupby(self.sentiment_config.date_column).agg({'sentiment_score': 'mean'}).reset_index()
-        news_data.rename(columns={self.sentiment_config.date_column: 'Date'}, inplace=True)
+        news_data = news_data.groupby(self.sentiment_config.date_column).agg({"sentiment_score": "mean"}).reset_index()
+        news_data.rename(columns={self.sentiment_config.date_column: "Date"}, inplace=True)
 
         if news_data.empty:
             raise ValueError("No valid news data found after processing.")
@@ -260,14 +260,14 @@ class DataProcessor:
         sentiment_scores = self._get_news_sentiment_scores(self.news_data)
 
         # Merge sentiment scores with OHLCV data
-        merged_data = pd.merge(df, sentiment_scores, on='Date', how='left')
+        merged_data = pd.merge(df, sentiment_scores, on="Date", how="left")
 
         if fillna_strategy == "neutral":
             # Fill NaN sentiment scores with 0.0 for neutral strategy
-            merged_data['sentiment_score'] = merged_data['sentiment_score'].fillna(0.0)
+            merged_data["sentiment_score"] = merged_data["sentiment_score"].fillna(0.0)
         elif fillna_strategy == "fill_forward":
             # Fill NaN sentiment scores with forward fill for fill-forward strategy
-            merged_data['sentiment_score'] = merged_data['sentiment_score'].fillna(method='ffill')
+            merged_data["sentiment_score"] = merged_data["sentiment_score"].fillna(method="ffill")
         else:
             raise ValueError(
                 f"Unsupported strategy: {fillna_strategy}. Supported strategies are 'neutral' and 'fill_forward'."
@@ -288,11 +288,11 @@ class DataProcessor:
             pd.DataFrame: DataFrame with specified columns dropped.
         """
         if columns_to_drop is None:
-            columns_to_drop = ['Date', 'Timestamp', 'Symbol']
+            columns_to_drop = ["Date", "Timestamp", "Symbol"]
         elif not isinstance(columns_to_drop, list):
             raise ValueError("columns_to_drop must be a list of column names.")
 
-        return df.drop(columns=columns_to_drop, errors='ignore')
+        return df.drop(columns=columns_to_drop, errors="ignore")
 
     def convert_columns_to_numeric(self, df: pd.DataFrame, columns: Optional[List[str]] = None) -> pd.DataFrame:
         if columns is None:
@@ -329,14 +329,14 @@ class DataProcessor:
         data_w_sentiment = self.append_news_sentiment_data(processed_data, fillna_strategy)
 
         # Drop unwanted columns if specified
-        columns_to_drop = kwargs.get('columns_to_drop', None)
+        columns_to_drop = kwargs.get("columns_to_drop", None)
         if columns_to_drop is not None:
             data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment, columns_to_drop)
         else:
             data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment)
 
         # Convert specified columns to numeric
-        columns_to_convert = kwargs.get('columns_to_convert', None)
+        columns_to_convert = kwargs.get("columns_to_convert", None)
         if columns_to_convert is not None:
             data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment, columns_to_convert)
         else:

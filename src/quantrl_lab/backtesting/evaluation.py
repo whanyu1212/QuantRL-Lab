@@ -42,20 +42,20 @@ def evaluate_model(
 
         # Initialize episode tracking
         episode_results = {
-            'episode': episode + 1,
-            'steps': 0,
-            'final_value': 0,
-            'total_reward': 0,
-            'initial_value': 0,
-            'actions_taken': {},
-            'detailed_actions': [],
-            'rewards_per_step': [],
+            "episode": episode + 1,
+            "steps": 0,
+            "final_value": 0,
+            "total_reward": 0,
+            "initial_value": 0,
+            "actions_taken": {},
+            "detailed_actions": [],
+            "rewards_per_step": [],
         }
 
         try:
             # Reset environment
             obs, info = env.reset()
-            episode_results['initial_value'] = info.get('portfolio_value', 100000.0)
+            episode_results["initial_value"] = info.get("portfolio_value", 100000.0)
 
             terminated = False
             truncated = False
@@ -69,35 +69,35 @@ def evaluate_model(
                 # Take step
                 obs, reward, terminated, truncated, info = env.step(action)
                 episode_reward += reward
-                episode_results['rewards_per_step'].append(reward)
+                episode_results["rewards_per_step"].append(reward)
 
                 # Track action information
-                action_decoded = info.get('action_decoded', {})
-                action_type = action_decoded.get('type', 'Unknown')
-                amount_pct = action_decoded.get('amount_pct', 0.0)
-                price_modifier = action_decoded.get('price_modifier', 1.0)
-                is_valid = not action_decoded.get('invalid_action_attempt', False)
+                action_decoded = info.get("action_decoded", {})
+                action_type = action_decoded.get("type", "Unknown")
+                amount_pct = action_decoded.get("amount_pct", 0.0)
+                price_modifier = action_decoded.get("price_modifier", 1.0)
+                is_valid = not action_decoded.get("invalid_action_attempt", False)
 
-                current_price = info.get('current_price', 0.0)
-                portfolio_value = info.get('portfolio_value', 0.0)
+                current_price = info.get("current_price", 0.0)
+                portfolio_value = info.get("portfolio_value", 0.0)
 
                 # Store detailed action information
                 detailed_action = {
-                    'step': step_count,
-                    'action_type': action_type,
-                    'amount_pct': amount_pct,
-                    'price_modifier': price_modifier,
-                    'is_valid': is_valid,
-                    'current_price': current_price,
-                    'portfolio_value': portfolio_value,
-                    'reward': reward,
+                    "step": step_count,
+                    "action_type": action_type,
+                    "amount_pct": amount_pct,
+                    "price_modifier": price_modifier,
+                    "is_valid": is_valid,
+                    "current_price": current_price,
+                    "portfolio_value": portfolio_value,
+                    "reward": reward,
                 }
-                episode_results['detailed_actions'].append(detailed_action)
+                episode_results["detailed_actions"].append(detailed_action)
 
                 # Update action counts
                 if isinstance(action_type, str):
-                    episode_results['actions_taken'][action_type] = (
-                        episode_results['actions_taken'].get(action_type, 0) + 1
+                    episode_results["actions_taken"][action_type] = (
+                        episode_results["actions_taken"].get(action_type, 0) + 1
                     )
 
                 # Progress reporting
@@ -113,13 +113,13 @@ def evaluate_model(
                 step_count += 1
 
             # Store final episode results
-            episode_results['steps'] = step_count
-            episode_results['final_value'] = info.get('portfolio_value', 0.0)
-            episode_results['total_reward'] = episode_reward
+            episode_results["steps"] = step_count
+            episode_results["final_value"] = info.get("portfolio_value", 0.0)
+            episode_results["total_reward"] = episode_reward
 
             # Calculate returns
-            initial_val = episode_results['initial_value']
-            final_val = episode_results['final_value']
+            initial_val = episode_results["initial_value"]
+            final_val = episode_results["final_value"]
             return_pct = ((final_val - initial_val) / initial_val) * 100 if initial_val > 0 else 0
 
             if verbose:
@@ -133,13 +133,13 @@ def evaluate_model(
                 console.print(f"  Total Reward: [yellow]{episode_reward:.2f}[/yellow]")
 
                 # Print action distribution in a table
-                if episode_results['actions_taken']:
+                if episode_results["actions_taken"]:
                     action_table = Table(title="Action Distribution", show_header=True)
                     action_table.add_column("Action", style="cyan")
                     action_table.add_column("Count", justify="right", style="green")
                     action_table.add_column("Percentage", justify="right", style="yellow")
 
-                    for action_name, count in episode_results['actions_taken'].items():
+                    for action_name, count in episode_results["actions_taken"].items():
                         percentage = (count / step_count) * 100 if step_count > 0 else 0
                         action_table.add_row(action_name, str(count), f"{percentage:.1f}%")
 
@@ -151,7 +151,7 @@ def evaluate_model(
         except Exception as e:
             console.print(f"[red]Error during episode {episode + 1}: {e}[/red]")
             total_rewards.append(0.0)
-            episode_results['error'] = str(e)
+            episode_results["error"] = str(e)
             all_episode_results.append(episode_results)
 
     # Print overall summary
@@ -169,10 +169,10 @@ def evaluate_model(
         summary_table.add_row("Worst Episode Reward", f"{min(total_rewards):.2f}")
 
         # Calculate average return
-        valid_episodes = [ep for ep in all_episode_results if 'error' not in ep]
+        valid_episodes = [ep for ep in all_episode_results if "error" not in ep]
         if valid_episodes:
             avg_return = np.mean(
-                [((ep['final_value'] - ep['initial_value']) / ep['initial_value']) * 100 for ep in valid_episodes]
+                [((ep["final_value"] - ep["initial_value"]) / ep["initial_value"]) * 100 for ep in valid_episodes]
             )
             return_color = "green" if avg_return >= 0 else "red"
             summary_table.add_row("Average Return", f"[{return_color}]{avg_return:.2f}%[/{return_color}]")
@@ -237,27 +237,27 @@ def compare_model_performance(
     performance_metrics = {}
 
     for model_name, (rewards, episodes) in evaluation_results.items():
-        valid_episodes = [ep for ep in episodes if 'error' not in ep]
+        valid_episodes = [ep for ep in episodes if "error" not in ep]
 
         if valid_episodes:
             # Calculate metrics
             avg_reward = np.mean(rewards)
             std_reward = np.std(rewards)
             avg_return = np.mean(
-                [((ep['final_value'] - ep['initial_value']) / ep['initial_value']) * 100 for ep in valid_episodes]
+                [((ep["final_value"] - ep["initial_value"]) / ep["initial_value"]) * 100 for ep in valid_episodes]
             )
             std_return = np.std(
-                [((ep['final_value'] - ep['initial_value']) / ep['initial_value']) * 100 for ep in valid_episodes]
+                [((ep["final_value"] - ep["initial_value"]) / ep["initial_value"]) * 100 for ep in valid_episodes]
             )
-            avg_steps = np.mean([ep['steps'] for ep in valid_episodes])
+            avg_steps = np.mean([ep["steps"] for ep in valid_episodes])
 
             performance_metrics[model_name] = {
-                'avg_reward': avg_reward,
-                'std_reward': std_reward,
-                'avg_return_pct': avg_return,
-                'std_return_pct': std_return,
-                'avg_steps': avg_steps,
-                'num_episodes': len(valid_episodes),
+                "avg_reward": avg_reward,
+                "std_reward": std_reward,
+                "avg_return_pct": avg_return,
+                "std_return_pct": std_return,
+                "avg_steps": avg_steps,
+                "num_episodes": len(valid_episodes),
             }
 
     if verbose and performance_metrics:
@@ -276,7 +276,7 @@ def compare_model_performance(
         comparison_table.add_column("Episodes", justify="right", style="cyan")
 
         for model_name, metrics in performance_metrics.items():
-            return_color = "green" if metrics['avg_return_pct'] >= 0 else "red"
+            return_color = "green" if metrics["avg_return_pct"] >= 0 else "red"
             comparison_table.add_row(
                 model_name,
                 f"{metrics['avg_reward']:.2f}",
@@ -284,7 +284,7 @@ def compare_model_performance(
                 f"[{return_color}]{metrics['avg_return_pct']:.2f}%[/{return_color}]",
                 f"{metrics['std_return_pct']:.2f}%",
                 f"{metrics['avg_steps']:.0f}",
-                str(metrics['num_episodes']),
+                str(metrics["num_episodes"]),
             )
 
         console.print(comparison_table)
@@ -307,16 +307,16 @@ def get_action_statistics(episode_results: List[Dict[str, Any]]) -> Dict[str, An
     total_steps = 0
 
     for episode in episode_results:
-        if 'error' not in episode:
-            total_steps += episode['steps']
-            for action_type, count in episode.get('actions_taken', {}).items():
+        if "error" not in episode:
+            total_steps += episode["steps"]
+            for action_type, count in episode.get("actions_taken", {}).items():
                 all_actions[action_type] = all_actions.get(action_type, 0) + count
 
     # Calculate statistics
-    action_stats = {'total_steps': total_steps, 'action_counts': all_actions, 'action_percentages': {}}
+    action_stats = {"total_steps": total_steps, "action_counts": all_actions, "action_percentages": {}}
 
     if total_steps > 0:
         for action_type, count in all_actions.items():
-            action_stats['action_percentages'][action_type] = (count / total_steps) * 100
+            action_stats["action_percentages"][action_type] = (count / total_steps) * 100
 
     return action_stats

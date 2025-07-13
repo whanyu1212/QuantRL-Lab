@@ -37,14 +37,14 @@ def create_stock_env_factories(
     )
 
     return {
-        'train_env_factory': lambda: SingleStockTradingEnv(
+        "train_env_factory": lambda: SingleStockTradingEnv(
             data=train_data,
             config=base_config,
             action_strategy=action_strategy,
             reward_strategy=reward_strategy,
             observation_strategy=observation_strategy,
         ),
-        'test_env_factory': lambda: SingleStockTradingEnv(
+        "test_env_factory": lambda: SingleStockTradingEnv(
             data=test_data,
             config=base_config,
             action_strategy=action_strategy,

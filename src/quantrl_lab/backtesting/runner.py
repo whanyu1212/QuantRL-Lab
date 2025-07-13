@@ -79,8 +79,8 @@ class BacktestRunner:
         """
 
         # Extract factories from env_config
-        train_env_factory = env_config['train_env_factory']
-        test_env_factory = env_config['test_env_factory']
+        train_env_factory = env_config["train_env_factory"]
+        test_env_factory = env_config["test_env_factory"]
 
         if self.verbose:
             console.print(f"\n[bold blue]{'='*60}[/bold blue]")
@@ -137,23 +137,23 @@ class BacktestRunner:
         test_action_stats = get_action_statistics(test_episodes)
 
         results = {
-            'model': model,
-            'algo_class': algo_class.__name__,
-            'config': config,
-            'preset': preset,
-            'total_timesteps': total_timesteps,
-            'train_rewards': train_rewards,
-            'test_rewards': test_rewards,
-            'train_episodes': train_episodes,
-            'test_episodes': test_episodes,
-            'train_avg_reward': np.mean(train_rewards),
-            'test_avg_reward': np.mean(test_rewards),
-            'train_avg_return_pct': train_return,
-            'test_avg_return_pct': test_return,
-            'train_reward_std': np.std(train_rewards),
-            'test_reward_std': np.std(test_rewards),
-            'train_action_stats': train_action_stats,
-            'test_action_stats': test_action_stats,
+            "model": model,
+            "algo_class": algo_class.__name__,
+            "config": config,
+            "preset": preset,
+            "total_timesteps": total_timesteps,
+            "train_rewards": train_rewards,
+            "test_rewards": test_rewards,
+            "train_episodes": train_episodes,
+            "test_episodes": test_episodes,
+            "train_avg_reward": np.mean(train_rewards),
+            "test_avg_reward": np.mean(test_rewards),
+            "train_avg_return_pct": train_return,
+            "test_avg_return_pct": test_return,
+            "train_reward_std": np.std(train_rewards),
+            "test_reward_std": np.std(test_rewards),
+            "train_action_stats": train_action_stats,
+            "test_action_stats": test_action_stats,
         }
 
         if self.verbose:
@@ -230,7 +230,7 @@ class BacktestRunner:
             except Exception as e:
                 if self.verbose:
                     console.print(f"[red]ERROR with {algo_class.__name__}: {str(e)}[/red]")
-                results[algo_class.__name__] = {'error': str(e)}
+                results[algo_class.__name__] = {"error": str(e)}
 
         # Print comparison summary
         if self.verbose:
@@ -287,7 +287,7 @@ class BacktestRunner:
             except Exception as e:
                 if self.verbose:
                     console.print(f"[red]ERROR with preset {preset}: {str(e)}[/red]")
-                results[preset] = {'error': str(e)}
+                results[preset] = {"error": str(e)}
 
         # Print comparison summary
         if self.verbose:
@@ -344,7 +344,7 @@ class BacktestRunner:
             except Exception as e:
                 if self.verbose:
                     console.print(f"[red]ERROR with environment {env_name}: {str(e)}[/red]")
-                results[env_name] = {'error': str(e)}
+                results[env_name] = {"error": str(e)}
 
         # Print comparison summary
         if self.verbose:
@@ -493,7 +493,7 @@ class BacktestRunner:
                     except Exception as e:
                         if self.verbose:
                             console.print(f"[red]ERROR: {str(e)}[/red]")
-                        all_results[algo_name][env_name][config_name] = {'error': str(e)}
+                        all_results[algo_name][env_name][config_name] = {"error": str(e)}
 
                 else:
                     # Use presets (existing behavior)
@@ -515,7 +515,7 @@ class BacktestRunner:
                         except Exception as e:
                             if self.verbose:
                                 console.print(f"[red]ERROR: {str(e)}[/red]")
-                            all_results[algo_name][env_name][preset] = {'error': str(e)}
+                            all_results[algo_name][env_name][preset] = {"error": str(e)}
 
         # Print final summary
         if self.verbose:
@@ -582,11 +582,11 @@ class BacktestRunner:
         Returns:
             float: Average return percentage.
         """
-        valid_episodes = [ep for ep in episodes if 'error' not in ep]
+        valid_episodes = [ep for ep in episodes if "error" not in ep]
         if not valid_episodes:
             return 0.0
 
-        returns = [((ep['final_value'] - ep['initial_value']) / ep['initial_value']) * 100 for ep in valid_episodes]
+        returns = [((ep["final_value"] - ep["initial_value"]) / ep["initial_value"]) * 100 for ep in valid_episodes]
         return np.mean(returns)
 
     def _print_algorithm_comparison(self, results: Dict[str, Dict[str, Any]]):
@@ -611,13 +611,13 @@ class BacktestRunner:
         comparison_table.add_column("Top Test Action", style="magenta")
 
         for algo_name, result in results.items():
-            if 'error' not in result:
-                train_return_color = "green" if result['train_avg_return_pct'] >= 0 else "red"
-                test_return_color = "green" if result['test_avg_return_pct'] >= 0 else "red"
+            if "error" not in result:
+                train_return_color = "green" if result["train_avg_return_pct"] >= 0 else "red"
+                test_return_color = "green" if result["test_avg_return_pct"] >= 0 else "red"
 
                 # Get top actions
-                train_actions = result.get('train_action_stats', {}).get('action_percentages', {})
-                test_actions = result.get('test_action_stats', {}).get('action_percentages', {})
+                train_actions = result.get("train_action_stats", {}).get("action_percentages", {})
+                test_actions = result.get("test_action_stats", {}).get("action_percentages", {})
 
                 top_train_action = max(train_actions, key=train_actions.get) if train_actions else "N/A"
                 top_test_action = max(test_actions, key=test_actions.get) if test_actions else "N/A"
@@ -670,13 +670,13 @@ class BacktestRunner:
         preset_table.add_column("Top Test Action", style="magenta")
 
         for preset, result in results.items():
-            if 'error' not in result:
-                train_return_color = "green" if result['train_avg_return_pct'] >= 0 else "red"
-                test_return_color = "green" if result['test_avg_return_pct'] >= 0 else "red"
+            if "error" not in result:
+                train_return_color = "green" if result["train_avg_return_pct"] >= 0 else "red"
+                test_return_color = "green" if result["test_avg_return_pct"] >= 0 else "red"
 
                 # Get top actions
-                train_actions = result.get('train_action_stats', {}).get('action_percentages', {})
-                test_actions = result.get('test_action_stats', {}).get('action_percentages', {})
+                train_actions = result.get("train_action_stats", {}).get("action_percentages", {})
+                test_actions = result.get("test_action_stats", {}).get("action_percentages", {})
 
                 top_train_action = max(train_actions, key=train_actions.get) if train_actions else "N/A"
                 top_test_action = max(test_actions, key=test_actions.get) if test_actions else "N/A"
@@ -729,13 +729,13 @@ class BacktestRunner:
         env_table.add_column("Top Test Action", style="magenta")
 
         for env_name, result in results.items():
-            if 'error' not in result:
-                train_return_color = "green" if result['train_avg_return_pct'] >= 0 else "red"
-                test_return_color = "green" if result['test_avg_return_pct'] >= 0 else "red"
+            if "error" not in result:
+                train_return_color = "green" if result["train_avg_return_pct"] >= 0 else "red"
+                test_return_color = "green" if result["test_avg_return_pct"] >= 0 else "red"
 
                 # Get top actions
-                train_actions = result.get('train_action_stats', {}).get('action_percentages', {})
-                test_actions = result.get('test_action_stats', {}).get('action_percentages', {})
+                train_actions = result.get("train_action_stats", {}).get("action_percentages", {})
+                test_actions = result.get("test_action_stats", {}).get("action_percentages", {})
 
                 top_train_action = max(train_actions, key=train_actions.get) if train_actions else "N/A"
                 top_test_action = max(test_actions, key=test_actions.get) if test_actions else "N/A"
@@ -791,13 +791,13 @@ class BacktestRunner:
         for algo_name, algo_results in results.items():
             for env_name, env_results in algo_results.items():
                 for preset, result in env_results.items():
-                    if 'error' not in result:
-                        train_return_color = "green" if result['train_avg_return_pct'] >= 0 else "red"
-                        test_return_color = "green" if result['test_avg_return_pct'] >= 0 else "red"
+                    if "error" not in result:
+                        train_return_color = "green" if result["train_avg_return_pct"] >= 0 else "red"
+                        test_return_color = "green" if result["test_avg_return_pct"] >= 0 else "red"
 
                         # Get top actions
-                        train_actions = result.get('train_action_stats', {}).get('action_percentages', {})
-                        test_actions = result.get('test_action_stats', {}).get('action_percentages', {})
+                        train_actions = result.get("train_action_stats", {}).get("action_percentages", {})
+                        test_actions = result.get("test_action_stats", {}).get("action_percentages", {})
 
                         top_train_action = max(train_actions, key=train_actions.get) if train_actions else "N/A"
                         top_test_action = max(test_actions, key=test_actions.get) if test_actions else "N/A"
@@ -847,22 +847,22 @@ class BacktestRunner:
 
         # Get all unique actions from both train and test
         all_actions = set()
-        all_actions.update(train_action_stats.get('action_counts', {}).keys())
-        all_actions.update(test_action_stats.get('action_counts', {}).keys())
+        all_actions.update(train_action_stats.get("action_counts", {}).keys())
+        all_actions.update(test_action_stats.get("action_counts", {}).keys())
 
         for action in sorted(all_actions):
-            train_count = train_action_stats.get('action_counts', {}).get(action, 0)
-            train_pct = train_action_stats.get('action_percentages', {}).get(action, 0.0)
-            test_count = test_action_stats.get('action_counts', {}).get(action, 0)
-            test_pct = test_action_stats.get('action_percentages', {}).get(action, 0.0)
+            train_count = train_action_stats.get("action_counts", {}).get(action, 0)
+            train_pct = train_action_stats.get("action_percentages", {}).get(action, 0.0)
+            test_count = test_action_stats.get("action_counts", {}).get(action, 0)
+            test_pct = test_action_stats.get("action_percentages", {}).get(action, 0.0)
 
             action_table.add_row(action, str(train_count), f"{train_pct:.1f}%", str(test_count), f"{test_pct:.1f}%")
 
         console.print(action_table)
 
         # Print total steps summary
-        train_steps = train_action_stats.get('total_steps', 0)
-        test_steps = test_action_stats.get('total_steps', 0)
+        train_steps = train_action_stats.get("total_steps", 0)
+        test_steps = test_action_stats.get("total_steps", 0)
 
         steps_table = Table(title="Step Summary", show_header=True)
         steps_table.add_column("Phase", style="cyan")
@@ -895,7 +895,7 @@ class BacktestRunner:
             "Use run_single_experiment with env_config instead.[/yellow]"
         )
 
-        env_config = {'train_env_factory': train_env_factory, 'test_env_factory': test_env_factory}
+        env_config = {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
 
         return self.run_single_experiment(
             algo_class=algo_class,
@@ -927,7 +927,7 @@ class BacktestRunner:
             "Use run_algorithm_comparison with env_config instead.[/yellow]"
         )
 
-        env_config = {'train_env_factory': train_env_factory, 'test_env_factory': test_env_factory}
+        env_config = {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
 
         return self.run_algorithm_comparison(
             algorithms=algorithms,
@@ -958,7 +958,7 @@ class BacktestRunner:
             "Use run_preset_comparison with env_config instead.[/yellow]"
         )
 
-        env_config = {'train_env_factory': train_env_factory, 'test_env_factory': test_env_factory}
+        env_config = {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
 
         return self.run_preset_comparison(
             algo_class=algo_class,
@@ -988,7 +988,7 @@ class BacktestRunner:
                 test_env_factory=create_test_env
             )
         """
-        return {'train_env_factory': train_env_factory, 'test_env_factory': test_env_factory}
+        return {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
 
     # API Usage Examples (Updated for Consistent Design)
     """

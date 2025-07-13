@@ -18,7 +18,7 @@ class PPOConfig:
 
     # Remark: you can use string-based type annotation
     # for dynamic typing in Python 3.8+
-    def update(self, **kwargs) -> 'PPOConfig':
+    def update(self, **kwargs) -> "PPOConfig":
         """
         Update configuration with new parameters.
 
@@ -35,7 +35,7 @@ class PPOConfig:
                 raise ValueError(f"Unknown parameter: {key}")
         return self
 
-    def copy(self) -> 'PPOConfig':
+    def copy(self) -> "PPOConfig":
         """
         Create a copy of this configuration.
 
@@ -58,7 +58,7 @@ class A2CConfig:
     max_grad_norm: float = 0.5
     use_rms_prop: bool = True
 
-    def update(self, **kwargs) -> 'A2CConfig':
+    def update(self, **kwargs) -> "A2CConfig":
         """
         _summary_
 
@@ -75,7 +75,7 @@ class A2CConfig:
                 raise ValueError(f"Unknown parameter: {key}")
         return self
 
-    def copy(self) -> 'A2CConfig':
+    def copy(self) -> "A2CConfig":
         """
         Create a copy of this configuration.
 
@@ -97,11 +97,11 @@ class SACConfig:
     gamma: float = 0.99
     train_freq: int = 1
     gradient_steps: int = 1
-    ent_coef: str = 'auto'
+    ent_coef: str = "auto"
     target_update_interval: int = 1
-    target_entropy: str = 'auto'
+    target_entropy: str = "auto"
 
-    def update(self, **kwargs) -> 'SACConfig':
+    def update(self, **kwargs) -> "SACConfig":
         """
         Update configuration with new parameters.
 
@@ -118,7 +118,7 @@ class SACConfig:
                 raise ValueError(f"Unknown parameter: {key}")
         return self
 
-    def copy(self) -> 'SACConfig':
+    def copy(self) -> "SACConfig":
         """
         Create a copy of this configuration.
 

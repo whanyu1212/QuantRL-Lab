@@ -62,7 +62,7 @@ class SingleStockTradingEnv(gym.Env):
             self.original_columns = None
             if price_column is None:
                 # Use config.price_column_index for backward compatibility
-                if hasattr(config, 'price_column_index') and config.price_column_index is not None:
+                if hasattr(config, "price_column_index") and config.price_column_index is not None:
                     self.price_column_index = config.price_column_index
                 else:
                     raise ValueError("price_column must be provided when using numpy arrays")
@@ -346,17 +346,17 @@ class SingleStockTradingEnv(gym.Env):
 
         # Priority order for price column detection
         price_candidates = [
-            'close',
-            'Close',
-            'CLOSE',  # Most common
-            'price',
-            'Price',
-            'PRICE',
-            'adj_close',
-            'Adj Close',
-            'ADJ_CLOSE',
-            'adjusted_close',
-            'Adjusted_Close',
+            "close",
+            "Close",
+            "CLOSE",  # Most common
+            "price",
+            "Price",
+            "PRICE",
+            "adj_close",
+            "Adj Close",
+            "ADJ_CLOSE",
+            "adjusted_close",
+            "Adjusted_Close",
         ]
 
         # First, try exact matches
@@ -367,7 +367,7 @@ class SingleStockTradingEnv(gym.Env):
         # Then try case-insensitive partial matches
         for i, col in enumerate(columns):
             col_lower = col.lower()
-            if any(candidate.lower() in col_lower for candidate in ['close', 'price']):
+            if any(candidate.lower() in col_lower for candidate in ["close", "price"]):
                 return i
 
         # If no obvious price column found, raise an error with helpful message

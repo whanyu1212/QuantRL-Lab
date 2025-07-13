@@ -4,10 +4,10 @@ from .indicators.indicator_registry import IndicatorRegistry
 from .loaders import AlpacaDataLoader, AlphaVantageDataLoader, YfinanceDataloader
 
 __all__ = [
-    'DataProcessor',
-    'DataSourceRegistry',
-    'IndicatorRegistry',
-    'AlpacaDataLoader',
-    'YfinanceDataloader',
-    'AlphaVantageDataLoader',
+    "DataProcessor",
+    "DataSourceRegistry",
+    "IndicatorRegistry",
+    "AlpacaDataLoader",
+    "YfinanceDataloader",
+    "AlphaVantageDataLoader",
 ]
