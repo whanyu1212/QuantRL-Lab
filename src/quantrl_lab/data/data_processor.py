@@ -95,8 +95,8 @@ class DataProcessor:
 
                 self._sentiment_pipeline = pipeline("sentiment-analysis", **pipeline_kwargs)
                 console.print(
-                    "[green]✓ Sentiment analysis pipeline initialized with model: ",
-                    f"{self.sentiment_config.model_name}[/green]",
+                    f"[green]✓ Sentiment analysis pipeline initialized with model: "
+                    f"{self.sentiment_config.model_name}[/green]"
                 )
             except Exception as e:
                 raise RuntimeError(f"Failed to load sentiment model: {e}")
