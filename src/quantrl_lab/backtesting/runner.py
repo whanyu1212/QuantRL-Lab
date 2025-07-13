@@ -321,8 +321,8 @@ class BacktestRunner:
         if self.verbose:
             console.print(f"\n[bold blue]{'='*80}[/bold blue]")
             console.print(
-                f"[bold blue]ENVIRONMENT COMPARISON: {algo_class.__name__} "
-                f"({len(env_configs)} environments)[/bold blue]"
+                f"[bold blue]ENVIRONMENT COMPARISON: {algo_class.__name__}[/bold blue]"
+                f" ({len(env_configs)} environments)[/bold blue]"
             )
             console.print(f"[yellow]Preset: {preset}, Environments: {', '.join(env_configs.keys())}[/yellow]")
             console.print(f"[bold blue]{'='*80}[/bold blue]")
@@ -357,36 +357,103 @@ class BacktestRunner:
         algorithms: List[type],
         env_configs: Dict[str, Dict[str, Callable]],
         presets: List[str] = None,
+        custom_configs: Optional[Dict[str, Dict[str, Any]]] = None,
         total_timesteps: int = 50000,
         n_envs: int = 4,
         num_eval_episodes: int = 5,
     ) -> Dict[str, Dict[str, Dict[str, Any]]]:
         """
         Run comprehensive backtesting across algorithms, environments,
-        and presets.
+        and presets/custom configurations.
 
         Args:
             algorithms (List[type]): List of algorithm classes
             env_configs (Dict[str, Dict[str, Callable]]): Dictionary of environment configurations
             presets (List[str], optional): List of presets to test (default: ["default", "explorative"])
+            custom_configs (Dict[str, Dict[str, Any]], optional): Dictionary mapping algorithm names
+                to their custom configurations. Can be either:
+                1. Direct dictionary: {'PPO': {'learning_rate': 0.001, 'n_steps': 1024}}
+                2. Created using create_custom_config:
+                {'PPO': BacktestRunner.create_custom_config(PPO, learning_rate=0.001)}
+
+                Examples:
+                # Method 1: Direct dictionary
+                custom_configs = {
+                    'PPO': {'learning_rate': 0.001, 'n_steps': 1024},
+                    'SAC': {'learning_rate': 0.0005, 'batch_size': 128}
+                }
+
+                # Method 2: Using create_custom_config
+                custom_configs = {
+                    'PPO': BacktestRunner.create_custom_config(PPO, learning_rate=0.001, n_steps=1024),
+                    'SAC': BacktestRunner.create_custom_config(SAC, learning_rate=0.0005, batch_size=128)
+                }
+
+                # Method 3: Mixed approach
+                custom_configs = {
+                    'PPO': BacktestRunner.create_custom_config(PPO, learning_rate=0.001, n_steps=1024),
+                    'SAC': {'learning_rate': 0.0005, 'batch_size': 128}  # Direct dict
+                }
+
             total_timesteps (int, optional): Training timesteps. Defaults to 50000.
             n_envs (int, optional): Number of parallel environments. Defaults to 4.
             num_eval_episodes (int, optional): Number of evaluation episodes. Defaults to 5.
 
         Returns:
             Dict[str, Dict[str, Dict[str, Any]]]: Nested dictionary mapping algorithm names
-            to environment names to preset results
+            to environment names to configuration results
         """
         if presets is None:
             presets = ["default", "explorative"]
+
+        if custom_configs is None:
+            custom_configs = {}
+
+        # Validate and normalize custom configs
+        normalized_custom_configs = {}
+        for algo_name, config in custom_configs.items():
+            if isinstance(config, dict):
+                # Config is already a dictionary (either direct or from create_custom_config)
+                normalized_custom_configs[algo_name] = config
+            else:
+                # Handle edge case where config might be something else
+                raise ValueError(f"Custom config for {algo_name} must be a dictionary. Got {type(config)}")
+
+        # Calculate total combinations for progress tracking
+        total_combinations = 0
+        for algo_class in algorithms:
+            algo_name = algo_class.__name__
+            if algo_name in normalized_custom_configs:
+                # If custom config provided, run once per environment
+                total_combinations += len(env_configs)
+            else:
+                # If no custom config, run for each preset per environment
+                total_combinations += len(env_configs) * len(presets)
 
         if self.verbose:
             console.print(f"\n[bold blue]{'='*100}[/bold blue]")
             console.print("[bold blue]COMPREHENSIVE BACKTESTING[/bold blue]")
             console.print(f"[yellow]Algorithms: {[algo.__name__ for algo in algorithms]}[/yellow]")
             console.print(f"[yellow]Environments: {list(env_configs.keys())}[/yellow]")
-            console.print(f"[yellow]Presets: {presets}[/yellow]")
-            console.print(f"[cyan]Total combinations: {len(algorithms) * len(env_configs) * len(presets)}[/cyan]")
+
+            # Show configuration info
+            custom_algos = [algo for algo in algorithms if algo.__name__ in normalized_custom_configs]
+            preset_algos = [algo for algo in algorithms if algo.__name__ not in normalized_custom_configs]
+
+            if custom_algos:
+                console.print(f"[yellow]Custom configs: {[algo.__name__ for algo in custom_algos]}[/yellow]")
+                # Show which parameters are being customized
+                for algo in custom_algos:
+                    algo_name = algo.__name__
+                    config_params = list(normalized_custom_configs[algo_name].keys())
+                    console.print(f"[dim]  {algo_name}: {config_params}[/dim]")
+
+            if preset_algos:
+                console.print(
+                    f"[yellow]Preset configs: {[algo.__name__ for algo in preset_algos]} (presets: {presets})[/yellow]"
+                )
+
+            console.print(f"[cyan]Total combinations: {total_combinations}[/cyan]")
             console.print(f"[bold blue]{'='*100}[/bold blue]")
 
         all_results = {}
@@ -398,25 +465,57 @@ class BacktestRunner:
             for env_name, env_config in env_configs.items():
                 all_results[algo_name][env_name] = {}
 
-                for preset in presets:
+                # Check if custom config is provided for this algorithm
+                if algo_name in normalized_custom_configs:
+                    # Use custom configuration
+                    custom_config = normalized_custom_configs[algo_name]
+                    config_name = "custom"
+
                     if self.verbose:
-                        console.print(f"\n[cyan]Running: {algo_name} + {env_name} + {preset}[/cyan]")
+                        console.print(f"\n[cyan]Running: {algo_name} + {env_name} + custom config[/cyan]")
+                        console.print(f"[dim]Custom params: {list(custom_config.keys())}[/dim]")
+                        # Show parameter values for debugging
+                        for param, value in custom_config.items():
+                            console.print(f"[dim]  {param}: {value}[/dim]")
 
                     try:
                         results = self.run_single_experiment(
                             algo_class=algo_class,
                             env_config=env_config,
-                            preset=preset,
+                            config=custom_config,  # Pass custom config
+                            preset=None,  # Preset is ignored when config is provided
                             total_timesteps=total_timesteps,
                             n_envs=n_envs,
                             num_eval_episodes=num_eval_episodes,
                         )
-                        all_results[algo_name][env_name][preset] = results
+                        all_results[algo_name][env_name][config_name] = results
 
                     except Exception as e:
                         if self.verbose:
                             console.print(f"[red]ERROR: {str(e)}[/red]")
-                        all_results[algo_name][env_name][preset] = {'error': str(e)}
+                        all_results[algo_name][env_name][config_name] = {'error': str(e)}
+
+                else:
+                    # Use presets (existing behavior)
+                    for preset in presets:
+                        if self.verbose:
+                            console.print(f"\n[cyan]Running: {algo_name} + {env_name} + {preset}[/cyan]")
+
+                        try:
+                            results = self.run_single_experiment(
+                                algo_class=algo_class,
+                                env_config=env_config,
+                                preset=preset,
+                                total_timesteps=total_timesteps,
+                                n_envs=n_envs,
+                                num_eval_episodes=num_eval_episodes,
+                            )
+                            all_results[algo_name][env_name][preset] = results
+
+                        except Exception as e:
+                            if self.verbose:
+                                console.print(f"[red]ERROR: {str(e)}[/red]")
+                            all_results[algo_name][env_name][preset] = {'error': str(e)}
 
         # Print final summary
         if self.verbose:
