@@ -1,7 +1,8 @@
-from typing import Any, Dict, Optional, Tuple
+from typing import Any, Dict, Optional, Tuple, Union
 
 import gymnasium as gym
 import numpy as np
+import pandas as pd
 
 from quantrl_lab.custom_envs.core.actions import Actions
 from quantrl_lab.custom_envs.stock.stock_config import SingleStockEnvConfig
@@ -21,31 +22,69 @@ class SingleStockTradingEnv(gym.Env):
     # Added metadata for Gymnasium compatibility
     metadata = {"render_modes": ["human", "ansi"], "render_fps": 4}
 
-    # TODO: Switch to use DataSourceRegistry for data loading and management
-
     def __init__(
         self,
-        data: np.ndarray,  # Multidimensional array of market data + additional features
+        data: Union[pd.DataFrame, np.ndarray],  # DataFrame or numpy array of market data + features
         config: SingleStockEnvConfig,  # Configuration object for environment settings
         action_strategy: BaseActionStrategy,  # Strategy for defining action space and handling actions,
         reward_strategy: BaseRewardStrategy,  # Strategy for calculating rewards
         observation_strategy: BaseObservationStrategy,
+        price_column: Optional[Union[str, int]] = None,  # Column name or index for price (auto-detected if None)
     ):
         super().__init__()
 
+        # === Handle DataFrame input with auto-detection ===
+        if isinstance(data, pd.DataFrame):
+            self.original_columns = data.columns.tolist()
+
+            # Auto-detect price column if not specified
+            if price_column is None:
+                self.price_column_index = self._auto_detect_price_column(data)
+            elif isinstance(price_column, str):
+                if price_column not in data.columns:
+                    raise ValueError(
+                        f"Price column '{price_column}' not found in DataFrame. Available columns: {list(data.columns)}"
+                    )
+                self.price_column_index = data.columns.get_loc(price_column)
+            elif isinstance(price_column, int):
+                if not (0 <= price_column < len(data.columns)):
+                    raise ValueError(
+                        f"Price column index {price_column} out of bounds. DataFrame has {len(data.columns)} columns."
+                    )
+                self.price_column_index = price_column
+            else:
+                raise ValueError("price_column must be a string (column name), integer (index), or None (auto-detect)")
+
+            # Convert DataFrame to numpy array
+            data_array = data.values.astype(np.float32)
+        else:
+            # Handle numpy array input (existing behavior)
+            self.original_columns = None
+            if price_column is None:
+                # Use config.price_column_index for backward compatibility
+                if hasattr(config, 'price_column_index') and config.price_column_index is not None:
+                    self.price_column_index = config.price_column_index
+                else:
+                    raise ValueError("price_column must be provided when using numpy arrays")
+            elif isinstance(price_column, int):
+                self.price_column_index = price_column
+            else:
+                raise ValueError("price_column must be an integer index when using numpy arrays")
+
+            data_array = data.astype(np.float32)
+
         # === Runtime error handling ===
-        if not isinstance(data, np.ndarray) or data.ndim != 2:
-            raise ValueError("Data must be a 2D numpy array (num_steps, num_features).")
-        if data.shape[0] <= config.window_size:
+        if data_array.ndim != 2:
+            raise ValueError("Data must be a 2D array (num_steps, num_features).")
+        if data_array.shape[0] <= config.window_size:
             raise ValueError("Data length must be greater than window_size.")
-        if not (0 <= config.price_column_index < data.shape[1]):
-            raise ValueError(f"price_column_index ({config.price_column_index}) is out of bounds.")
+        if not (0 <= self.price_column_index < data_array.shape[1]):
+            raise ValueError(f"price_column_index ({self.price_column_index}) is out of bounds.")
 
         # === Attributes ===
         self.Actions = Actions  # reference to the Actions class for easy access
-        self.data = data.astype(np.float32)  # float32 for more efficiency and better compatibility
+        self.data = data_array  # Already converted to float32 above
         self.num_steps, self.num_features = self.data.shape
-        self.price_column_index = config.price_column_index
         self.window_size = config.window_size
         self._max_steps = self.num_steps - 1  # Max indexable step (data limit)
 
@@ -289,6 +328,54 @@ class SingleStockTradingEnv(gym.Env):
         pass
 
     # === Private Methods ===
+
+    def _auto_detect_price_column(self, df: pd.DataFrame) -> int:
+        """
+        Auto-detect the price column index from a DataFrame.
+
+        Args:
+            df (pd.DataFrame): Input DataFrame with price data
+
+        Returns:
+            int: Index of the detected price column
+
+        Raises:
+            ValueError: If no suitable price column is found
+        """
+        columns = df.columns.tolist()
+
+        # Priority order for price column detection
+        price_candidates = [
+            'close',
+            'Close',
+            'CLOSE',  # Most common
+            'price',
+            'Price',
+            'PRICE',
+            'adj_close',
+            'Adj Close',
+            'ADJ_CLOSE',
+            'adjusted_close',
+            'Adjusted_Close',
+        ]
+
+        # First, try exact matches
+        for candidate in price_candidates:
+            if candidate in columns:
+                return columns.index(candidate)
+
+        # Then try case-insensitive partial matches
+        for i, col in enumerate(columns):
+            col_lower = col.lower()
+            if any(candidate.lower() in col_lower for candidate in ['close', 'price']):
+                return i
+
+        # If no obvious price column found, raise an error with helpful message
+        raise ValueError(
+            f"Could not auto-detect price column. Available columns: {columns}. "
+            f"Please ensure your DataFrame has a column named 'close', 'price', or similar, "
+            f"or specify the price_column parameter explicitly."
+        )
 
     def _get_current_price(self) -> float:
         """
