@@ -39,10 +39,15 @@ def train_model(
         Trained model
     """
     with Progress(
-        SpinnerColumn(), TextColumn("[progress.description]{task.description}"), console=console, disable=not verbose
+        SpinnerColumn(),
+        TextColumn("[bold green]Training model:[/bold green] [cyan]{task.description}[/cyan]"),
+        console=console,
+        disable=not verbose,
     ) as progress:
         if verbose:
-            task = progress.add_task("[cyan]Training model...", total=None)
+            task = progress.add_task(
+                f"[bold]{algo_class.__name__}[/bold] for [yellow]{total_timesteps}[/yellow] timesteps", total=None
+            )
 
         # Build model parameters
         base_params = {
