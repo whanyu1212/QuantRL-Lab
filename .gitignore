@@ -177,3 +177,5 @@ cython_debug/
 mlruns/
 
 *.txt
+
+*.db
