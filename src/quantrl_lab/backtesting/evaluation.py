@@ -29,8 +29,10 @@ def evaluate_model(
             - episode_results: List of detailed results for each episode
     """
     if verbose:
+        # Split long string into multiple parts to avoid line length issues
         console.print(
-            f"[bold blue]Evaluating {model.__class__.__name__} model for {num_episodes} episodes...[/bold blue]"
+            f"[bold blue]Evaluating [/bold blue][green]{model.__class__.__name__}[/green]"
+            f"[bold blue] model for [/bold blue][yellow]{num_episodes}[/yellow][bold blue] episodes...[/bold blue]"
         )
 
     all_episode_results = []
@@ -104,10 +106,11 @@ def evaluate_model(
                 if verbose and step_count % 50 == 0:
                     validity_status = "[green]✓[/green]" if is_valid else "[red]✗[/red]"
                     console.print(
-                        f"  Step {step_count}: {validity_status} {action_type}, "
-                        f"Price: [cyan]${current_price:.2f}[/cyan], "
-                        f"Portfolio: [green]${portfolio_value:.2f}[/green], "
-                        f"Reward: [yellow]{reward:.4f}[/yellow]"
+                        f"  Step [bold cyan]{step_count}[/bold cyan]: {validity_status} "
+                        f"[magenta]{action_type}[/magenta], "
+                        f"💰 [cyan]${current_price:.2f}[/cyan], "
+                        f"📊 [green]${portfolio_value:.2f}[/green], "
+                        f"🌟 [yellow]{reward:.4f}[/yellow]"
                     )
 
                 step_count += 1
