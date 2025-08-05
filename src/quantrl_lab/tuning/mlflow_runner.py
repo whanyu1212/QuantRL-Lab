@@ -128,7 +128,7 @@ class MLflowOptunaRunner:
                     # Create the algorithm-specific configuration
                     # Assuming `create_custom_config` is a static method on BacktestRunner
                     # or you have a way to generate the config dict.
-                    if hasattr(self.runner, 'create_custom_config'):
+                    if hasattr(self.runner, "create_custom_config"):
                         config = self.runner.create_custom_config(algo_class, **params)
                     else:
                         config = params.copy()
@@ -352,20 +352,20 @@ class MLflowOptunaRunner:
 
         try:
             # Log action statistics
-            if 'train_action_stats' in results:
-                f = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+            if "train_action_stats" in results:
+                f = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
                 try:
-                    json.dump(results['train_action_stats'], f, indent=2, default=str)
+                    json.dump(results["train_action_stats"], f, indent=2, default=str)
                     f.flush()
                     mlflow.log_artifact(f.name, f"trial_{trial_number}_train_action_stats.json")
                 finally:
                     f.close()
                     os.unlink(f.name)
 
-            if 'test_action_stats' in results:
-                f = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+            if "test_action_stats" in results:
+                f = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False)
                 try:
-                    json.dump(results['test_action_stats'], f, indent=2, default=str)
+                    json.dump(results["test_action_stats"], f, indent=2, default=str)
                     f.flush()
                     mlflow.log_artifact(f.name, f"trial_{trial_number}_test_action_stats.json")
                 finally:
@@ -373,9 +373,9 @@ class MLflowOptunaRunner:
                     os.unlink(f.name)
 
             # Log episode data as CSV
-            if 'train_episodes' in results and results['train_episodes']:
-                train_df = pd.DataFrame(results['train_episodes'])
-                f = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+            if "train_episodes" in results and results["train_episodes"]:
+                train_df = pd.DataFrame(results["train_episodes"])
+                f = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False)
                 try:
                     train_df.to_csv(f.name, index=False)
                     f.flush()
@@ -384,9 +384,9 @@ class MLflowOptunaRunner:
                     f.close()
                     os.unlink(f.name)
 
-            if 'test_episodes' in results and results['test_episodes']:
-                test_df = pd.DataFrame(results['test_episodes'])
-                f = tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False)
+            if "test_episodes" in results and results["test_episodes"]:
+                test_df = pd.DataFrame(results["test_episodes"])
+                f = tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False)
                 try:
                     test_df.to_csv(f.name, index=False)
                     f.flush()
@@ -414,7 +414,7 @@ class MLflowOptunaRunner:
 
             # Create and log study summary
             trials_df = study.trials_dataframe()
-            with tempfile.NamedTemporaryFile(mode='w', suffix='.csv', delete=False) as f:
+            with tempfile.NamedTemporaryFile(mode="w", suffix=".csv", delete=False) as f:
                 trials_df.to_csv(f.name, index=False)
                 f.flush()
                 mlflow.log_artifact(f.name, "optuna_trials.csv")
@@ -495,7 +495,7 @@ class MLflowOptunaRunner:
             self._log_experiment_metrics(results)
             self._log_experiment_artifacts(results, 0)
 
-            return_value = results.get('test_avg_return_pct', 0.0)
+            return_value = results.get("test_avg_return_pct", 0.0)
             return_color = "green" if return_value >= 0 else "red"
             console.print(
                 Panel(
@@ -582,7 +582,7 @@ class MLflowOptunaRunner:
             mlflow.log_dict(comparison_summary, "algorithm_comparison_summary.json")
 
             # Log best algorithm
-            best_algo = max(results.keys(), key=lambda x: results[x].get("test_avg_return_pct", -float('inf')))
+            best_algo = max(results.keys(), key=lambda x: results[x].get("test_avg_return_pct", -float("inf")))
             mlflow.log_params(
                 {"best_algorithm": best_algo, "best_test_return": results[best_algo].get("test_avg_return_pct", 0.0)}
             )

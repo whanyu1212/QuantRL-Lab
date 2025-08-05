@@ -70,7 +70,7 @@ class CashFlowRiskManagementReward(BaseRewardStrategy):
         reward = 0.0
 
         # 1. Check current action for excessive single trade exposure
-        if hasattr(env, 'action_type') and hasattr(env, 'decoded_action_info'):
+        if hasattr(env, "action_type") and hasattr(env, "decoded_action_info"):
             reward += self._evaluate_current_action(env, total_value)
 
         # 2. Evaluate overall portfolio risk management
@@ -93,7 +93,7 @@ class CashFlowRiskManagementReward(BaseRewardStrategy):
         if env.action_type not in [Actions.Buy, Actions.LimitBuy]:
             return 0.0
 
-        amount_pct = env.decoded_action_info.get('amount_pct', 0.0)
+        amount_pct = env.decoded_action_info.get("amount_pct", 0.0)
         current_price = env._get_current_price()  # noqa F841
         portfolio = env.portfolio
 

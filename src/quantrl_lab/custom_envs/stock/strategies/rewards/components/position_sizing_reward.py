@@ -61,7 +61,7 @@ class PositionSizingRiskReward(BaseRewardStrategy):
             return 0.0
 
         # 1. Evaluate current action if it's a buy order
-        if hasattr(env, 'action_type') and hasattr(env, 'decoded_action_info'):
+        if hasattr(env, "action_type") and hasattr(env, "decoded_action_info"):
             reward += self._evaluate_position_sizing(env, total_value)
 
         # 2. Evaluate existing risk management
@@ -79,7 +79,7 @@ class PositionSizingRiskReward(BaseRewardStrategy):
         if env.action_type not in [Actions.Buy, Actions.LimitBuy]:
             return 0.0
 
-        amount_pct = env.decoded_action_info.get('amount_pct', 0.0)
+        amount_pct = env.decoded_action_info.get("amount_pct", 0.0)
         portfolio = env.portfolio
 
         # Calculate the position size relative to total portfolio value

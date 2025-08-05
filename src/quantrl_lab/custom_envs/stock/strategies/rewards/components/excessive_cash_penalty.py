@@ -48,7 +48,7 @@ class ExcessiveCashUsagePenalty(BaseRewardStrategy):
             float: The penalty (negative value) for poor cash management, 0 for acceptable behavior.
         """
         # Only evaluate if an action was taken this step
-        if not hasattr(env, 'action_type') or not hasattr(env, 'decoded_action_info'):
+        if not hasattr(env, "action_type") or not hasattr(env, "decoded_action_info"):
             return 0.0
 
         action_type = env.action_type
@@ -66,8 +66,8 @@ class ExcessiveCashUsagePenalty(BaseRewardStrategy):
         if total_value <= 1e-9 or portfolio.balance <= 1e-9:
             return 0.0
 
-        amount_pct = decoded_info.get('amount_pct', 0.0)
-        invalid_action = decoded_info.get('invalid_action_attempt', False)
+        amount_pct = decoded_info.get("amount_pct", 0.0)
+        invalid_action = decoded_info.get("invalid_action_attempt", False)
 
         # 1. Severe penalty for invalid actions (trying to use unavailable cash)
         if invalid_action:
