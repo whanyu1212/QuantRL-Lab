@@ -178,11 +178,22 @@ class DataProcessor:
         **kwargs,
     ) -> pd.DataFrame:
         """
-        Add technical indicators to existing OHLCV DataFrame.
+        Append technical indicators to the OHLCV DataFrame. Supports.
+
+        multiple formats for indicators:
+        - Simple strings: ["SMA", "RSI"]
+        - Multiple window sizes: [{"SMA": {"window": [10, 20, 50]}}]
+        - Complex indicators: [{"MACD": [{"fast": 12, "slow": 26},
+        {"fast": 5, "slow": 15}]}]
+
+        Remark: This design makes it easy to experiment with different technical
+        indicators and parameter combinations while maintaining clean and
+        readable code.
 
         Args:
-            df (pd.DataFrame): raw OHLCV data
-            indicators (Optional[List[Union[str, Dict]]], optional): Defaults to None.
+            df (pd.DataFrame): input OHLCV DataFrame.
+            indicators (Optional[List[Union[str, Dict]]], optional):
+            List of technical indicators to add. Defaults to None.
 
         Raises:
             ValueError: if input DataFrame is empty
@@ -216,23 +227,106 @@ class DataProcessor:
 
         available_indicators = set(IndicatorRegistry.list_all())
 
-        for indicator_name in indicators:
+        for indicator_spec in indicators:
+            # Handle different input formats
+            if isinstance(indicator_spec, str):
+                # Simple string format: apply with default parameters
+                indicator_name = indicator_spec
+                param_sets = [{}]  # Single set with default parameters
+            elif isinstance(indicator_spec, dict):
+                # Dictionary format: extract indicator name and parameter configurations
+                if len(indicator_spec) != 1:
+                    console.print(f"[yellow]⚠️  Invalid indicator specification: {indicator_spec}. Skipping.[/yellow]")
+                    continue
+
+                indicator_name = list(indicator_spec.keys())[0]
+                param_config = indicator_spec[indicator_name]
+
+                # Handle different parameter configuration formats
+                if isinstance(param_config, dict):
+                    # Check if any parameter is a list (multiple window sizes)
+                    param_sets = self._unpack_parameter_combinations(param_config)
+                elif isinstance(param_config, list):
+                    # List of parameter dictionaries for complex indicators
+                    param_sets = param_config
+                else:
+                    console.print(
+                        f"[yellow]⚠️  Invalid parameter configuration for {indicator_name}: "
+                        f"{param_config}. Skipping.[/yellow]"
+                    )
+                    continue
+            else:
+                console.print(
+                    f"[yellow]⚠️  Invalid indicator specification type: {type(indicator_spec)}. Skipping.[/yellow]"
+                )
+                continue
+
+            # Check if indicator exists in registry
             if indicator_name not in available_indicators:
                 console.print(f"[yellow]⚠️  Indicator '{indicator_name}' not found in registry. Skipping.[/yellow]")
                 continue
-            try:
-                # Extract custom parameters for this indicator if provided
-                # Look for {indicator_name}_params in the kwargs
-                custom_params = kwargs.get(f"{indicator_name}_params", {})
 
-                # Apply the indicator with custom parameters
-                console.print(f"[cyan]Applying {indicator_name} with params: {custom_params}[/cyan]")
-                result = IndicatorRegistry.apply(indicator_name, result, **custom_params)
+            # Apply indicator with each parameter set
+            for param_set in param_sets:
+                try:
+                    # Merge with any global parameters for this indicator
+                    custom_params = kwargs.get(f"{indicator_name}_params", {})
+                    final_params = {**custom_params, **param_set}
 
-            except Exception as e:
-                console.print(f"[red]❌ Failed to apply indicator '{indicator_name}' - {e}[/red]")
+                    # Apply the indicator with combined parameters
+                    console.print(f"[cyan]Applying {indicator_name} with params: {final_params}[/cyan]")
+                    result = IndicatorRegistry.apply(indicator_name, result, **final_params)
+
+                except Exception as e:
+                    console.print(
+                        f"[red]❌ Failed to apply indicator '{indicator_name}' with params {param_set} - {e}[/red]"
+                    )
 
         return result
+
+    def _unpack_parameter_combinations(self, param_config: Dict) -> List[Dict]:
+        """
+        Unpack parameter configurations that contain lists into multiple
+        parameter sets.
+
+        e.g.,
+        {"window": [10, 20, 30], "column": "Close"}
+        becomes:
+        [
+            {"window": 10, "column": "Close"},
+            {"window": 20, "column": "Close"},
+            {"window": 30, "column": "Close"}
+        ]
+
+        Args:
+            param_config (Dict): Parameter configuration dictionary
+
+        Returns:
+            List[Dict]: List of parameter sets to apply
+        """
+        # Find parameters that are lists
+        list_params = {k: v for k, v in param_config.items() if isinstance(v, list)}
+        scalar_params = {k: v for k, v in param_config.items() if not isinstance(v, list)}
+
+        if not list_params:
+            # No list parameters, return single parameter set
+            return [param_config]
+
+        if len(list_params) > 1:
+            console.print(
+                f"[yellow]⚠️  Multiple list parameters not supported yet: "
+                f"{list(list_params.keys())}. Using first one only.[/yellow]"
+            )
+
+        # Take the first list parameter and expand it
+        param_name, param_values = next(iter(list_params.items()))
+
+        param_sets = []
+        for value in param_values:
+            param_set = {**scalar_params, param_name: value}
+            param_sets.append(param_set)
+
+        return param_sets
 
     def append_news_sentiment_data(self, df: pd.DataFrame, fillna_strategy="neutral") -> pd.DataFrame:
         """
@@ -313,8 +407,12 @@ class DataProcessor:
 
         Args:
             indicators (Optional[List[Union[str, Dict]]], optional):
-                List of indicators to apply. Defaults to None.
-            strategy (str, optional): Strategy for handling missing sentiment scores.
+                List of indicators to apply. Supports multiple formats:
+                - Simple strings: ["SMA", "RSI"]
+                - Multiple window sizes: [{"SMA": {"window": [10, 20, 50]}}]
+                - Complex indicators: [{"MACD": [{"fast": 12, "slow": 26}, {"fast": 5, "slow": 15}]}]
+                Defaults to None.
+            fillna_strategy (str, optional): Strategy for handling missing sentiment scores.
                 Defaults to "neutral".
 
         Returns:
