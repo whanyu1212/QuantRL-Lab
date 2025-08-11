@@ -106,11 +106,14 @@ The data layer provides a unified, extensible interface for market data acquisit
 
 **1. Data Source Interface & Registry**
 - **Abstract Base Classes**: All data sources implement the `DataSource` interface with standardized methods (`connect()`, `disconnect()`, `get_historical_ohlcv_data()`, etc.)
-- **Protocol-Based Capabilities**: Mixins for different data types:
+- **Protocol-Based Capabilities**: Mixins for different data types using Python's structural typing:
   - `HistoricalDataCapable`: OHLCV historical data
   - `NewsDataCapable`: News and sentiment data
   - `LiveDataCapable`: Real-time market data
   - `StreamingCapable`: Live data streaming
+
+  *Why Protocols Over Abstract Classes?* This design enables **composition over inheritance** - data sources can mix capabilities freely without complex inheritance hierarchies. For example, `AlpacaLoader` implements multiple protocols naturally, while automatic feature detection (`isinstance(self, NewsDataCapable)`) provides zero-boilerplate capability discovery. This approach eliminates the diamond problem, enables seamless third-party integration, and maintains full type safety. The `runtime_checkable` decorator does come with a small performance cost
+
 - **Centralized Registry**: `DataSourceRegistry` manages multiple data sources with configurable primary/secondary sources
 
 **2. Data Loaders (Implemented)**
