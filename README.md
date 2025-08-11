@@ -21,22 +21,6 @@ QuantRL-Lab is built with configurability at its core, ensuring that:
 
 Whether you're exploring single-stock trading strategies or multi-agent portfolio optimization, QuantRL-Lab provides the tools and framework to accelerate your research and development.
 
----
-
-### Current Capabilities
-✅ What's Working
-- End-to-end backtesting pipeline from data loading to results analysis
-- Multiple RL algorithm support (PPO, A2C, SAC via stable-baselines3)
-- Flexible environment configurations for different market conditions
-- Comprehensive performance evaluation with detailed metrics
-- Professional result visualization with Rich formatting
-- Modular design allowing easy extension and customization
-
-🔄 Data Source Integration Status
-1. Alpaca Markets: ✅ Fully integrated (OHLCV + News data)
-2. Alpha Vantage: 🔄 Partially integrated (format standardization in progress)
-3. Yahoo Finance: ✅ Implemented for historical data
-4. Technical Indicators: ✅ 8 indicators implemented with more planned
 
 ---
 ### Setup Guide
