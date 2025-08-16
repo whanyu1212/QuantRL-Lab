@@ -130,7 +130,11 @@ def macd(
     column: str = "Close",
 ) -> pd.DataFrame:
     """
-    Calculate Moving Average Convergence Divergence (MACD) indicator.
+    Calculate Moving Average Convergence Divergence (MACD) crossover
+    indicator.
+
+    This implementation focuses on the crossover strategy using MACD line and signal line.
+    Trading signals are generated when MACD line crosses above/below the signal line.
 
     Args:
         df (pd.DataFrame): input dataframe with OHLCV data
@@ -140,7 +144,7 @@ def macd(
         column (str, optional): col used for calculation. Defaults to "Close".
 
     Returns:
-        pd.DataFrame: dataframe with MACD columns added
+        pd.DataFrame: dataframe with MACD line and signal line added
     """
     result = df.copy()
 
@@ -150,21 +154,17 @@ def macd(
             slow_ema = group[column].ewm(span=slow, adjust=False).mean()
             macd_line = fast_ema - slow_ema
             signal_line = macd_line.ewm(span=signal, adjust=False).mean()
-            histogram = macd_line - signal_line
 
             result.loc[group.index, f"MACD_line_{fast}_{slow}"] = macd_line
             result.loc[group.index, f"MACD_signal_{signal}"] = signal_line
-            result.loc[group.index, "MACD_histogram"] = histogram
     else:
         fast_ema = result[column].ewm(span=fast, adjust=False).mean()
         slow_ema = result[column].ewm(span=slow, adjust=False).mean()
         macd_line = fast_ema - slow_ema
         signal_line = macd_line.ewm(span=signal, adjust=False).mean()
-        histogram = macd_line - signal_line
 
         result[f"MACD_line_{fast}_{slow}"] = macd_line
         result[f"MACD_signal_{signal}"] = signal_line
-        result["MACD_histogram"] = histogram
 
     return result
 
