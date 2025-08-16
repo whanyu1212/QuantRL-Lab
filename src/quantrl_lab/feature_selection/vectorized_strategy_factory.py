@@ -1,7 +1,7 @@
 from .base_vectorized_strategy import VectorizedTradingStrategy
 from .vectorized_strategy_implementations import (
     BollingerBandsStrategy,
-    CrossoverStrategy,
+    MACDCrossoverStrategy,
     MACDHistogramStrategy,
     MeanReversionStrategy,
     OnBalanceVolumeStrategy,
@@ -53,7 +53,7 @@ class VectorizedStrategyFactory:
             fast, slow, signal = params['fast'], params['slow'], params['signal']
             line_col = f'MACD_line_{fast}_{slow}'
             signal_col = f'MACD_signal_{signal}'
-            return CrossoverStrategy(line_col, signal_col, allow_short)
+            return MACDCrossoverStrategy(line_col, signal_col, allow_short)
 
         elif indicator_name == 'MACD_HISTOGRAM':
             # Note: MACD histogram column name doesn't include parameters in the actual implementation
