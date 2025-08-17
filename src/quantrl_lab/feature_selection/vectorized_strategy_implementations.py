@@ -78,7 +78,7 @@ class MeanReversionStrategy(VectorizedTradingStrategy):
             signals[sell_condition] = SignalType.SELL.value
 
         # Forward fill to maintain positions
-        signals = signals.replace(SignalType.HOLD.value, pd.NA).fillna(method='ffill').fillna(SignalType.HOLD.value)
+        signals = signals.replace(SignalType.HOLD.value, pd.NA).ffill().fillna(SignalType.HOLD.value)
 
         return signals
 
@@ -283,7 +283,7 @@ class StochasticStrategy(VectorizedTradingStrategy):
             signals[sell_condition] = SignalType.SELL.value
 
         # Forward fill to maintain positions
-        signals = signals.replace(SignalType.HOLD.value, pd.NA).fillna(method='ffill').fillna(SignalType.HOLD.value)
+        signals = signals.replace(SignalType.HOLD.value, pd.NA).ffill().fillna(SignalType.HOLD.value)
 
         return signals
 
@@ -303,14 +303,16 @@ class StochasticStrategy(VectorizedTradingStrategy):
 class OnBalanceVolumeStrategy(VectorizedTradingStrategy):
     """Strategy for On-Balance Volume - Trend following based on volume"""
 
-    def __init__(self, obv_col: str, lookback_period: int = 10, allow_short: bool = True):
+    def __init__(self, obv_col: str, allow_short: bool = True):
         self.obv_col = obv_col
-        self.lookback_period = lookback_period
         self.allow_short = allow_short
 
     def generate_signals(self, data: pd.DataFrame) -> pd.Series:
         """
-        Generate trading signals based on On-Balance Volume strategy.
+        Generate trading signals based on On-Balance Volume strategy. A
+        simple strategy is to buy when the OBV is rising and sell when
+        it's falling. We can use a moving average of OBV to determine
+        the trend.
 
         Args:
             data (pd.DataFrame): Input OHLCV data.
@@ -323,20 +325,16 @@ class OnBalanceVolumeStrategy(VectorizedTradingStrategy):
         if self.obv_col not in data.columns:
             return signals
 
-        # Calculate OBV momentum (rate of change over lookback period)
-        obv_momentum = data[self.obv_col].pct_change(periods=self.lookback_period)
+        # Use a short-term moving average to identify the trend of OBV
+        obv_sma = data[self.obv_col].rolling(window=20).mean()
 
-        # Alternative: Use OBV trend (SMA of OBV)
-        obv_sma = data[self.obv_col].rolling(window=self.lookback_period).mean()
-        obv_trend = data[self.obv_col] > obv_sma
-
-        # Buy when OBV is increasing (positive momentum) and trending up
-        buy_condition = (obv_momentum > 0) & obv_trend
+        # Buy when OBV is above its moving average (upward trend)
+        buy_condition = data[self.obv_col] > obv_sma
         signals[buy_condition] = SignalType.BUY.value
 
-        # Sell when OBV is decreasing (negative momentum) and trending down
+        # Sell when OBV is below its moving average (downward trend)
         if self.allow_short:
-            sell_condition = (obv_momentum < 0) & (~obv_trend)
+            sell_condition = data[self.obv_col] < obv_sma
             signals[sell_condition] = SignalType.SELL.value
 
         return signals
@@ -349,46 +347,3 @@ class OnBalanceVolumeStrategy(VectorizedTradingStrategy):
             list: List of required column names.
         """
         return [self.obv_col]
-
-
-class MACDHistogramStrategy(VectorizedTradingStrategy):
-    """Strategy specifically for MACD Histogram - Zero line crossovers and momentum"""
-
-    def __init__(self, histogram_col: str, allow_short: bool = True, momentum_threshold: float = 0.0):
-        self.histogram_col = histogram_col
-        self.allow_short = allow_short
-        self.momentum_threshold = momentum_threshold
-
-    def generate_signals(self, data: pd.DataFrame) -> pd.Series:
-        """
-        Generate trading signals based on MACD Histogram strategy.
-
-        Args:
-            data (pd.DataFrame): Input OHLCV data.
-
-        Returns:
-            pd.Series: Generated trading signals.
-        """
-        signals = pd.Series(SignalType.HOLD.value, index=data.index)
-
-        if self.histogram_col not in data.columns:
-            return signals
-
-        # Strategy 1: Zero Line Crossover
-        # Buy when histogram > 0 (MACD line above signal line)
-        signals[data[self.histogram_col] > self.momentum_threshold] = SignalType.BUY.value
-
-        # Sell when histogram < 0 (MACD line below signal line)
-        if self.allow_short:
-            signals[data[self.histogram_col] < -self.momentum_threshold] = SignalType.SELL.value
-
-        return signals
-
-    def get_required_columns(self) -> list:
-        """
-        Get the list of required columns for the strategy.
-
-        Returns:
-            list: List of required column names.
-        """
-        return [self.histogram_col]

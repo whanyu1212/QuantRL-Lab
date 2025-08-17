@@ -2,7 +2,6 @@ from .base_vectorized_strategy import VectorizedTradingStrategy
 from .vectorized_strategy_implementations import (
     BollingerBandsStrategy,
     MACDCrossoverStrategy,
-    MACDHistogramStrategy,
     MeanReversionStrategy,
     OnBalanceVolumeStrategy,
     StochasticStrategy,
@@ -17,20 +16,7 @@ class VectorizedStrategyFactory:
 
     @staticmethod
     def create_strategy(indicator_name: str, allow_short: bool = True, **params) -> VectorizedTradingStrategy:
-        """
-        Create appropriate strategy based on indicator type.
-
-        Args:
-            indicator_name: Name of the indicator ('SMA', 'EMA', 'RSI', etc.)
-            allow_short: Whether to allow short positions (default: True)
-            **params: Indicator-specific parameters
-
-        Returns:
-            VectorizedTradingStrategy: The appropriate strategy instance
-
-        Raises:
-            ValueError: If indicator_name is not supported
-        """
+        """Create appropriate strategy based on indicator type."""
 
         if indicator_name == 'SMA':
             window = params['window']
@@ -55,12 +41,6 @@ class VectorizedStrategyFactory:
             signal_col = f'MACD_signal_{signal}'
             return MACDCrossoverStrategy(line_col, signal_col, allow_short)
 
-        elif indicator_name == 'MACD_HISTOGRAM':
-            # Note: MACD histogram column name doesn't include parameters in the actual implementation
-            histogram_col = 'MACD_histogram'
-            momentum_threshold = params.get('momentum_threshold', 0.0)
-            return MACDHistogramStrategy(histogram_col, allow_short, momentum_threshold)
-
         elif indicator_name == 'ATR':
             window = params.get('window', 14)
             col_name = f'ATR_{window}'
@@ -69,15 +49,18 @@ class VectorizedStrategyFactory:
 
         elif indicator_name == 'BB':
             window = params['window']
-            lower_col = f'BB_lower_{window}_2.0'
+            # Handle both 'std_dev' and 'num_std' parameter names
+            num_std = params.get('num_std', params.get('std_dev', 2.0))
+            lower_col = f'BB_lower_{window}_{num_std}'
             middle_col = f'BB_middle_{window}'
-            upper_col = f'BB_upper_{window}_2.0'
+            upper_col = f'BB_upper_{window}_{num_std}'
             return BollingerBandsStrategy(lower_col, middle_col, upper_col, allow_short)
 
         elif indicator_name == 'STOCH':
-            k_window = params.get('k_window', 14)
-            d_window = params.get('d_window', 3)
-            k_col = f'STOCH_%K_{k_window}'
+            k_window = params['k_window']
+            d_window = params['d_window']
+            smooth_k = params['smooth_k']
+            k_col = f'STOCH_%K_{k_window}_{smooth_k}'
             d_col = f'STOCH_%D_{d_window}'
             oversold = params.get('oversold', 20)
             overbought = params.get('overbought', 80)
@@ -85,14 +68,10 @@ class VectorizedStrategyFactory:
 
         elif indicator_name == 'OBV':
             col_name = 'OBV'
-            lookback_period = params.get('lookback_period', 10)
-            return OnBalanceVolumeStrategy(col_name, lookback_period, allow_short)
+            return OnBalanceVolumeStrategy(col_name, allow_short)
 
         else:
-            raise ValueError(
-                f"Unknown indicator: {indicator_name}. Supported indicators: "
-                f"['SMA', 'EMA', 'RSI', 'MACD', 'MACD_HISTOGRAM', 'ATR', 'BB', 'STOCH', 'OBV']"
-            )
+            raise ValueError(f"Unknown indicator: {indicator_name}")
 
     @staticmethod
     def get_supported_indicators() -> list:
@@ -102,7 +81,7 @@ class VectorizedStrategyFactory:
         Returns:
             list: List of supported indicator names
         """
-        return ['SMA', 'EMA', 'RSI', 'MACD', 'MACD_HISTOGRAM', 'ATR', 'BB', 'STOCH', 'OBV']
+        return ['SMA', 'EMA', 'RSI', 'MACD', 'ATR', 'BB', 'STOCH', 'OBV']
 
     @staticmethod
     def get_indicator_requirements(indicator_name: str) -> dict:
@@ -123,8 +102,8 @@ class VectorizedStrategyFactory:
             'MACD_HISTOGRAM': {'required': ['fast', 'slow', 'signal'], 'optional': ['momentum_threshold']},
             'ATR': {'required': [], 'optional': ['window', 'threshold_percentile']},
             'BB': {'required': ['window'], 'optional': []},
-            'STOCH': {'required': [], 'optional': ['k_window', 'd_window', 'oversold', 'overbought']},
-            'OBV': {'required': [], 'optional': ['lookback_period']},
+            'STOCH': {'required': ['k_window', 'd_window', 'smooth_k'], 'optional': ['oversold', 'overbought']},
+            'OBV': {'required': [], 'optional': []},
         }
 
         if indicator_name not in requirements:

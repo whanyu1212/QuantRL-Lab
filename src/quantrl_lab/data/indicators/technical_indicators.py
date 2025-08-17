@@ -316,11 +316,11 @@ def stochastic(df: pd.DataFrame, k_window: int = 14, d_window: int = 3, smooth_k
     if "Symbol" in result.columns:
         for symbol, group in result.groupby("Symbol"):
             k_values, d_values = _calculate_stochastic(group["High"].values, group["Low"].values, group["Close"].values)
-            result.loc[group.index, f"STOCH_%K_{k_window}"] = k_values
+            result.loc[group.index, f"STOCH_%K_{k_window}_{smooth_k}"] = k_values
             result.loc[group.index, f"STOCH_%D_{d_window}"] = d_values
     else:
         k_values, d_values = _calculate_stochastic(result["High"].values, result["Low"].values, result["Close"].values)
-        result[f"STOCH_%K_{k_window}"] = k_values
+        result[f"STOCH_%K_{k_window}_{smooth_k}"] = k_values
         result[f"STOCH_%D_{d_window}"] = d_values
 
     return result
