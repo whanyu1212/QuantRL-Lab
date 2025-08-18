@@ -78,7 +78,12 @@ class MeanReversionStrategy(VectorizedTradingStrategy):
             signals[sell_condition] = SignalType.SELL.value
 
         # Forward fill to maintain positions
-        signals = signals.replace(SignalType.HOLD.value, pd.NA).ffill().fillna(SignalType.HOLD.value)
+        signals = (
+            signals.replace(SignalType.HOLD.value, pd.NA)
+            .ffill()
+            .fillna(SignalType.HOLD.value)
+            .infer_objects(copy=False)
+        )
 
         return signals
 
@@ -283,7 +288,12 @@ class StochasticStrategy(VectorizedTradingStrategy):
             signals[sell_condition] = SignalType.SELL.value
 
         # Forward fill to maintain positions
-        signals = signals.replace(SignalType.HOLD.value, pd.NA).ffill().fillna(SignalType.HOLD.value)
+        signals = (
+            signals.replace(SignalType.HOLD.value, pd.NA)
+            .ffill()
+            .fillna(SignalType.HOLD.value)
+            .infer_objects(copy=False)
+        )
 
         return signals
 
