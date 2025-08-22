@@ -14,6 +14,9 @@ from quantrl_lab.data.interface import (
     MacroDataCapable,
     NewsDataCapable,
 )
+from quantrl_lab.data.loaders.alpha_vantage_mappings import (
+    ALPHA_VANTAGE_COLUMN_MAPPER,
+)
 from quantrl_lab.utils.common import convert_datetime_to_alpha_vantage_format
 from quantrl_lab.utils.config import (
     ALPHA_VANTAGE_API_BASE,
@@ -186,20 +189,8 @@ class AlphaVantageDataLoader(
         # Convert to DataFrame
         df = pd.DataFrame.from_dict(time_series, orient="index")
 
-        # Create a comprehensive column mapping that handles both regular and adjusted data
-        column_mapping = {
-            "1. open": "open",
-            "2. high": "high",
-            "3. low": "low",
-            "4. close": "close",
-            "5. adjusted close": "adj_close",  # Only in adjusted data
-            "5. volume": "volume",  # In regular daily data
-            "6. volume": "volume",  # In adjusted daily data
-            "7. dividend amount": "dividend",  # Only in adjusted data
-            "8. split coefficient": "split_coeff",  # Only in adjusted data
-        }
-
-        # Apply column mapping
+        # Get the appropriate column mapping and rename columns
+        column_mapping = ALPHA_VANTAGE_COLUMN_MAPPER.get_mapping(interval, adjusted)
         df = df.rename(columns=column_mapping)
 
         # Drop any columns that weren't in our mapping

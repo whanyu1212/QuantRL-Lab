@@ -13,7 +13,6 @@ from alpaca.data.requests import (
     StockLatestQuoteRequest,
     StockLatestTradeRequest,
 )
-from alpaca.data.timeframe import TimeFrame, TimeFrameUnit
 from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 
@@ -25,6 +24,7 @@ from quantrl_lab.data.interface import (
     NewsDataCapable,
     StreamingCapable,
 )
+from quantrl_lab.data.loaders.alpaca_mappings import ALPACA_MAPPINGS
 
 console = Console()
 
@@ -173,18 +173,7 @@ class AlpacaDataLoader(
 
         # TODO: may need error handling for intraday data
         # Convert timeframe string to Alpaca TimeFrame object
-        tf_mapping = {
-            "1m": TimeFrame.Minute,
-            "5m": TimeFrame(5, TimeFrameUnit.Minute),
-            "15m": TimeFrame(15, TimeFrameUnit.Minute),
-            "30m": TimeFrame(30, TimeFrameUnit.Minute),
-            "1h": TimeFrame.Hour,
-            "1d": TimeFrame.Day,
-            "1w": TimeFrame.Week,
-            "1M": TimeFrame.Month,
-        }
-
-        alpaca_timeframe = tf_mapping.get(timeframe, TimeFrame.Day)
+        alpaca_timeframe = ALPACA_MAPPINGS.get_timeframe(timeframe)
 
         # Convert single symbol to list
         if isinstance(symbols, str):
@@ -206,17 +195,7 @@ class AlpacaDataLoader(
         bars_df = bars.df.reset_index()
         # Upper case to standardize with other data sources
         bars_df.rename(
-            columns={
-                "symbol": "Symbol",
-                "timestamp": "Timestamp",
-                "open": "Open",
-                "high": "High",
-                "low": "Low",
-                "close": "Close",
-                "volume": "Volume",
-                "trade_count": "Trade_count",
-                "vwap": "VWAP",
-            },
+            columns=ALPACA_MAPPINGS.ohlcv_columns,
             inplace=True,
         )
         bars_df["Date"] = bars_df["Timestamp"].dt.date
