@@ -17,7 +17,7 @@ class IndicatorAnalysisConfig:
     transaction_cost: float = 0.001  # 0.1% per trade
     risk_free_rate: float = 0.02  # 2% annual
     min_holding_period: int = 1  # Minimum holding period in days
-    position_sizing: str = 'full'  # 'full', 'half', 'third', 'kelly (based on Kelly Criterion)'
+    position_sizing: str = "full"  # 'full', 'half', 'third', 'kelly (based on Kelly Criterion)'
 
     def __post_init__(self):
         """Validate configuration."""
@@ -25,7 +25,7 @@ class IndicatorAnalysisConfig:
             raise ValueError("initial_capital must be positive")
         if self.transaction_cost < 0:
             raise ValueError("transaction_cost must be non-negative")
-        if self.position_sizing not in ['full', 'half', 'third', 'kelly']:
+        if self.position_sizing not in ["full", "half", "third", "kelly"]:
             raise ValueError("position_sizing must be 'full', 'half', 'third', or 'kelly'")
 
 
@@ -58,9 +58,9 @@ class IndicatorAnalysis:
         result = {}
 
         for config in configs:
-            indicator_name = config['name']
-            param_sets = config['params']
-            strategy_params = config.get('strategy_params', {})
+            indicator_name = config["name"]
+            param_sets = config["params"]
+            strategy_params = config.get("strategy_params", {})
 
             for i, params in enumerate(param_sets):
                 # Use base name for single configs, descriptive names for multiple
@@ -71,7 +71,7 @@ class IndicatorAnalysis:
                     param_str = "_".join([f"{v}" for v in params.values()])
                     config_name = f"{indicator_name}_{param_str}"  # 'SMA_20', etc.
 
-                result[config_name] = {'indicator_params': params, 'strategy_params': strategy_params}
+                result[config_name] = {"indicator_params": params, "strategy_params": strategy_params}
 
         return result
 
@@ -117,28 +117,28 @@ class IndicatorAnalysis:
 
         # Combine all results
         return {
-            'indicator_name': indicator_name,
-            'indicator_params': indicator_params,
-            'strategy_params': strategy_params,
-            'allow_short': allow_short,
-            'total_return': metrics['total_return'],
-            'annual_return': metrics['annual_return'],
-            'volatility': metrics['volatility'],
-            'sharpe_ratio': metrics['sharpe_ratio'],
-            'max_drawdown': metrics['max_drawdown'],
-            'win_rate': metrics['win_rate'],
-            'profit_factor': metrics['profit_factor'],
-            'sortino_ratio': metrics['sortino_ratio'],
-            'calmar_ratio': metrics['calmar_ratio'],
-            'final_value': portfolio_results['portfolio_values'].iloc[-1],
-            'portfolio_values': portfolio_results['portfolio_values'],
-            'strategy_returns': portfolio_results['strategy_returns'],
-            'positions': portfolio_results['positions'],
-            'signals': signals,
-            'trades_executed': portfolio_results['trades_executed'],
-            'total_trades': portfolio_results['total_trades'],
-            'transaction_costs': portfolio_results['transaction_costs'],
-            'data_with_indicators': data_with_indicators,
+            "indicator_name": indicator_name,
+            "indicator_params": indicator_params,
+            "strategy_params": strategy_params,
+            "allow_short": allow_short,
+            "total_return": metrics["total_return"],
+            "annual_return": metrics["annual_return"],
+            "volatility": metrics["volatility"],
+            "sharpe_ratio": metrics["sharpe_ratio"],
+            "max_drawdown": metrics["max_drawdown"],
+            "win_rate": metrics["win_rate"],
+            "profit_factor": metrics["profit_factor"],
+            "sortino_ratio": metrics["sortino_ratio"],
+            "calmar_ratio": metrics["calmar_ratio"],
+            "final_value": portfolio_results["portfolio_values"].iloc[-1],
+            "portfolio_values": portfolio_results["portfolio_values"],
+            "strategy_returns": portfolio_results["strategy_returns"],
+            "positions": portfolio_results["positions"],
+            "signals": signals,
+            "trades_executed": portfolio_results["trades_executed"],
+            "total_trades": portfolio_results["total_trades"],
+            "transaction_costs": portfolio_results["transaction_costs"],
+            "data_with_indicators": data_with_indicators,
         }
 
     def batch_analyze_indicators(
@@ -161,11 +161,11 @@ class IndicatorAnalysis:
         results = {}
 
         for config_name, config in indicator_configs.items():
-            indicator_params = config.get('indicator_params', {})
-            strategy_params = config.get('strategy_params', {})
+            indicator_params = config.get("indicator_params", {})
+            strategy_params = config.get("strategy_params", {})
 
             # Extract base indicator name from config name
-            base_indicator_name = config_name.split('_')[0]  # 'SMA_10' -> 'SMA'
+            base_indicator_name = config_name.split("_")[0]  # 'SMA_10' -> 'SMA'
 
             try:
                 results[config_name] = self.analyze_indicator(
@@ -178,9 +178,9 @@ class IndicatorAnalysis:
             except Exception as e:
                 print(f"Error analyzing {config_name}: {str(e)}")  # Add debugging
                 results[config_name] = {
-                    'error': str(e),
-                    'indicator_name': base_indicator_name,
-                    'indicator_params': indicator_params,
+                    "error": str(e),
+                    "indicator_name": base_indicator_name,
+                    "indicator_params": indicator_params,
                 }
 
         return results
@@ -189,7 +189,7 @@ class IndicatorAnalysis:
         self,
         data: pd.DataFrame,
         indicator_configs: Dict[str, Dict[str, Any]],
-        sort_by: str = 'sharpe_ratio',
+        sort_by: str = "sharpe_ratio",
         ascending: bool = False,
     ) -> pd.DataFrame:
         """
@@ -209,21 +209,21 @@ class IndicatorAnalysis:
 
         comparison_data = []
         for name, result in results.items():
-            if 'error' not in result:
+            if "error" not in result:
                 comparison_data.append(
                     {
-                        'indicator': name,
-                        'total_return': result['total_return'],
-                        'annual_return': result['annual_return'],
-                        'volatility': result['volatility'],
-                        'sharpe_ratio': result['sharpe_ratio'],
-                        'max_drawdown': result['max_drawdown'],
-                        'win_rate': result['win_rate'],
-                        'profit_factor': result['profit_factor'],
-                        'sortino_ratio': result['sortino_ratio'],
-                        'calmar_ratio': result['calmar_ratio'],
-                        'final_value': result['final_value'],
-                        'total_trades': result['total_trades'],
+                        "indicator": name,
+                        "total_return": result["total_return"],
+                        "annual_return": result["annual_return"],
+                        "volatility": result["volatility"],
+                        "sharpe_ratio": result["sharpe_ratio"],
+                        "max_drawdown": result["max_drawdown"],
+                        "win_rate": result["win_rate"],
+                        "profit_factor": result["profit_factor"],
+                        "sortino_ratio": result["sortino_ratio"],
+                        "calmar_ratio": result["calmar_ratio"],
+                        "final_value": result["final_value"],
+                        "total_trades": result["total_trades"],
                     }
                 )
 
@@ -250,7 +250,7 @@ class IndicatorAnalysis:
             ValueError: If the DataFrame is empty.
             ValueError: If the DataFrame does not contain the required columns.
         """
-        required_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+        required_columns = ["Open", "High", "Low", "Close", "Volume"]
         missing_columns = [col for col in required_columns if col not in data.columns]
 
         if missing_columns:
@@ -315,7 +315,7 @@ class IndicatorAnalysis:
         previous_signal = SignalType.HOLD.value
 
         for i, (idx, row) in enumerate(data.iterrows()):
-            current_price = row['Close']
+            current_price = row["Close"]
             current_signal = signals.iloc[i] if i < len(signals) else SignalType.HOLD.value
 
             # Position sizing
@@ -337,13 +337,13 @@ class IndicatorAnalysis:
 
                     trades_executed.append(
                         {
-                            'date': idx,
-                            'action': 'close',
-                            'position_type': 'long' if position == 1 else 'short',
-                            'shares': shares,
-                            'price': current_price,
-                            'value': trade_value,
-                            'cost': cost,
+                            "date": idx,
+                            "action": "close",
+                            "position_type": "long" if position == 1 else "short",
+                            "shares": shares,
+                            "price": current_price,
+                            "value": trade_value,
+                            "cost": cost,
                         }
                     )
 
@@ -363,21 +363,21 @@ class IndicatorAnalysis:
 
                         trades_executed.append(
                             {
-                                'date': idx,
-                                'action': 'buy',
-                                'position_type': 'long',
-                                'shares': shares,
-                                'price': current_price,
-                                'value': trade_value,
-                                'cost': cost,
+                                "date": idx,
+                                "action": "buy",
+                                "position_type": "long",
+                                "shares": shares,
+                                "price": current_price,
+                                "value": trade_value,
+                                "cost": cost,
                             }
                         )
                         total_trades += 1
 
                 elif current_signal == SignalType.SELL.value and self.config.position_sizing in [
-                    'full',
-                    'half',
-                    'third',
+                    "full",
+                    "half",
+                    "third",
                 ]:
                     # Short selling
                     shares = position_size // current_price
@@ -390,13 +390,13 @@ class IndicatorAnalysis:
 
                         trades_executed.append(
                             {
-                                'date': idx,
-                                'action': 'sell_short',
-                                'position_type': 'short',
-                                'shares': shares,
-                                'price': current_price,
-                                'value': trade_value,
-                                'cost': cost,
+                                "date": idx,
+                                "action": "sell_short",
+                                "position_type": "short",
+                                "shares": shares,
+                                "price": current_price,
+                                "value": trade_value,
+                                "cost": cost,
                             }
                         )
                         total_trades += 1
@@ -419,12 +419,12 @@ class IndicatorAnalysis:
             previous_signal = current_signal
 
         return {
-            'portfolio_values': pd.Series(portfolio_values, index=data.index),
-            'strategy_returns': pd.Series(strategy_returns, index=data.index[1:]),
-            'positions': pd.Series(positions, index=data.index),
-            'trades_executed': trades_executed,
-            'total_trades': total_trades,
-            'transaction_costs': transaction_costs,
+            "portfolio_values": pd.Series(portfolio_values, index=data.index),
+            "strategy_returns": pd.Series(strategy_returns, index=data.index[1:]),
+            "positions": pd.Series(positions, index=data.index),
+            "trades_executed": trades_executed,
+            "total_trades": total_trades,
+            "transaction_costs": transaction_costs,
         }
 
     def _calculate_position_size(self, available_cash: float, price: float, trades: List[Dict[str, Any]]) -> float:
@@ -439,13 +439,13 @@ class IndicatorAnalysis:
         Returns:
             float: Calculated position size.
         """
-        if self.config.position_sizing == 'full':
+        if self.config.position_sizing == "full":
             return available_cash
-        elif self.config.position_sizing == 'half':
+        elif self.config.position_sizing == "half":
             return available_cash * 0.5
-        elif self.config.position_sizing == 'third':
+        elif self.config.position_sizing == "third":
             return available_cash * 0.33
-        elif self.config.position_sizing == 'kelly':
+        elif self.config.position_sizing == "kelly":
             kelly_fraction = self._calculate_kelly_fraction(trades)
             return available_cash * kelly_fraction
         else:
@@ -466,10 +466,10 @@ class IndicatorAnalysis:
             trade_open = trades[i]
             trade_close = trades[i + 1]
 
-            if trade_open['position_type'] == 'long':
-                pnl.append(trade_close['value'] - trade_open['value'])
+            if trade_open["position_type"] == "long":
+                pnl.append(trade_close["value"] - trade_open["value"])
             else:  # short
-                pnl.append(trade_open['value'] - trade_close['value'])
+                pnl.append(trade_open["value"] - trade_close["value"])
         return pnl
 
     def _calculate_kelly_fraction(self, trades: List[Dict[str, Any]]) -> float:
@@ -501,7 +501,7 @@ class IndicatorAnalysis:
         avg_win = sum(wins) / len(wins)
         avg_loss = abs(sum(losses) / len(losses))
 
-        win_loss_ratio = avg_win / avg_loss if avg_loss > 0 else float('inf')
+        win_loss_ratio = avg_win / avg_loss if avg_loss > 0 else float("inf")
 
         if win_loss_ratio == 0:
             return 0.0
@@ -523,8 +523,8 @@ class IndicatorAnalysis:
         Returns:
             Dict[str, float]: Calculated performance metrics.
         """
-        portfolio_values = portfolio_results['portfolio_values']
-        strategy_returns = portfolio_results['strategy_returns']
+        portfolio_values = portfolio_results["portfolio_values"]
+        strategy_returns = portfolio_results["strategy_returns"]
 
         if len(strategy_returns) == 0:
             return self._empty_metrics()
@@ -560,7 +560,7 @@ class IndicatorAnalysis:
         # Profit factor
         positive_sum = positive_returns.sum()
         negative_sum = abs(strategy_returns[strategy_returns < 0].sum())
-        profit_factor = positive_sum / negative_sum if negative_sum > 0 else float('inf')
+        profit_factor = positive_sum / negative_sum if negative_sum > 0 else float("inf")
 
         # Sortino ratio
         downside_returns = strategy_returns[strategy_returns < 0]
@@ -571,15 +571,15 @@ class IndicatorAnalysis:
         calmar_ratio = annual_return / abs(max_drawdown) if max_drawdown < 0 else 0
 
         return {
-            'total_return': total_return,
-            'annual_return': annual_return,
-            'volatility': volatility,
-            'sharpe_ratio': sharpe_ratio,
-            'max_drawdown': max_drawdown,
-            'win_rate': win_rate,
-            'profit_factor': profit_factor,
-            'sortino_ratio': sortino_ratio,
-            'calmar_ratio': calmar_ratio,
+            "total_return": total_return,
+            "annual_return": annual_return,
+            "volatility": volatility,
+            "sharpe_ratio": sharpe_ratio,
+            "max_drawdown": max_drawdown,
+            "win_rate": win_rate,
+            "profit_factor": profit_factor,
+            "sortino_ratio": sortino_ratio,
+            "calmar_ratio": calmar_ratio,
         }
 
     def _empty_metrics(self) -> Dict[str, float]:
@@ -590,15 +590,15 @@ class IndicatorAnalysis:
             Dict[str, float]: Dictionary of empty metrics.
         """
         return {
-            'total_return': 0.0,
-            'annual_return': 0.0,
-            'volatility': 0.0,
-            'sharpe_ratio': 0.0,
-            'max_drawdown': 0.0,
-            'win_rate': 0.0,
-            'profit_factor': 0.0,
-            'sortino_ratio': 0.0,
-            'calmar_ratio': 0.0,
+            "total_return": 0.0,
+            "annual_return": 0.0,
+            "volatility": 0.0,
+            "sharpe_ratio": 0.0,
+            "max_drawdown": 0.0,
+            "win_rate": 0.0,
+            "profit_factor": 0.0,
+            "sortino_ratio": 0.0,
+            "calmar_ratio": 0.0,
         }
 
 
@@ -649,4 +649,4 @@ def rank_indicator_performance(
         Comparison DataFrame sorted by Sharpe ratio
     """
     analyzer = IndicatorAnalysis(config)
-    return analyzer.compare_indicators(data, indicators, sort_by='sharpe_ratio')
+    return analyzer.compare_indicators(data, indicators, sort_by="sharpe_ratio")

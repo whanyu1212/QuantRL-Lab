@@ -88,7 +88,7 @@ class DataSource(ABC):
 
         # Check if instrument discovery is implemented (method is overridden)
         if (
-            hasattr(self.__class__, 'list_available_instruments')
+            hasattr(self.__class__, "list_available_instruments")
             and self.__class__.list_available_instruments is not DataSource.list_available_instruments
         ):
             features.append("instrument_discovery")

@@ -26,11 +26,11 @@ class TrendFollowingStrategy(VectorizedTradingStrategy):
             return signals
 
         # Buy when price > indicator
-        signals[data['Close'] > data[self.indicator_col]] = SignalType.BUY.value
+        signals[data["Close"] > data[self.indicator_col]] = SignalType.BUY.value
 
         # Sell when price < indicator (if shorting allowed)
         if self.allow_short:
-            signals[data['Close'] < data[self.indicator_col]] = SignalType.SELL.value
+            signals[data["Close"] < data[self.indicator_col]] = SignalType.SELL.value
 
         return signals
 
@@ -41,7 +41,7 @@ class TrendFollowingStrategy(VectorizedTradingStrategy):
         Returns:
             list: List of required column names.
         """
-        return [self.indicator_col, 'Close']
+        return [self.indicator_col, "Close"]
 
 
 class MeanReversionStrategy(VectorizedTradingStrategy):
@@ -209,7 +209,7 @@ class BollingerBandsStrategy(VectorizedTradingStrategy):
 
         position = SignalType.HOLD.value
         for i in range(len(data)):
-            current_price = data['Close'].iloc[i]
+            current_price = data["Close"].iloc[i]
             lower_band = data[self.lower_col].iloc[i]
             middle_band = data[self.middle_col].iloc[i]
             upper_band = data[self.upper_col].iloc[i]
@@ -237,7 +237,7 @@ class BollingerBandsStrategy(VectorizedTradingStrategy):
         Returns:
             list: List of required column names.
         """
-        return [self.lower_col, self.middle_col, self.upper_col, 'Close']
+        return [self.lower_col, self.middle_col, self.upper_col, "Close"]
 
 
 class StochasticStrategy(VectorizedTradingStrategy):

@@ -17,19 +17,19 @@ from .vectorized_strategy_implementations import (
 )
 
 __all__ = [
-    'VectorizedTradingStrategy',
-    'SignalType',
-    'VectorizedStrategyFactory',
-    'IndicatorAnalysis',
-    'IndicatorAnalysisConfig',
-    'analyze_single_indicator',
-    'rank_indicator_performance',
+    "VectorizedTradingStrategy",
+    "SignalType",
+    "VectorizedStrategyFactory",
+    "IndicatorAnalysis",
+    "IndicatorAnalysisConfig",
+    "analyze_single_indicator",
+    "rank_indicator_performance",
     # Strategy implementations
-    'TrendFollowingStrategy',
-    'MeanReversionStrategy',
-    'MACDCrossoverStrategy',
-    'VolatilityBreakoutStrategy',
-    'BollingerBandsStrategy',
-    'StochasticStrategy',
-    'OnBalanceVolumeStrategy',
+    "TrendFollowingStrategy",
+    "MeanReversionStrategy",
+    "MACDCrossoverStrategy",
+    "VolatilityBreakoutStrategy",
+    "BollingerBandsStrategy",
+    "StochasticStrategy",
+    "OnBalanceVolumeStrategy",
 ]
