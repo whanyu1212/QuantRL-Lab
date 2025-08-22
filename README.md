@@ -1,6 +1,17 @@
 # QuantRL-Lab
 A Python testbed for Reinforcement Learning in finance, designed to enable researchers and developers to experiment with and evaluate RL algorithms in financial contexts. The project emphasizes modularity and configurability, allowing users to tailor the environment, data sources, and algorithmic settings to their specific needs
 
+The repository demonstrates a complete workflow:
+
+1. Load market data from multiple sources
+2. Process data with technical indicators
+3. Configure trading environments with different parameters
+4. Train RL algorithms with custom or preset configurations
+5. Evaluate performance across multiple metrics
+6. Generate comprehensive comparison reports
+
+---
+
 ### Why Configurability Matters
 QuantRL-Lab is built with configurability at its core, ensuring that:
 - **Flexibility**: Users can easily adapt the testbed to different financial instruments, data sources, and RL algorithms.
@@ -10,6 +21,8 @@ QuantRL-Lab is built with configurability at its core, ensuring that:
 
 Whether you're exploring single-stock trading strategies or multi-agent portfolio optimization, QuantRL-Lab provides the tools and framework to accelerate your research and development.
 
+
+---
 ### Setup Guide
 
 1. Clone the Repository
@@ -80,6 +93,79 @@ git commit -m "your message" --no-verify
 ```
 
 For more details, please refer to `.pre-commit-config.yaml` file.
+
+## Architecture Overview
+
+QuantRL-Lab is built around a modular architecture with two primary layers that enable flexible experimentation with reinforcement learning in financial markets.
+
+### 🗄️ Data Layer
+
+The data layer provides a unified, extensible interface for market data acquisition, processing, and technical analysis. It's designed to abstract away the complexities of different data providers while maintaining consistency across all data sources.
+
+#### Core Components
+
+**1. Data Source Interface & Registry**
+- **Abstract Base Classes**: All data sources implement the `DataSource` interface with standardized methods (`connect()`, `disconnect()`, `get_historical_ohlcv_data()`, etc.)
+- **Protocol-Based Capabilities**: Mixins for different data types using Python's structural typing:
+  - `HistoricalDataCapable`: OHLCV historical data
+  - `NewsDataCapable`: News and sentiment data
+  - `LiveDataCapable`: Real-time market data
+  - `StreamingCapable`: Live data streaming
+
+  *Why Protocols Over Abstract Classes?* This design enables **composition over inheritance** - data sources can mix capabilities freely without complex inheritance hierarchies. For example, `AlpacaLoader` implements multiple protocols naturally, while automatic feature detection (`isinstance(self, NewsDataCapable)`) provides zero-boilerplate capability discovery. This approach eliminates the diamond problem, enables seamless third-party integration, and maintains full type safety. The `runtime_checkable` decorator does come with a small performance cost
+
+- **Centralized Registry**: `DataSourceRegistry` manages multiple data sources with configurable primary/secondary sources
+
+**2. Data Loaders (Implemented)**
+- ✅ **Alpaca Markets**: Full OHLCV + news data integration
+- ✅ **Yahoo Finance**: Historical data with multi-symbol support
+- 🔄 **Alpha Vantage**: Partial implementation (standardization in progress)
+- 📋 **OANDA**: Placeholder for forex data
+
+**3. Technical Indicators System**
+- **Registry Pattern**: `IndicatorRegistry` enables plugin-style indicator registration
+- **Implemented Indicators** (8 total):
+  - SMA, EMA (Moving Averages)
+  - RSI (Relative Strength Index)
+  - MACD (Moving Average Convergence Divergence)
+  - ATR (Average True Range)
+  - BB (Bollinger Bands)
+  - STOCH (Stochastic Oscillator)
+  - OBV (On-Balance Volume)
+- **Flexible Configuration**: Support for multiple parameter sets (e.g., `{"SMA": {"window": [10, 20, 50]}}`)
+
+**4. Data Processing Pipeline**
+- **Unified DataProcessor**: Central class for data transformation and enrichment
+- **News Sentiment Analysis**: Integration with transformer models for sentiment scoring
+- **Data Validation**: Column type checking, missing data handling
+- **Flexible Processing**: Configurable pipelines with method chaining
+
+#### What's Working ✅
+- End-to-end data pipeline from raw market data to processed features
+- Multiple data source integration with unified interface
+- 8 technical indicators with extensible registry system
+- News sentiment analysis with transformer models
+- Flexible parameter configuration for indicators
+- Data validation and type conversion utilities
+
+#### Roadmap 🔄
+- **Data Source Expansion**:
+  - Complete Alpha Vantage integration
+  - Add OANDA forex data support
+  - Implement fundamental data sources (earnings, financials)
+- **Technical Indicators**:
+  - Add 10+ more indicators (Ichimoku, Williams %R, CCI, etc.)
+  - Volume-based indicators
+  - Custom indicator framework
+- **Alternative Data**:
+  - Economic calendar events
+  - Sector performance data
+
+### 🧪 Experiment Layer
+
+*[Placeholder - This section will detail the reinforcement learning experiment framework, including environment management, algorithm configuration, training pipelines, and evaluation systems.]*
+
+---
 
 ### Literature Review
 
