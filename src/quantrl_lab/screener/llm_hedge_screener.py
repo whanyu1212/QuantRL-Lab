@@ -95,7 +95,7 @@ class LLMStockScreener:
             response = completion(model=self.model_name, messages=messages, **kwargs)
 
             # Handle tool calls if present
-            if hasattr(response.choices[0].message, 'tool_calls') and response.choices[0].message.tool_calls:
+            if hasattr(response.choices[0].message, "tool_calls") and response.choices[0].message.tool_calls:
                 # If tools were called, return a structured response
                 tool_calls = response.choices[0].message.tool_calls
                 tool_info = []
@@ -162,10 +162,10 @@ class LLMStockScreener:
 
         Then provide specific hedge recommendations with current market context."""
         # Add tools to kwargs if not already present
-        if 'tools' not in kwargs:
-            kwargs['tools'] = [{"googleSearch": {}}]
-        if 'tool_choice' not in kwargs:
-            kwargs['tool_choice'] = 'auto'
+        if "tools" not in kwargs:
+            kwargs["tools"] = [{"googleSearch": {}}]
+        if "tool_choice" not in kwargs:
+            kwargs["tool_choice"] = "auto"
 
         return self.run(user_prompt, system_prompt=system_prompt, **kwargs)
 
@@ -280,17 +280,17 @@ Analyze and provide hedge recommendations considering:
 Provide structured hedge recommendations."""
 
         # Use enhanced JSON mode with schema validation
-        kwargs['response_format'] = {
+        kwargs["response_format"] = {
             "type": "json_object",
             "response_schema": response_schema,
             "enforce_validation": True,
         }
 
         # Remove tools if present since they conflict with structured output
-        if 'tools' in kwargs:
-            del kwargs['tools']
-        if 'tool_choice' in kwargs:
-            del kwargs['tool_choice']
+        if "tools" in kwargs:
+            del kwargs["tools"]
+        if "tool_choice" in kwargs:
+            del kwargs["tool_choice"]
 
         response = self.run(user_prompt, system_prompt=system_prompt, **kwargs)
 
