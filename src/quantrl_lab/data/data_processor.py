@@ -216,18 +216,69 @@ class DataProcessor:
 
         available_indicators = set(IndicatorRegistry.list_all())
 
-        for indicator_name in indicators:
+        for indicator_config in indicators:
+            # Handle both string and dictionary formats
+            if isinstance(indicator_config, str):
+                # Simple string format: just the indicator name
+                indicator_name = indicator_config
+                custom_params = kwargs.get(f"{indicator_name}_params", {})
+            elif isinstance(indicator_config, dict):
+                # Dictionary format: {"IndicatorName": {"param1": value1, "param2": value2}}
+                if len(indicator_config) != 1:
+                    console.print(
+                        f"[yellow]⚠️  Invalid indicator config format: {indicator_config}. " "Skipping.[/yellow]"
+                    )
+                    continue
+                indicator_name = list(indicator_config.keys())[0]
+                custom_params = indicator_config[indicator_name]
+            else:
+                console.print(
+                    f"[yellow]⚠️  Invalid indicator config type: {type(indicator_config)}. " "Skipping.[/yellow]"
+                )
+                continue
+
+            # Check if indicator exists in registry
             if indicator_name not in available_indicators:
                 console.print(f"[yellow]⚠️  Indicator '{indicator_name}' not found in registry. Skipping.[/yellow]")
                 continue
-            try:
-                # Extract custom parameters for this indicator if provided
-                # Look for {indicator_name}_params in the kwargs
-                custom_params = kwargs.get(f"{indicator_name}_params", {})
 
-                # Apply the indicator with custom parameters
-                console.print(f"[cyan]Applying {indicator_name} with params: {custom_params}[/cyan]")
-                result = IndicatorRegistry.apply(indicator_name, result, **custom_params)
+            try:
+                # Handle different parameter formats
+                if isinstance(custom_params, list):
+                    # List of parameter dictionaries (e.g., [{"fast": 12, "slow": 26, "signal": 9},
+                    # {"fast": 5, "slow": 15, "signal": 5}])
+                    for param_set in custom_params:
+                        if isinstance(param_set, dict):
+                            console.print(f"[cyan]Applying {indicator_name} with params: {param_set}[/cyan]")
+                            result = IndicatorRegistry.apply(indicator_name, result, **param_set)
+                        else:
+                            console.print(
+                                f"[yellow]⚠️  Invalid parameter set format in list: {param_set}. Skipping.[/yellow]"
+                            )
+                elif isinstance(custom_params, dict) and any(isinstance(v, list) for v in custom_params.values()):
+                    # Multiple parameter combinations (e.g., {"window": [10, 20, 50]})
+                    import itertools
+
+                    # Get all parameter combinations
+                    param_names = list(custom_params.keys())
+                    param_values = list(custom_params.values())
+
+                    # Convert single values to lists for consistency
+                    param_values = [v if isinstance(v, list) else [v] for v in param_values]
+
+                    # Generate all combinations
+                    for combination in itertools.product(*param_values):
+                        params_dict = dict(zip(param_names, combination))
+                        console.print(f"[cyan]Applying {indicator_name} with params: {params_dict}[/cyan]")
+                        result = IndicatorRegistry.apply(indicator_name, result, **params_dict)
+                elif isinstance(custom_params, dict):
+                    # Single parameter dictionary
+                    console.print(f"[cyan]Applying {indicator_name} with params: {custom_params}[/cyan]")
+                    result = IndicatorRegistry.apply(indicator_name, result, **custom_params)
+                else:
+                    # Empty parameters or invalid format
+                    console.print(f"[cyan]Applying {indicator_name} with default params[/cyan]")
+                    result = IndicatorRegistry.apply(indicator_name, result)
 
             except Exception as e:
                 console.print(f"[red]❌ Failed to apply indicator '{indicator_name}' - {e}[/red]")

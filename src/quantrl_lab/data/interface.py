@@ -14,22 +14,36 @@ class DataSource(ABC):
         """Return the name of this data source."""
         pass
 
-    @abstractmethod
     def connect(self) -> None:
-        """Connect to the data source."""
+        """
+        Connect to the data source.
+
+        Default implementation for sources that don't require
+        connections. Override this method if your data source needs
+        connection management.
+        """
         pass
 
-    @abstractmethod
     def disconnect(self) -> None:
-        """Disconnect from the data source."""
+        """
+        Disconnect from the data source.
+
+        Default implementation for sources that don't require
+        connections. Override this method if your data source needs
+        connection management.
+        """
         pass
 
-    @abstractmethod
     def is_connected(self) -> bool:
-        """Check if the data source is currently connected."""
-        pass
+        """
+        Check if the data source is currently connected.
 
-    @abstractmethod
+        Returns:
+            True for sources that don't require connections (always available).
+            Override this method if your data source needs connection management.
+        """
+        return True
+
     def list_available_instruments(
         self,
         instrument_type: Optional[str] = None,
@@ -47,8 +61,14 @@ class DataSource(ABC):
 
         Returns:
             A list of string identifiers for the available instruments.
+
+        Raises:
+            NotImplementedError: If the data source doesn't support instrument discovery.
         """
-        pass
+        raise NotImplementedError(
+            f"{self.__class__.__name__} does not support instrument discovery. "
+            "This data source may be designed for specific instruments only."
+        )
 
     @property
     def supported_features(self) -> List[str]:
@@ -63,6 +83,15 @@ class DataSource(ABC):
             features.append("live_data")
         if isinstance(self, StreamingCapable):
             features.append("streaming")
+        if isinstance(self, ConnectionManaged):
+            features.append("connection_managed")
+
+        # Check if instrument discovery is implemented (method is overridden)
+        if (
+            hasattr(self.__class__, "list_available_instruments")
+            and self.__class__.list_available_instruments is not DataSource.list_available_instruments
+        ):
+            features.append("instrument_discovery")
 
         return features
 
@@ -71,7 +100,36 @@ class DataSource(ABC):
         return feature_name in self.supported_features
 
     def __repr__(self) -> str:
+        """
+        Return a string representation of the data source.
+
+        Returns:
+            str: A string representation of the data source.
+        """
         return f"<{self.__class__.__name__}(name='{self.source_name}', connected={self.is_connected})>"
+
+
+@runtime_checkable
+class ConnectionManaged(Protocol):
+    """
+    Protocol for data sources that require explicit connection
+    management.
+
+    Sources implementing this protocol need to manage persistent
+    connections, authentication sessions, or other stateful connections.
+    """
+
+    def connect(self) -> None:
+        """Establish connection to the data source."""
+        ...
+
+    def disconnect(self) -> None:
+        """Close connection to the data source."""
+        ...
+
+    def is_connected(self) -> bool:
+        """Check if currently connected to the data source."""
+        ...
 
 
 @runtime_checkable
