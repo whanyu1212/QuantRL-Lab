@@ -18,6 +18,7 @@ from rich.console import Console
 from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
 
 from quantrl_lab.data.interface import (
+    ConnectionManaged,
     DataSource,
     HistoricalDataCapable,
     LiveDataCapable,
@@ -34,6 +35,7 @@ class AlpacaDataLoader(
     LiveDataCapable,
     StreamingCapable,
     NewsDataCapable,
+    ConnectionManaged,
 ):
     """Alpaca implementation that provides market data from Alpaca
     APIs."""
@@ -249,42 +251,42 @@ class AlpacaDataLoader(
         request_params = StockLatestTradeRequest(symbol_or_symbols=symbol)
         return self.stock_historical_client.get_stock_latest_trade(request_params)
 
-    async def subscribe_to_updates(self, symbol: str) -> None:
-        """
-        Subscribe to real-time market data updates. This only works at
-        around 9.30pm to 4.30am SGT on weekdays.
+    # async def subscribe_to_updates(self, symbol: str) -> None:
+    #     """
+    #     Subscribe to real-time market data updates. This only works at
+    #     around 9.30pm to 4.30am SGT on weekdays.
 
-        Args:
-            symbols: List of symbol identifiers to subscribe to
-            callback: Async callback function that will be invoked when updates arrive
+    #     Args:
+    #         symbols: List of symbol identifiers to subscribe to
+    #         callback: Async callback function that will be invoked when updates arrive
 
-        Note:
-            This only sets up the subscription. You need to call start_streaming()
-            to actually begin receiving updates.
-        """
+    #     Note:
+    #         This only sets up the subscription. You need to call start_streaming()
+    #         to actually begin receiving updates.
+    #     """
 
-        async def quote_data_handler(data):
-            console.print(f"[green]Received quote: {data}[/green]")
+    #     async def quote_data_handler(data):
+    #         console.print(f"[green]Received quote: {data}[/green]")
 
-            # TODO: Process the quote data as needed and execute strategies
+    #         # TODO: Process the quote data as needed and execute strategies
 
-        self.stock_stream_client.subscribe_quotes(quote_data_handler, symbol)
+    #     self.stock_stream_client.subscribe_quotes(quote_data_handler, symbol)
 
-    async def start_streaming(self):
-        """
-        Start the WebSocket connection and begin receiving updates.
+    # async def start_streaming(self):
+    #     """
+    #     Start the WebSocket connection and begin receiving updates.
 
-        This is a blocking call that should be run in an async context.
-        """
-        try:
-            await self.stock_stream_client.run()
-        except Exception as e:
-            console.print(f"[red]Error in WebSocket stream: {e}[/red]")
-            raise
+    #     This is a blocking call that should be run in an async context.
+    #     """
+    #     try:
+    #         await self.stock_stream_client.run()
+    #     except Exception as e:
+    #         console.print(f"[red]Error in WebSocket stream: {e}[/red]")
+    #         raise
 
-    async def stop_streaming(self):
-        """Stop the WebSocket connection and clean up resources."""
-        await self.stock_stream_client.stop_ws()
+    # async def stop_streaming(self):
+    #     """Stop the WebSocket connection and clean up resources."""
+    #     await self.stock_stream_client.stop_ws()
 
     def get_news_data(
         self,
@@ -420,18 +422,18 @@ if __name__ == "__main__":
             console.print(news_df.iloc[:5][["headline", "created_at", "summary"]])
 
         # Set up the subscription
-        console.print("\n[bold blue]Testing websocket:[/bold blue]")
+        # console.print("\n[bold blue]Testing websocket:[/bold blue]")
 
         # Set up the subscription
-        await alpaca_client.subscribe_to_updates("AAPL")
+        # await alpaca_client.subscribe_to_updates("AAPL")
 
         # Start streaming data
-        try:
-            console.print("[cyan]Starting WebSocket connection...[/cyan]")
-            await alpaca_client.start_streaming()
-        except KeyboardInterrupt:
-            console.print("[yellow]Closing connection...[/yellow]")
-        finally:
-            await alpaca_client.stop_streaming()
+        # try:
+        #     console.print("[cyan]Starting WebSocket connection...[/cyan]")
+        #     await alpaca_client.start_streaming()
+        # except KeyboardInterrupt:
+        #     console.print("[yellow]Closing connection...[/yellow]")
+        # finally:
+        #     await alpaca_client.stop_streaming()
 
     asyncio.run(main())
