@@ -34,7 +34,13 @@ dependencies = [
     "iprogress (>=0.4,<0.5)",
     "ipywidgets (>=8.1.7,<9.0.0)",
     "scikit-learn (>=1.7.0,<2.0.0)",
-    "rich (>=14.0.0,<15.0.0)"
+    "rich (>=14.0.0,<15.0.0)",
+    "optuna (>=4.4.0,<5.0.0)",
+    "mlflow (>=3.1.4,<4.0.0)",
+    "optuna-integration (>=4.4.0,<5.0.0)",
+    "pydantic (>=2.11.7,<3.0.0)",
+    "litellm (>=1.75.8,<2.0.0)",
+    "openai (==1.99.9)"
 ]
 
 [tool.black]

@@ -10,6 +10,9 @@ from quantrl_lab.custom_envs.stock.strategies.rewards.components.invalid_action_
 from quantrl_lab.custom_envs.stock.strategies.rewards.components.portfolio_reward import (  # noqa: F401
     PortfolioValueChangeReward,
 )
+from quantrl_lab.custom_envs.stock.strategies.rewards.components.position_sizing_reward import (  # noqa: F401
+    PositionSizingRiskReward,
+)
 from quantrl_lab.custom_envs.stock.strategies.rewards.components.trend_following_reward import (  # noqa: F401
     TrendFollowingReward,
 )

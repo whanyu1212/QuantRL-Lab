@@ -2,6 +2,10 @@ from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 from rich.console import Console
+
+# Keep unused imports for future use, but add noqa comments to suppress warnings
+from rich.panel import Panel  # noqa: F401
+from rich.rule import Rule  # noqa: F401
 from rich.table import Table
 from stable_baselines3.common.env_util import make_vec_env
 
@@ -95,7 +99,8 @@ class BacktestRunner:
 
         # 1. Training Phase
         if self.verbose:
-            console.print("[bold green]Phase 1: Training...[/bold green]")
+            console.rule("[bold green]🔄 TRAINING PHASE 🔄[/bold green]")
+            console.print("[bold green]Starting model training...[/bold green]")
 
         train_vec_env = make_vec_env(train_env_factory, n_envs=n_envs)
 
@@ -112,9 +117,15 @@ class BacktestRunner:
 
         # 2. Evaluation Phase
         if self.verbose:
-            console.print("\n[bold green]Phase 2: Evaluation...[/bold green]")
+            console.rule("[bold blue]📊 EVALUATION PHASE 📊[/bold blue]")
 
         # Evaluate on training data
+
+        if self.verbose:
+            console.print(
+                "\n[bold green]🔍 TRAIN EVALUATION:[/bold green] Running model on training dataset", style="green"
+            )
+
         train_env = train_env_factory()
         train_rewards, train_episodes = evaluate_model(
             model=model, env=train_env, num_episodes=num_eval_episodes, verbose=self.verbose
@@ -122,6 +133,11 @@ class BacktestRunner:
         train_env.close()
 
         # Evaluate on test data
+        if self.verbose:
+            console.print(
+                "\n[bold blue]🧪 TEST EVALUATION:[/bold blue] Running model on unseen test dataset", style="blue"
+            )
+
         test_env = test_env_factory()
         test_rewards, test_episodes = evaluate_model(
             model=model, env=test_env, num_episodes=num_eval_episodes, verbose=self.verbose
@@ -157,7 +173,7 @@ class BacktestRunner:
         }
 
         if self.verbose:
-            console.print("\n[bold green]Results Summary:[/bold green]")
+            console.rule("[bold yellow]📋 RESULTS SUMMARY 📋[/bold yellow]")
 
             # Create results table
             results_table = Table(title="Experiment Results", show_header=True)
