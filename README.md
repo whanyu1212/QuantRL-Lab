@@ -105,7 +105,7 @@ The data layer provides a unified, extensible interface for market data acquisit
 #### Core Components
 
 **1. Data Source Interface & Registry**
-- **Abstract Base Classes**: All data sources implement the `DataSource` interface with standardized methods (`connect()`, `disconnect()`, `get_historical_ohlcv_data()`, etc.)
+- **Abstract Base Classes**: All data sources implement the `DataSource` interface with standardized methods (`get_historical_ohlcv_data()`, `get_news_data` etc.)
 - **Protocol-Based Capabilities**: Mixins for different data types using Python's structural typing:
   - `HistoricalDataCapable`: OHLCV historical data
   - `NewsDataCapable`: News and sentiment data
@@ -118,12 +118,13 @@ The data layer provides a unified, extensible interface for market data acquisit
 
 **2. Data Loaders (Implemented)**
 - ✅ **Alpaca Markets**: Full OHLCV + news data integration
-- ✅ **Yahoo Finance**: Historical data with multi-symbol support
-- 🔄 **Alpha Vantage**: Partial implementation (standardization in progress)
+- ✅ **Alpha Vantage**: Complete implementation with standardized output *(Note: Free tier limited to 25 API calls/day, news data coverage is limited)*
+- 🔄 **Yahoo Finance**: Class implemented, integration and standardization in progress
 - 📋 **OANDA**: Placeholder for forex data
 
 **3. Technical Indicators System**
-- **Registry Pattern**: `IndicatorRegistry` enables plugin-style indicator registration
+- **Registry Pattern**: [`IndicatorRegistry`](src/quantrl_lab/data/indicators/indicator_registry.py) enables plugin-style indicator registration
+-
 - **Implemented Indicators** (8 total):
   - SMA, EMA (Moving Averages)
   - RSI (Relative Strength Index)
@@ -139,6 +140,20 @@ The data layer provides a unified, extensible interface for market data acquisit
 - **News Sentiment Analysis**: Integration with transformer models for sentiment scoring
 - **Data Validation**: Column type checking, missing data handling
 - **Flexible Processing**: Configurable pipelines with method chaining
+- **Example Usage**: See [`notebooks/data_processing.ipynb`](notebooks/data_processing.ipynb) for practical demonstrations
+
+**5. Feature Selection & Strategy Analysis**
+- **Indicator Performance Analysis**: Statistical evaluation of technical indicators across different timeframes
+- **Strategy Signal Generation**: Vectorized implementations for rapid testing of indicator-based signals
+- **Parameter Optimization**: Analysis of optimal window lengths and parameter combinations
+- **Feature Ranking**: Performance-based ranking to guide feature selection for RL experiments
+- **Example Usage**: See [`notebooks/feature_selection.ipynb`](notebooks/feature_selection.ipynb) for practical demonstrations
+
+**6. Screening & Alternative Data**
+- **LLM-based Hedge Screener**: AI-powered identification of potential hedging pairs for multi-stock trading environments
+- **Pair Correlation Analysis**: Statistical analysis to find stocks suitable for hedging strategies
+- **Foundation for Multi-Stock Environments**: Creates the groundwork for pair trading and hedging in RL experiments
+- **Example Usage**: See [`notebooks/llm_hedge_screener.ipynb`](notebooks/llm_hedge_screener.ipynb) for practical demonstrations
 
 #### What's Working ✅
 - End-to-end data pipeline from raw market data to processed features
@@ -147,17 +162,22 @@ The data layer provides a unified, extensible interface for market data acquisit
 - News sentiment analysis with transformer models
 - Flexible parameter configuration for indicators
 - Data validation and type conversion utilities
+- Vectorized trading strategy framework with 7 pre-built strategies
+- Indicator performance analysis and ranking system
+- LLM-based stock screening capabilities
 
 #### Roadmap 🔄
 - **Data Source Expansion**:
-  - Complete Alpha Vantage integration
+  - Complete YFinance integration
+  - Add Cryto data support
   - Add OANDA forex data support
-  - Implement fundamental data sources (earnings, financials)
 - **Technical Indicators**:
-  - Add 10+ more indicators (Ichimoku, Williams %R, CCI, etc.)
-  - Volume-based indicators
-  - Custom indicator framework
-- **Alternative Data**:
+  - Add more indicators (Ichimoku, Williams %R, CCI, etc.)
+- **Trading Environments**:
+  - Multi-stock trading environment with hedging pair capabilities
+- **Alternative Data for consideration**:
+  - Fundamental data (earnings, balance sheets, income statements, cash flow)
+  - Macroeconomic indicators (GDP, inflation, unemployment, interest rates)
   - Economic calendar events
   - Sector performance data
 

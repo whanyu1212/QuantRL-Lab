@@ -70,13 +70,27 @@ class DataSourceRegistry:
         """
 
         # Use primary source to fetch historical data
-        return self.primary_source.get_historical_ohlcv_data(
-            symbols=symbols,
-            start=start,
-            end=end,
-            timeframe=timeframe,
-            **kwargs,
-        )
+        # Handle different parameter naming conventions for different data sources
+        primary_source_class = type(self.primary_source).__name__
+
+        if primary_source_class == "AlphaVantageDataLoader":
+            # Alpha Vantage uses start_date, end_date, interval
+            return self.primary_source.get_historical_ohlcv_data(
+                symbols=symbols,
+                start_date=start,
+                end_date=end,
+                interval=timeframe,
+                **kwargs,
+            )
+        else:
+            # Alpaca and other sources use start, end, timeframe
+            return self.primary_source.get_historical_ohlcv_data(
+                symbols=symbols,
+                start=start,
+                end=end,
+                timeframe=timeframe,
+                **kwargs,
+            )
 
     def get_news_data(
         self,
