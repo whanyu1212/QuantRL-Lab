@@ -80,7 +80,7 @@ class AlphaVantageDataLoader(
     # Historical Data Method #
     def get_historical_ohlcv_data(
         self,
-        symbol: str,
+        symbols: str,
         interval: str = "1d",
         start_date: Optional[Union[str, datetime]] = None,
         end_date: Optional[Union[str, datetime]] = None,
@@ -119,7 +119,7 @@ class AlphaVantageDataLoader(
             parsed_end_date = pd.to_datetime(end_date) if isinstance(end_date, str) else end_date
 
         # Log what we're fetching
-        log_msg = f"Fetching {interval} data for {symbol}"
+        log_msg = f"Fetching {interval} data for {symbols}"
         if parsed_start_date or parsed_end_date:
             if parsed_start_date and parsed_end_date:
                 log_msg += f" from {parsed_start_date.date()} to {parsed_end_date.date()}"
@@ -139,11 +139,11 @@ class AlphaVantageDataLoader(
                 logger.info("Defaulting to outputsize='full' for daily data with no date range specified")
 
             if adjusted:
-                raw_data = self._get_daily_adjusted_data(symbol, **kwargs)
-                logger.info(f"Using adjusted daily data for {symbol}")
+                raw_data = self._get_daily_adjusted_data(symbols, **kwargs)
+                logger.info(f"Using adjusted daily data for {symbols}")
             else:
-                raw_data = self._get_daily_data(symbol, **kwargs)
-                logger.info(f"Using raw daily data for {symbol}")
+                raw_data = self._get_daily_data(symbols, **kwargs)
+                logger.info(f"Using raw daily data for {symbols}")
 
             time_series_key = "Time Series (Daily)"
 
@@ -153,12 +153,14 @@ class AlphaVantageDataLoader(
 
             # Log info about intraday data fetching
             if "month" in kwargs:
-                logger.info(f"Fetching {interval} intraday data for {symbol} for month: {kwargs['month']}")
+                logger.info(f"Fetching {interval} intraday data for {symbols} for month: {kwargs['month']}")
             else:
-                logger.info(f"Fetching {interval} intraday data for {symbol} (recent data - typically last 15-30 days)")
+                logger.info(
+                    f"Fetching {interval} intraday data for {symbols} (recent data - typically last 15-30 days)"
+                )
                 logger.info("For historical intraday data, specify 'month=\"YYYY-MM\"' in kwargs")
 
-            raw_data = self._get_intraday_data(symbol, interval=interval, **kwargs)
+            raw_data = self._get_intraday_data(symbols, interval=interval, **kwargs)
             time_series_key = f"Time Series ({interval})"
         else:
             raise ValueError(
@@ -167,13 +169,13 @@ class AlphaVantageDataLoader(
             )
 
         if not raw_data:
-            logger.error(f"Failed to fetch data for {symbol}")
+            logger.error(f"Failed to fetch data for {symbols}")
             return pd.DataFrame()
 
         # Extract time series data
         if time_series_key not in raw_data:
             logger.error(
-                f"Expected key '{time_series_key}' not found in API response for {symbol}. "
+                f"Expected key '{time_series_key}' not found in API response for {symbols}. "
                 "This may be due to rate limits, invalid symbol, or no data available."
             )
             available_keys = list(raw_data.keys())
@@ -183,7 +185,7 @@ class AlphaVantageDataLoader(
         time_series = raw_data[time_series_key]
 
         if not time_series:
-            logger.warning(f"Empty time series data for {symbol}")
+            logger.warning(f"Empty time series data for {symbols}")
             return pd.DataFrame()
 
         # Convert to DataFrame
@@ -198,13 +200,13 @@ class AlphaVantageDataLoader(
         df = df[df.columns.intersection(expected_columns)]
 
         # Convert string values to numeric
-        numeric_columns = ["open", "high", "low", "close", "volume"]
-        if "adj_close" in df.columns:
-            numeric_columns.append("adj_close")
-        if "dividend" in df.columns:
-            numeric_columns.append("dividend")
-        if "split_coeff" in df.columns:
-            numeric_columns.append("split_coeff")
+        numeric_columns = ["Open", "High", "Low", "Close", "Volume"]
+        if "Adj_close" in df.columns:
+            numeric_columns.append("Adj_close")
+        if "Dividend" in df.columns:
+            numeric_columns.append("Dividend")
+        if "Split_coeff" in df.columns:
+            numeric_columns.append("Split_coeff")
 
         for col in numeric_columns:
             if col in df.columns:
@@ -212,7 +214,7 @@ class AlphaVantageDataLoader(
 
         # Convert index to datetime
         df.index = pd.to_datetime(df.index)
-        df.index.name = "date"
+        df.index.name = "Date"
 
         # Sort by date (Alpha Vantage returns newest first)
         df = df.sort_index()
@@ -224,7 +226,7 @@ class AlphaVantageDataLoader(
             df = df[df.index <= parsed_end_date]
 
         if df.empty:
-            warning_msg = f"No data found for {symbol}"
+            warning_msg = f"No data found for {symbols}"
             if parsed_start_date or parsed_end_date:
                 warning_msg += " matching the specified date criteria"
             logger.warning(warning_msg)
@@ -234,9 +236,12 @@ class AlphaVantageDataLoader(
                 if (interval == "1d" and adjusted)
                 else (f"{interval} intraday" if interval != "1d" else "daily")
             )
-            logger.info(f"Retrieved {len(df)} {data_type} records for {symbol}")
+            logger.info(f"Retrieved {len(df)} {data_type} records for {symbols}")
 
-        return df.reset_index()
+        df.reset_index(inplace=True)
+        df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
+
+        return df
 
     # Fundamental Data Method #
     def get_fundamental_data(
@@ -315,7 +320,7 @@ class AlphaVantageDataLoader(
         end: Optional[Union[str, datetime]] = None,
         limit: int = 50,
         **kwargs,
-    ) -> Dict[str, Any]:
+    ) -> pd.DataFrame:
         """
         Fetch news data for given symbols from Alpha Vantage. This
         method retrieves news articles related to the specified symbols
@@ -333,7 +338,7 @@ class AlphaVantageDataLoader(
             such as 'sort' or 'topics'.
 
         Returns:
-            Dict[str, Any]: Dictionary containing news data for the
+            pd.DataFrame: DataFrame containing news data for the
             specified symbols.
         """
         # Convert dates to Alpha Vantage format
@@ -372,7 +377,46 @@ class AlphaVantageDataLoader(
 
         # Make the API request (note: NEWS_SENTIMENT doesn't use symbol parameter,
         # it uses tickers instead, so we pass an empty string for symbol)
-        return self._make_api_request("NEWS_SENTIMENT", symbol="", **params)
+        news_data = self._make_api_request("NEWS_SENTIMENT", symbol="", **params)
+
+        news_df = pd.DataFrame(news_data["feed"])
+
+        # Rename time_published to created_at to standardize the column name
+        if "time_published" in news_df.columns:
+            news_df.rename(columns={"time_published": "created_at"}, inplace=True)
+
+        # Convert created_at to datetime
+        news_df["created_at"] = pd.to_datetime(news_df["created_at"], format='%Y%m%dT%H%M%S')
+        news_df["Date"] = news_df["created_at"].dt.date
+
+        news_df["sentiment_score"] = (
+            news_df["ticker_sentiment"].apply(lambda x: self._find_ticker_sentiment(x, tickers)).astype(float)
+        )
+
+        return news_df
+
+    def _find_ticker_sentiment(self, sentiment_list: List[Dict], ticker_symbol: str) -> Optional[float]:
+        """
+        Find the sentiment score for a specific ticker in the sentiment
+        list.
+
+        Args:
+            sentiment_list (List[Dict]): A list of dictionaries
+            containing sentiments for different tickers
+            ticker_symbol (str): The ticker symbol to search
+            for (e.g., 'AAPL').
+
+        Returns:
+            Optional[float]: The sentiment score for the specified ticker,
+            or None if not found.
+        """
+        if not isinstance(sentiment_list, list):
+            return None
+
+        for item in sentiment_list:
+            if item.get('ticker') == ticker_symbol:
+                return item["ticker_sentiment_score"]
+        return None
 
     # TODO: fix overengineering
     def get_macro_data(
