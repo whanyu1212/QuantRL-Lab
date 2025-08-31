@@ -386,7 +386,7 @@ class AlphaVantageDataLoader(
             news_df.rename(columns={"time_published": "created_at"}, inplace=True)
 
         # Convert created_at to datetime
-        news_df["created_at"] = pd.to_datetime(news_df["created_at"], format='%Y%m%dT%H%M%S')
+        news_df["created_at"] = pd.to_datetime(news_df["created_at"], format="%Y%m%dT%H%M%S")
         news_df["Date"] = news_df["created_at"].dt.date
 
         news_df["sentiment_score"] = (
@@ -414,7 +414,7 @@ class AlphaVantageDataLoader(
             return None
 
         for item in sentiment_list:
-            if item.get('ticker') == ticker_symbol:
+            if item.get("ticker") == ticker_symbol:
                 return item["ticker_sentiment_score"]
         return None
 
