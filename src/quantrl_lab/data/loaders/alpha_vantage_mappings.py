@@ -10,24 +10,24 @@ class AlphaVantageColumnMapper:
 
     standard: Dict[str, str] = field(
         default_factory=lambda: {
-            "1. open": "open",
-            "2. high": "high",
-            "3. low": "low",
-            "4. close": "close",
-            "5. volume": "volume",
+            "1. open": "Open",
+            "2. high": "High",
+            "3. low": "Low",
+            "4. close": "Close",
+            "5. volume": "Volume",
         }
     )
 
     adjusted_daily: Dict[str, str] = field(
         default_factory=lambda: {
-            "1. open": "open",
-            "2. high": "high",
-            "3. low": "low",
-            "4. close": "close",
-            "5. adjusted close": "adj_close",
-            "6. volume": "volume",
-            "7. dividend amount": "dividend",
-            "8. split coefficient": "split_coeff",
+            "1. open": "Open",
+            "2. high": "High",
+            "3. low": "Low",
+            "4. close": "Close",
+            "5. adjusted close": "Adj_close",
+            "6. volume": "Volume",
+            "7. dividend amount": "Dividend",
+            "8. split coefficient": "Split_coeff",
         }
     )
 

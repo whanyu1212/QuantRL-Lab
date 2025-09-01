@@ -1,13 +1,14 @@
 import asyncio
 import os
 from datetime import datetime
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Union
 
 import dateutil.parser
 import pandas as pd
 import requests
 from alpaca.data import StockHistoricalDataClient
 from alpaca.data.live import StockDataStream
+from alpaca.data.models import Trade
 from alpaca.data.requests import (
     StockBarsRequest,
     StockLatestQuoteRequest,
@@ -40,6 +41,8 @@ class AlpacaDataLoader(
     """Alpaca implementation that provides market data from Alpaca
     APIs."""
 
+    _stock_stream_client_instance = None
+
     def __init__(
         self,
         api_key: str = None,
@@ -51,15 +54,14 @@ class AlpacaDataLoader(
         self.api_key = api_key or os.environ.get("ALPACA_API_KEY")
         self.secret_key = secret_key or os.environ.get("ALPACA_SECRET_KEY")
 
-        if stock_historical_client is not None and stock_stream_client is not None:
+        if stock_historical_client is not None:
             self.stock_historical_client = stock_historical_client
-            self.stock_stream_client = stock_stream_client
         else:
+            self.stock_historical_client = StockHistoricalDataClient(self.api_key, self.secret_key)
 
-            (
-                self.stock_historical_client,
-                self.stock_stream_client,
-            ) = self.connect()
+        if AlpacaDataLoader._stock_stream_client_instance is None:
+            AlpacaDataLoader._stock_stream_client_instance = StockDataStream(self.api_key, self.secret_key)
+        self.stock_stream_client = AlpacaDataLoader._stock_stream_client_instance
 
         # event subscribers
         self.subscribers = {"quotes": [], "trades": [], "bars": []}
@@ -69,60 +71,34 @@ class AlpacaDataLoader(
     def source_name(self) -> str:
         return "Alpaca"
 
-    def connect(
-        self,
-    ) -> Tuple[
-        StockHistoricalDataClient,
-        StockDataStream,
-    ]:
+    def connect(self) -> StockHistoricalDataClient:
         """
-        Connect to the various data clients of Alpaca using the provided
-        API key and Secret key.
-
-        Raises:
-            ValueError: If API credentials are not provided
+        Connect to the historical data client of Alpaca.
 
         Returns:
-            Tuple[StockHistoricalDataClient, StockDataStream]: clients
+            StockHistoricalDataClient: The historical data client.
         """
         if not self.api_key or not self.secret_key:
             raise ValueError("Alpaca API credentials not provided")
-
-        # Initialize the clients
-        historical_client = StockHistoricalDataClient(self.api_key, self.secret_key)
-        stock_stream_client = StockDataStream(self.api_key, self.secret_key)
-
-        # TODO: There are more clients for other asset classes
-
-        return historical_client, stock_stream_client
+        return StockHistoricalDataClient(self.api_key, self.secret_key)
 
     def disconnect(self) -> None:
-        """Disconnect from both the historical data and streaming
-        clients."""
+        """Disconnect from the historical data client."""
         if self.stock_historical_client:
             self.stock_historical_client.close()
-        if self.stock_stream_client:
-            self.stock_stream_client.close()
 
     def is_connected(self) -> bool:
         """
-        Check if the clients are initialized and credentials are valid.
+        Check if the historical client is initialized and credentials
+        are valid.
 
         Returns:
-            bool: True if clients are initialized with valid credentials, False otherwise
+            bool: True if the client is initialized with valid credentials, False otherwise.
         """
         try:
-            clients_exist = all(
-                [
-                    self.stock_historical_client is not None,
-                    self.stock_stream_client is not None,
-                ]
+            return self.stock_historical_client is not None and (
+                self.api_key is not None and self.secret_key is not None
             )
-
-            credentials_valid = self.api_key is not None and self.secret_key is not None
-
-            return clients_exist and credentials_valid
-
         except Exception:
             return False
 
@@ -230,42 +206,60 @@ class AlpacaDataLoader(
         request_params = StockLatestTradeRequest(symbol_or_symbols=symbol)
         return self.stock_historical_client.get_stock_latest_trade(request_params)
 
-    # async def subscribe_to_updates(self, symbol: str) -> None:
-    #     """
-    #     Subscribe to real-time market data updates. This only works at
-    #     around 9.30pm to 4.30am SGT on weekdays.
+    async def _trade_handler(self, trade_data: Trade):
+        """Processes incoming trade data."""
+        console.print("--- New Trade Received ---")
+        console.print(f"Symbol: {trade_data.symbol}")
+        console.print(f"Price: {trade_data.price}")
+        console.print(f"Volume: {trade_data.size}")
+        console.print(f"Timestamp: {trade_data.timestamp}")
+        console.print("--------------------------\n")
 
-    #     Args:
-    #         symbols: List of symbol identifiers to subscribe to
-    #         callback: Async callback function that will be invoked when updates arrive
+    async def subscribe_to_updates(self, symbol: str, data_type: str = "trades") -> None:
+        """
+        Subscribe to real-time market data updates.
 
-    #     Note:
-    #         This only sets up the subscription. You need to call start_streaming()
-    #         to actually begin receiving updates.
-    #     """
+        Args:
+            symbol (str): The stock symbol to subscribe to.
+            data_type (str): The type of data to subscribe to ('trades', 'quotes', 'bars').
+        """
+        if data_type == "trades":
+            self.stock_stream_client.subscribe_trades(self._trade_handler, symbol)
+        elif data_type == "quotes":
+            # Define or use a quote handler
+            async def quote_handler(data):
+                console.print(f"[green]Received quote: {data}[/green]")
 
-    #     async def quote_data_handler(data):
-    #         console.print(f"[green]Received quote: {data}[/green]")
+            self.stock_stream_client.subscribe_quotes(quote_handler, symbol)
+        elif data_type == "bars":
+            # Define or use a bar handler
+            async def bar_handler(data):
+                console.print(f"[blue]Received bar: {data}[/blue]")
 
-    #         # TODO: Process the quote data as needed and execute strategies
+            self.stock_stream_client.subscribe_bars(bar_handler, symbol)
+        else:
+            console.print(f"[red]Error: Unknown data type '{data_type}'[/red]")
+            return
 
-    #     self.stock_stream_client.subscribe_quotes(quote_data_handler, symbol)
+        self._subscribed_symbols.add(symbol)
+        console.print(f"Subscribed to {data_type} for {symbol}")
 
-    # async def start_streaming(self):
-    #     """
-    #     Start the WebSocket connection and begin receiving updates.
+    async def start_streaming(self):
+        """Initializes, subscribes, and runs the data stream."""
+        console.print("Initializing stream...")
+        try:
+            if not self._subscribed_symbols:
+                console.print("[yellow]No symbols subscribed. Call subscribe_to_updates() first.[/yellow]")
+                return
+            await self.stock_stream_client._run_forever()
+        except KeyboardInterrupt:
+            console.print("Stream stopped by user.")
+        except Exception as e:
+            console.print(f"An error occurred: {e}")
 
-    #     This is a blocking call that should be run in an async context.
-    #     """
-    #     try:
-    #         await self.stock_stream_client.run()
-    #     except Exception as e:
-    #         console.print(f"[red]Error in WebSocket stream: {e}[/red]")
-    #         raise
-
-    # async def stop_streaming(self):
-    #     """Stop the WebSocket connection and clean up resources."""
-    #     await self.stock_stream_client.stop_ws()
+    async def stop_streaming(self):
+        """Stop the WebSocket connection and clean up resources."""
+        await self.stock_stream_client.stop_ws()
 
     def get_news_data(
         self,
@@ -401,18 +395,18 @@ if __name__ == "__main__":
             console.print(news_df.iloc[:5][["headline", "created_at", "summary"]])
 
         # Set up the subscription
-        # console.print("\n[bold blue]Testing websocket:[/bold blue]")
+        console.print("\n[bold blue]Testing websocket:[/bold blue]")
 
         # Set up the subscription
-        # await alpaca_client.subscribe_to_updates("AAPL")
+        await alpaca_client.subscribe_to_updates("AAPL")
 
         # Start streaming data
-        # try:
-        #     console.print("[cyan]Starting WebSocket connection...[/cyan]")
-        #     await alpaca_client.start_streaming()
-        # except KeyboardInterrupt:
-        #     console.print("[yellow]Closing connection...[/yellow]")
-        # finally:
-        #     await alpaca_client.stop_streaming()
+        try:
+            console.print("[cyan]Starting WebSocket connection...[/cyan]")
+            await alpaca_client.start_streaming()
+        except KeyboardInterrupt:
+            console.print("[yellow]Closing connection...[/yellow]")
+        finally:
+            await alpaca_client.stop_streaming()
 
     asyncio.run(main())

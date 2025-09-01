@@ -19,6 +19,7 @@ class SentimentConfig:  # default
     model_name: str = "ProsusAI/finbert"
     text_column: str = "headline"
     date_column: str = "created_at"
+    sentiment_score_column: str = "sentiment_score"
     device: int = -1  # -1 for CPU, 0 for GPU
     max_length: Optional[int] = None
     truncation: bool = True
@@ -50,6 +51,7 @@ class SentimentConfig:  # default
             "model_name": self.model_name,
             "text_column": self.text_column,
             "date_column": self.date_column,
+            "sentiment_score_column": self.sentiment_score_column,
             "device": self.device,
             "max_length": self.max_length,
             "truncation": self.truncation,
@@ -60,9 +62,12 @@ class SentimentConfig:  # default
 class DataProcessor:
     def __init__(self, olhcv_data: pd.DataFrame, **kwargs):
         self.olhcv_data = olhcv_data  # minimal required data
+
+        # === Optional data sources ===
         self.news_data = kwargs.get("news_data", None)
         self.fundamental_data = kwargs.get("fundamental_data", None)
         self.macro_data = kwargs.get("macro_data", None)
+        self.calendar_event_data = kwargs.get("calendar_event_data", None)
 
         sentiment_config_input = kwargs.get("sentiment_config", {})
         if isinstance(sentiment_config_input, SentimentConfig):
@@ -105,7 +110,9 @@ class DataProcessor:
 
     def _get_news_sentiment_scores(self, news_data: pd.DataFrame) -> pd.DataFrame:
         """
-        Analyze sentiment of news articles.
+        Analyze sentiment of news articles. If sentiment scores are
+        already present, use them. Otherwise, use the HF model to
+        calculate them.
 
         Args:
             news_data (pd.DataFrame): DataFrame containing news articles.
@@ -125,38 +132,48 @@ class DataProcessor:
         if news_data.empty:
             raise ValueError("News data cannot be empty")
 
-        if self.sentiment_config.text_column not in news_data.columns:
-            raise ValueError(
-                f"Text column '{self.sentiment_config.text_column}' not found. "
-                f"Available columns: {list(news_data.columns)}"
+        required_columns = [self.sentiment_config.date_column]
+        # If sentiment score is not present, text column is required for analysis
+        if self.sentiment_config.sentiment_score_column not in news_data.columns:
+            required_columns.append(self.sentiment_config.text_column)
+
+        for col in required_columns:
+            if col not in news_data.columns:
+                raise ValueError(f"Required column '{col}' not found. Available columns: {list(news_data.columns)}")
+
+        # === Process sentiment scores ===
+        if self.sentiment_config.sentiment_score_column in news_data.columns:
+            console.print("[green]✓ Using pre-existing sentiment scores.[/green]")
+            # Ensure the sentiment score column is numeric
+            news_data[self.sentiment_config.sentiment_score_column] = pd.to_numeric(
+                news_data[self.sentiment_config.sentiment_score_column], errors="coerce"
             )
+        else:
+            console.print("[cyan]Calculating sentiment scores using HF model...[/cyan]")
+            # === Transformers pipeline initialization ===
+            sentiment_pipeline = self._get_sentiment_pipeline()
 
-        if self.sentiment_config.date_column not in news_data.columns:
-            raise ValueError(
-                f"Date column '{self.sentiment_config.date_column}' not found. "
-                f"Available columns: {list(news_data.columns)}"
-            )
+            # === Fillna just in case ===
+            texts_to_analyze = news_data[self.sentiment_config.text_column].fillna("").astype(str).tolist()
 
-        # === Transformers pipeline initialization ===
-        sentiment_pipeline = self._get_sentiment_pipeline()
+            if not texts_to_analyze:
+                raise ValueError("No valid text data found for sentiment analysis")
 
-        # === Fillna just in case ===
-        texts_to_analyze = news_data[self.sentiment_config.text_column].fillna("").astype(str).tolist()
+            sentiments = sentiment_pipeline(texts_to_analyze)
 
-        if not texts_to_analyze:
-            raise ValueError("No valid text data found")
+            # Handle cases where each result might itself be a list
+            scores = []
+            for result in sentiments:
+                if isinstance(result, list):
+                    # Ensure result is not empty
+                    if result:
+                        scores.append(result[0].get("score", 0.0))
+                    else:
+                        scores.append(0.0)
+                else:
+                    scores.append(result.get("score", 0.0))
 
-        sentiments = sentiment_pipeline(texts_to_analyze)
-
-        # Handle cases where each result might itself be a list
-        scores = []
-        for result in sentiments:
-            if isinstance(result, list):
-                scores.append(result[0]["score"])
-            else:
-                scores.append(result["score"])
-
-        news_data["sentiment_score"] = scores
+            news_data[self.sentiment_config.sentiment_score_column] = scores
 
         # === Process date column ===
         news_data[self.sentiment_config.date_column] = pd.to_datetime(
@@ -164,8 +181,18 @@ class DataProcessor:
         ).dt.date
 
         # === Group by date and calculate mean sentiment score ===
-        news_data = news_data.groupby(self.sentiment_config.date_column).agg({"sentiment_score": "mean"}).reset_index()
-        news_data.rename(columns={self.sentiment_config.date_column: "Date"}, inplace=True)
+        news_data = (
+            news_data.groupby(self.sentiment_config.date_column)
+            .agg({self.sentiment_config.sentiment_score_column: "mean"})
+            .reset_index()
+        )
+        news_data.rename(
+            columns={
+                self.sentiment_config.date_column: "Date",
+                self.sentiment_config.sentiment_score_column: "sentiment_score",
+            },
+            inplace=True,
+        )
 
         if news_data.empty:
             raise ValueError("No valid news data found after processing.")
@@ -308,9 +335,17 @@ class DataProcessor:
                 f"Unsupported strategy: {fillna_strategy}. Supported strategies are 'neutral' and 'fill_forward'."
             )
 
-        sentiment_scores = self._get_news_sentiment_scores(self.news_data)
+        if self.news_data is None or self.news_data.empty:
+            console.print("[yellow]⚠️  No news data provided. Skipping sentiment analysis.[/yellow]")
+            return df
+
+        sentiment_scores = self._get_news_sentiment_scores(self.news_data.copy())
 
         # Merge sentiment scores with OHLCV data
+        # Ensure the date column in df is in the correct format for merging
+        if "Date" not in df.columns:
+            raise ValueError("Input DataFrame must contain a 'Date' column.")
+
         merged_data = pd.merge(df, sentiment_scores, on="Date", how="left")
 
         if fillna_strategy == "neutral":
@@ -318,7 +353,7 @@ class DataProcessor:
             merged_data["sentiment_score"] = merged_data["sentiment_score"].fillna(0.0)
         elif fillna_strategy == "fill_forward":
             # Fill NaN sentiment scores with forward fill for fill-forward strategy
-            merged_data["sentiment_score"] = merged_data["sentiment_score"].fillna(method="ffill")
+            merged_data["sentiment_score"] = merged_data["sentiment_score"].ffill()
         else:
             raise ValueError(
                 f"Unsupported strategy: {fillna_strategy}. Supported strategies are 'neutral' and 'fill_forward'."
