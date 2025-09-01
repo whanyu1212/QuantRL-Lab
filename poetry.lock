@@ -346,27 +346,15 @@ jupyter = ["ipython (>=7.8.0)", "tokenize-rt (>=3.2.0)"]
 uvloop = ["uvloop (>=0.15.2)"]
 
 [[package]]
-name = "blinker"
-version = "1.9.0"
-description = "Fast, simple object-to-object and broadcast signaling"
+name = "bottle"
+version = "0.13.4"
+description = "Fast and simple WSGI-framework for small web-applications."
 optional = false
-python-versions = ">=3.9"
+python-versions = "*"
 groups = ["main"]
 files = [
-    {file = "blinker-1.9.0-py3-none-any.whl", hash = "sha256:ba0efaa9080b619ff2f3459d1d500c57bddea4a6b424b60a91141db6fd2f08bc"},
-    {file = "blinker-1.9.0.tar.gz", hash = "sha256:b4ce2265a7abece45e7cc896e98dbebe6cead56bcf805a3d23136d145f5445bf"},
-]
-
-[[package]]
-name = "cachetools"
-version = "5.5.2"
-description = "Extensible memoizing collections and decorators"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "cachetools-5.5.2-py3-none-any.whl", hash = "sha256:d26a22bcc62eb95c3beabd9f1ee5e820d3d2704fe2967cbe350e20c8ffcd3f0a"},
-    {file = "cachetools-5.5.2.tar.gz", hash = "sha256:1a661caa9175d26759571b2e19580f9d6393969e5dfca11fdb1f947a23e640d4"},
+    {file = "bottle-0.13.4-py2.py3-none-any.whl", hash = "sha256:045684fbd2764eac9cdeb824861d1551d113e8b683d8d26e296898d3dd99a12e"},
+    {file = "bottle-0.13.4.tar.gz", hash = "sha256:787e78327e12b227938de02248333d788cfe45987edca735f8f88e03472c3f47"},
 ]
 
 [[package]]
@@ -858,27 +846,6 @@ docs = ["ipython", "matplotlib", "numpydoc", "sphinx"]
 tests = ["pytest", "pytest-cov", "pytest-xdist"]
 
 [[package]]
-name = "databricks-sdk"
-version = "0.61.0"
-description = "Databricks SDK for Python (Beta)"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "databricks_sdk-0.61.0-py3-none-any.whl", hash = "sha256:709ac7c709f843567b04fba6cea8a53ee644b79314e9a9ac4db0c1b3c1d2d5fe"},
-    {file = "databricks_sdk-0.61.0.tar.gz", hash = "sha256:06e50663c2c87e94f5e505390b74bc5c7c5330f4b4be35616b7aed06cf940af0"},
-]
-
-[package.dependencies]
-google-auth = ">=2.0,<3.0"
-requests = ">=2.28.1,<3"
-
-[package.extras]
-dev = ["autoflake", "black", "build", "databricks-connect", "httpx", "ipython", "ipywidgets", "isort", "langchain-openai ; python_version > \"3.7\"", "openai", "pycodestyle", "pyfakefs", "pytest", "pytest-cov", "pytest-mock", "pytest-rerunfailures", "pytest-xdist", "requests-mock", "wheel"]
-notebook = ["ipython (>=8,<10)", "ipywidgets (>=8,<9)"]
-openai = ["httpx", "langchain-openai ; python_version > \"3.7\"", "openai"]
-
-[[package]]
 name = "debugpy"
 version = "1.8.14"
 description = "An implementation of the Debug Adapter Protocol for Python"
@@ -970,29 +937,6 @@ untokenize = ">=0.1.1,<0.2.0"
 tomli = ["tomli (>=2.0.0,<3.0.0) ; python_version < \"3.11\""]
 
 [[package]]
-name = "docker"
-version = "7.1.0"
-description = "A Python library for the Docker Engine API."
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "docker-7.1.0-py3-none-any.whl", hash = "sha256:c96b93b7f0a746f9e77d325bcfb87422a3d8bd4f03136ae8a85b37f1898d5fc0"},
-    {file = "docker-7.1.0.tar.gz", hash = "sha256:ad8c70e6e3f8926cb8a92619b832b4ea5299e2831c14284663184e200546fa6c"},
-]
-
-[package.dependencies]
-pywin32 = {version = ">=304", markers = "sys_platform == \"win32\""}
-requests = ">=2.26.0"
-urllib3 = ">=1.26.0"
-
-[package.extras]
-dev = ["coverage (==7.2.7)", "pytest (==7.4.2)", "pytest-cov (==4.1.0)", "pytest-timeout (==2.1.0)", "ruff (==0.1.8)"]
-docs = ["myst-parser (==0.18.0)", "sphinx (==5.1.1)"]
-ssh = ["paramiko (>=2.4.3)"]
-websockets = ["websocket-client (>=1.3.0)"]
-
-[[package]]
 name = "exceptiongroup"
 version = "1.3.0"
 description = "Backport of PEP 654 (exception groups)"
@@ -1037,28 +981,6 @@ files = [
     {file = "Farama-Notifications-0.0.4.tar.gz", hash = "sha256:13fceff2d14314cf80703c8266462ebf3733c7d165336eee998fc58e545efd18"},
     {file = "Farama_Notifications-0.0.4-py3-none-any.whl", hash = "sha256:14de931035a41961f7c056361dc7f980762a143d05791ef5794a751a2caf05ae"},
 ]
-
-[[package]]
-name = "fastapi"
-version = "0.116.1"
-description = "FastAPI framework, high performance, easy to learn, fast to code, ready for production"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "fastapi-0.116.1-py3-none-any.whl", hash = "sha256:c46ac7c312df840f0c9e220f7964bada936781bc4e2e6eb71f1c4d7553786565"},
-    {file = "fastapi-0.116.1.tar.gz", hash = "sha256:ed52cbf946abfd70c5a0dccb24673f0670deeb517a88b3544d03c2a6bf283143"},
-]
-
-[package.dependencies]
-pydantic = ">=1.7.4,<1.8 || >1.8,<1.8.1 || >1.8.1,<2.0.0 || >2.0.0,<2.0.1 || >2.0.1,<2.1.0 || >2.1.0,<3.0.0"
-starlette = ">=0.40.0,<0.48.0"
-typing-extensions = ">=4.8.0"
-
-[package.extras]
-all = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.8)", "httpx (>=0.23.0)", "itsdangerous (>=1.1.0)", "jinja2 (>=3.1.5)", "orjson (>=3.2.1)", "pydantic-extra-types (>=2.0.0)", "pydantic-settings (>=2.0.0)", "python-multipart (>=0.0.18)", "pyyaml (>=5.3.1)", "ujson (>=4.0.1,!=4.0.2,!=4.1.0,!=4.2.0,!=4.3.0,!=5.0.0,!=5.1.0)", "uvicorn[standard] (>=0.12.0)"]
-standard = ["email-validator (>=2.0.0)", "fastapi-cli[standard] (>=0.0.8)", "httpx (>=0.23.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
-standard-no-fastapi-cloud-cli = ["email-validator (>=2.0.0)", "fastapi-cli[standard-no-fastapi-cloud-cli] (>=0.0.8)", "httpx (>=0.23.0)", "jinja2 (>=3.1.5)", "python-multipart (>=0.0.18)", "uvicorn[standard] (>=0.12.0)"]
 
 [[package]]
 name = "fastjsonschema"
@@ -1108,30 +1030,6 @@ files = [
 mccabe = ">=0.7.0,<0.8.0"
 pycodestyle = ">=2.13.0,<2.14.0"
 pyflakes = ">=3.3.0,<3.4.0"
-
-[[package]]
-name = "flask"
-version = "3.1.1"
-description = "A simple framework for building complex web applications."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "flask-3.1.1-py3-none-any.whl", hash = "sha256:07aae2bb5eaf77993ef57e357491839f5fd9f4dc281593a81a9e4d79a24f295c"},
-    {file = "flask-3.1.1.tar.gz", hash = "sha256:284c7b8f2f58cb737f0cf1c30fd7eaf0ccfcde196099d24ecede3fc2005aa59e"},
-]
-
-[package.dependencies]
-blinker = ">=1.9.0"
-click = ">=8.1.3"
-itsdangerous = ">=2.2.0"
-jinja2 = ">=3.1.2"
-markupsafe = ">=2.1.1"
-werkzeug = ">=3.1.0"
-
-[package.extras]
-async = ["asgiref (>=3.2)"]
-dotenv = ["python-dotenv"]
 
 [[package]]
 name = "fonttools"
@@ -1403,116 +1301,6 @@ test-full = ["adlfs", "aiohttp (!=4.0.0a0,!=4.0.0a1)", "cloudpickle", "dask", "d
 tqdm = ["tqdm"]
 
 [[package]]
-name = "gitdb"
-version = "4.0.12"
-description = "Git Object Database"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "gitdb-4.0.12-py3-none-any.whl", hash = "sha256:67073e15955400952c6565cc3e707c554a4eea2e428946f7a4c162fab9bd9bcf"},
-    {file = "gitdb-4.0.12.tar.gz", hash = "sha256:5ef71f855d191a3326fcfbc0d5da835f26b13fbcba60c32c21091c349ffdb571"},
-]
-
-[package.dependencies]
-smmap = ">=3.0.1,<6"
-
-[[package]]
-name = "gitpython"
-version = "3.1.45"
-description = "GitPython is a Python library used to interact with Git repositories"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "gitpython-3.1.45-py3-none-any.whl", hash = "sha256:8908cb2e02fb3b93b7eb0f2827125cb699869470432cc885f019b8fd0fccff77"},
-    {file = "gitpython-3.1.45.tar.gz", hash = "sha256:85b0ee964ceddf211c41b9f27a49086010a190fd8132a24e21f362a4b36a791c"},
-]
-
-[package.dependencies]
-gitdb = ">=4.0.1,<5"
-
-[package.extras]
-doc = ["sphinx (>=7.1.2,<7.2)", "sphinx-autodoc-typehints", "sphinx_rtd_theme"]
-test = ["coverage[toml]", "ddt (>=1.1.1,!=1.4.3)", "mock ; python_version < \"3.8\"", "mypy", "pre-commit", "pytest (>=7.3.1)", "pytest-cov", "pytest-instafail", "pytest-mock", "pytest-sugar", "typing-extensions ; python_version < \"3.11\""]
-
-[[package]]
-name = "google-auth"
-version = "2.40.3"
-description = "Google Authentication Library"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "google_auth-2.40.3-py2.py3-none-any.whl", hash = "sha256:1370d4593e86213563547f97a92752fc658456fe4514c809544f330fed45a7ca"},
-    {file = "google_auth-2.40.3.tar.gz", hash = "sha256:500c3a29adedeb36ea9cf24b8d10858e152f2412e3ca37829b3fa18e33d63b77"},
-]
-
-[package.dependencies]
-cachetools = ">=2.0.0,<6.0"
-pyasn1-modules = ">=0.2.1"
-rsa = ">=3.1.4,<5"
-
-[package.extras]
-aiohttp = ["aiohttp (>=3.6.2,<4.0.0)", "requests (>=2.20.0,<3.0.0)"]
-enterprise-cert = ["cryptography", "pyopenssl"]
-pyjwt = ["cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (>=38.0.3)", "pyjwt (>=2.0)"]
-pyopenssl = ["cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (>=38.0.3)", "pyopenssl (>=20.0.0)"]
-reauth = ["pyu2f (>=0.1.5)"]
-requests = ["requests (>=2.20.0,<3.0.0)"]
-testing = ["aiohttp (<3.10.0)", "aiohttp (>=3.6.2,<4.0.0)", "aioresponses", "cryptography (<39.0.0) ; python_version < \"3.8\"", "cryptography (>=38.0.3)", "flask", "freezegun", "grpcio", "mock", "oauth2client", "packaging", "pyjwt (>=2.0)", "pyopenssl (<24.3.0)", "pyopenssl (>=20.0.0)", "pytest", "pytest-asyncio", "pytest-cov", "pytest-localserver", "pyu2f (>=0.1.5)", "requests (>=2.20.0,<3.0.0)", "responses", "urllib3"]
-urllib3 = ["packaging", "urllib3"]
-
-[[package]]
-name = "graphene"
-version = "3.4.3"
-description = "GraphQL Framework for Python"
-optional = false
-python-versions = "*"
-groups = ["main"]
-files = [
-    {file = "graphene-3.4.3-py2.py3-none-any.whl", hash = "sha256:820db6289754c181007a150db1f7fff544b94142b556d12e3ebc777a7bf36c71"},
-    {file = "graphene-3.4.3.tar.gz", hash = "sha256:2a3786948ce75fe7e078443d37f609cbe5bb36ad8d6b828740ad3b95ed1a0aaa"},
-]
-
-[package.dependencies]
-graphql-core = ">=3.1,<3.3"
-graphql-relay = ">=3.1,<3.3"
-python-dateutil = ">=2.7.0,<3"
-typing-extensions = ">=4.7.1,<5"
-
-[package.extras]
-dev = ["coveralls (>=3.3,<5)", "mypy (>=1.10,<2)", "pytest (>=8,<9)", "pytest-asyncio (>=0.16,<2)", "pytest-benchmark (>=4,<5)", "pytest-cov (>=5,<6)", "pytest-mock (>=3,<4)", "ruff (==0.5.0)", "types-python-dateutil (>=2.8.1,<3)"]
-test = ["coveralls (>=3.3,<5)", "pytest (>=8,<9)", "pytest-asyncio (>=0.16,<2)", "pytest-benchmark (>=4,<5)", "pytest-cov (>=5,<6)", "pytest-mock (>=3,<4)"]
-
-[[package]]
-name = "graphql-core"
-version = "3.2.6"
-description = "GraphQL implementation for Python, a port of GraphQL.js, the JavaScript reference implementation for GraphQL."
-optional = false
-python-versions = "<4,>=3.6"
-groups = ["main"]
-files = [
-    {file = "graphql_core-3.2.6-py3-none-any.whl", hash = "sha256:78b016718c161a6fb20a7d97bbf107f331cd1afe53e45566c59f776ed7f0b45f"},
-    {file = "graphql_core-3.2.6.tar.gz", hash = "sha256:c08eec22f9e40f0bd61d805907e3b3b1b9a320bc606e23dc145eebca07c8fbab"},
-]
-
-[[package]]
-name = "graphql-relay"
-version = "3.2.0"
-description = "Relay library for graphql-core"
-optional = false
-python-versions = ">=3.6,<4"
-groups = ["main"]
-files = [
-    {file = "graphql-relay-3.2.0.tar.gz", hash = "sha256:1ff1c51298356e481a0be009ccdff249832ce53f30559c1338f22a0e0d17250c"},
-    {file = "graphql_relay-3.2.0-py3-none-any.whl", hash = "sha256:c9b22bd28b170ba1fe674c74384a8ff30a76c8e26f88ac3aa1584dd3179953e5"},
-]
-
-[package.dependencies]
-graphql-core = ">=3.2,<3.3"
-
-[[package]]
 name = "greenlet"
 version = "3.2.3"
 description = "Lightweight in-process concurrent programming"
@@ -1580,29 +1368,6 @@ files = [
 [package.extras]
 docs = ["Sphinx", "furo"]
 test = ["objgraph", "psutil"]
-
-[[package]]
-name = "gunicorn"
-version = "23.0.0"
-description = "WSGI HTTP Server for UNIX"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-markers = "platform_system != \"Windows\""
-files = [
-    {file = "gunicorn-23.0.0-py3-none-any.whl", hash = "sha256:ec400d38950de4dfd418cff8328b2c8faed0edb0d517d3394e457c317908ca4d"},
-    {file = "gunicorn-23.0.0.tar.gz", hash = "sha256:f014447a0101dc57e294f6c18ca6b40227a4c90e9bdb586042628030cba004ec"},
-]
-
-[package.dependencies]
-packaging = "*"
-
-[package.extras]
-eventlet = ["eventlet (>=0.24.1,!=0.36.0)"]
-gevent = ["gevent (>=1.4.0)"]
-setproctitle = ["setproctitle"]
-testing = ["coverage", "eventlet", "gevent", "pytest", "pytest-cov"]
-tornado = ["tornado (>=0.2)"]
 
 [[package]]
 name = "gymnasium"
@@ -1997,18 +1762,6 @@ files = [
 [package.extras]
 colors = ["colorama"]
 plugins = ["setuptools"]
-
-[[package]]
-name = "itsdangerous"
-version = "2.2.0"
-description = "Safely pass data to untrusted environments and back."
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "itsdangerous-2.2.0-py3-none-any.whl", hash = "sha256:c6242fc49e35958c8b15141343aa660db5fc54d4f13a1db01a3f5891b98700ef"},
-    {file = "itsdangerous-2.2.0.tar.gz", hash = "sha256:e0050c0b7da1eea53ffaf149c0cfbb5c6e2e2b69c4bef22c81fa6eb73e5f6173"},
-]
 
 [[package]]
 name = "jedi"
@@ -2594,91 +2347,6 @@ files = [
     {file = "mdurl-0.1.2-py3-none-any.whl", hash = "sha256:84008a41e51615a49fc9966191ff91509e3c40b939176e643fd50a5c2196b8f8"},
     {file = "mdurl-0.1.2.tar.gz", hash = "sha256:bb413d29f5eea38f31dd4754dd7377d4465116fb207585f97bf925588687c1ba"},
 ]
-
-[[package]]
-name = "mlflow"
-version = "3.1.4"
-description = "MLflow is an open source platform for the complete machine learning lifecycle"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "mlflow-3.1.4-py3-none-any.whl", hash = "sha256:77edeac35d470aacd12745362f14e7ceefb2cde686667c7956d648fa72996bde"},
-    {file = "mlflow-3.1.4.tar.gz", hash = "sha256:6f56c52905a9b71eca2083fcde7eed935614705d33a34b95e139b0b84a8d7842"},
-]
-
-[package.dependencies]
-alembic = "<1.10.0 || >1.10.0,<2"
-docker = ">=4.0.0,<8"
-Flask = "<4"
-graphene = "<4"
-gunicorn = {version = "<24", markers = "platform_system != \"Windows\""}
-matplotlib = "<4"
-mlflow-skinny = "3.1.4"
-numpy = "<3"
-pandas = "<3"
-pyarrow = ">=4.0.0,<21"
-scikit-learn = "<2"
-scipy = "<2"
-sqlalchemy = ">=1.4.0,<3"
-waitress = {version = "<4", markers = "platform_system == \"Windows\""}
-
-[package.extras]
-aliyun-oss = ["aliyunstoreplugin"]
-auth = ["Flask-WTF (<2)"]
-databricks = ["azure-storage-file-datalake (>12)", "boto3 (>1)", "botocore", "databricks-agents (>=1.0.0,<2.0)", "google-cloud-storage (>=1.30.0)"]
-extras = ["azureml-core (>=1.2.0)", "boto3", "botocore", "google-cloud-storage (>=1.30.0)", "kubernetes", "prometheus-flask-exporter", "pyarrow", "pysftp", "requests-auth-aws-sigv4", "virtualenv"]
-gateway = ["aiohttp (<4)", "boto3 (>=1.28.56,<2)", "fastapi (<1)", "slowapi (>=0.1.9,<1)", "tiktoken (<1)", "uvicorn[standard] (<1)", "watchfiles (<2)"]
-genai = ["aiohttp (<4)", "boto3 (>=1.28.56,<2)", "fastapi (<1)", "slowapi (>=0.1.9,<1)", "tiktoken (<1)", "uvicorn[standard] (<1)", "watchfiles (<2)"]
-jfrog = ["mlflow-jfrog-plugin"]
-langchain = ["langchain (>=0.1.0,<=0.3.25)"]
-mlserver = ["mlserver (>=1.2.0,!=1.3.1,<2.0.0)", "mlserver-mlflow (>=1.2.0,!=1.3.1,<2.0.0)"]
-sqlserver = ["mlflow-dbstore"]
-xethub = ["mlflow-xethub"]
-
-[[package]]
-name = "mlflow-skinny"
-version = "3.1.4"
-description = "MLflow is an open source platform for the complete machine learning lifecycle"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "mlflow_skinny-3.1.4-py3-none-any.whl", hash = "sha256:7d53259365d09404fc2b2e99a2701cbb1f3bfe44f127ff8c7a7b27e3720aba23"},
-    {file = "mlflow_skinny-3.1.4.tar.gz", hash = "sha256:7e05139512c3baf06fb9fcd339e028d9f725d424ce7014d9b0957f8d532ba240"},
-]
-
-[package.dependencies]
-cachetools = ">=5.0.0,<7"
-click = ">=7.0,<9"
-cloudpickle = "<4"
-databricks-sdk = ">=0.20.0,<1"
-fastapi = "<1"
-gitpython = ">=3.1.9,<4"
-importlib_metadata = ">=3.7.0,<4.7.0 || >4.7.0,<9"
-opentelemetry-api = ">=1.9.0,<3"
-opentelemetry-sdk = ">=1.9.0,<3"
-packaging = "<26"
-protobuf = ">=3.12.0,<7"
-pydantic = ">=1.10.8,<3"
-pyyaml = ">=5.1,<7"
-requests = ">=2.17.3,<3"
-sqlparse = ">=0.4.0,<1"
-typing-extensions = ">=4.0.0,<5"
-uvicorn = "<1"
-
-[package.extras]
-aliyun-oss = ["aliyunstoreplugin"]
-auth = ["Flask-WTF (<2)"]
-databricks = ["azure-storage-file-datalake (>12)", "boto3 (>1)", "botocore", "databricks-agents (>=1.0.0,<2.0)", "google-cloud-storage (>=1.30.0)"]
-extras = ["azureml-core (>=1.2.0)", "boto3", "botocore", "google-cloud-storage (>=1.30.0)", "kubernetes", "prometheus-flask-exporter", "pyarrow", "pysftp", "requests-auth-aws-sigv4", "virtualenv"]
-gateway = ["aiohttp (<4)", "boto3 (>=1.28.56,<2)", "fastapi (<1)", "slowapi (>=0.1.9,<1)", "tiktoken (<1)", "uvicorn[standard] (<1)", "watchfiles (<2)"]
-genai = ["aiohttp (<4)", "boto3 (>=1.28.56,<2)", "fastapi (<1)", "slowapi (>=0.1.9,<1)", "tiktoken (<1)", "uvicorn[standard] (<1)", "watchfiles (<2)"]
-jfrog = ["mlflow-jfrog-plugin"]
-langchain = ["langchain (>=0.1.0,<=0.3.25)"]
-mlserver = ["mlserver (>=1.2.0,!=1.3.1,<2.0.0)", "mlserver-mlflow (>=1.2.0,!=1.3.1,<2.0.0)"]
-sqlserver = ["mlflow-dbstore"]
-xethub = ["mlflow-xethub"]
 
 [[package]]
 name = "mpmath"
@@ -3379,55 +3047,6 @@ realtime = ["websockets (>=13,<16)"]
 voice-helpers = ["numpy (>=2.0.2)", "sounddevice (>=0.5.1)"]
 
 [[package]]
-name = "opentelemetry-api"
-version = "1.36.0"
-description = "OpenTelemetry Python API"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "opentelemetry_api-1.36.0-py3-none-any.whl", hash = "sha256:02f20bcacf666e1333b6b1f04e647dc1d5111f86b8e510238fcc56d7762cda8c"},
-    {file = "opentelemetry_api-1.36.0.tar.gz", hash = "sha256:9a72572b9c416d004d492cbc6e61962c0501eaf945ece9b5a0f56597d8348aa0"},
-]
-
-[package.dependencies]
-importlib-metadata = ">=6.0,<8.8.0"
-typing-extensions = ">=4.5.0"
-
-[[package]]
-name = "opentelemetry-sdk"
-version = "1.36.0"
-description = "OpenTelemetry Python SDK"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "opentelemetry_sdk-1.36.0-py3-none-any.whl", hash = "sha256:19fe048b42e98c5c1ffe85b569b7073576ad4ce0bcb6e9b4c6a39e890a6c45fb"},
-    {file = "opentelemetry_sdk-1.36.0.tar.gz", hash = "sha256:19c8c81599f51b71670661ff7495c905d8fdf6976e41622d5245b791b06fa581"},
-]
-
-[package.dependencies]
-opentelemetry-api = "1.36.0"
-opentelemetry-semantic-conventions = "0.57b0"
-typing-extensions = ">=4.5.0"
-
-[[package]]
-name = "opentelemetry-semantic-conventions"
-version = "0.57b0"
-description = "OpenTelemetry Semantic Conventions"
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "opentelemetry_semantic_conventions-0.57b0-py3-none-any.whl", hash = "sha256:757f7e76293294f124c827e514c2a3144f191ef175b069ce8d1211e1e38e9e78"},
-    {file = "opentelemetry_semantic_conventions-0.57b0.tar.gz", hash = "sha256:609a4a79c7891b4620d64c7aac6898f872d790d75f22019913a660756f27ff32"},
-]
-
-[package.dependencies]
-opentelemetry-api = "1.36.0"
-typing-extensions = ">=4.5.0"
-
-[[package]]
 name = "optuna"
 version = "4.4.0"
 description = "A hyperparameter optimization framework"
@@ -3454,6 +3073,31 @@ checking = ["black", "blackdoc", "flake8", "isort", "mypy", "mypy_boto3_s3", "ty
 document = ["ase", "cmaes (>=0.10.0)", "fvcore", "kaleido (<0.4)", "lightgbm", "matplotlib (!=3.6.0)", "pandas", "pillow", "plotly (>=4.9.0)", "scikit-learn", "sphinx", "sphinx-copybutton", "sphinx-gallery", "sphinx-notfound-page", "sphinx_rtd_theme (>=1.2.0)", "torch", "torchvision"]
 optional = ["boto3", "cmaes (>=0.10.0)", "google-cloud-storage", "grpcio", "matplotlib (!=3.6.0)", "pandas", "plotly (>=4.9.0)", "protobuf (>=5.28.1)", "redis", "scikit-learn (>=0.24.2)", "scipy", "torch ; python_version <= \"3.12\""]
 test = ["coverage", "fakeredis[lua]", "grpcio", "kaleido (<0.4)", "moto", "protobuf (>=5.28.1)", "pytest", "scipy (>=1.9.2)", "torch ; python_version <= \"3.12\""]
+
+[[package]]
+name = "optuna-dashboard"
+version = "0.19.0"
+description = "Real-time dashboard for Optuna"
+optional = false
+python-versions = ">=3.8"
+groups = ["main"]
+files = [
+    {file = "optuna_dashboard-0.19.0-py3-none-any.whl", hash = "sha256:d43da5676979f80552c9077005cce4cf77cafe05ae570071feb06222a3982cb4"},
+    {file = "optuna_dashboard-0.19.0.tar.gz", hash = "sha256:07dc73a4a7b95ba2f45e20f404622f2684291024082e7ca1620d3db0dd4fa794"},
+]
+
+[package.dependencies]
+bottle = ">=0.13.0"
+optuna = ">=3.1.0"
+packaging = "*"
+scikit-learn = "*"
+
+[package.extras]
+docs = ["boto3", "botorch", "sphinx", "sphinx_rtd_theme", "streamlit"]
+optional = ["boto3", "botorch (>=0.8.1) ; python_version >= \"3.8\"", "streamlit"]
+plotlypy = ["plotly"]
+preferential = ["botorch (>=0.8.1)"]
+test = ["coverage", "moto[s3]", "plotly", "pytest"]
 
 [[package]]
 name = "optuna-integration"
@@ -4069,33 +3713,6 @@ files = [
 test = ["cffi", "hypothesis", "pandas", "pytest", "pytz"]
 
 [[package]]
-name = "pyasn1"
-version = "0.6.1"
-description = "Pure-Python implementation of ASN.1 types and DER/BER/CER codecs (X.208)"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "pyasn1-0.6.1-py3-none-any.whl", hash = "sha256:0d632f46f2ba09143da3a8afe9e33fb6f92fa2320ab7e886e2d0f7672af84629"},
-    {file = "pyasn1-0.6.1.tar.gz", hash = "sha256:6f580d2bdd84365380830acf45550f2511469f673cb4a5ae3857a3170128b034"},
-]
-
-[[package]]
-name = "pyasn1-modules"
-version = "0.4.2"
-description = "A collection of ASN.1-based protocols modules"
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "pyasn1_modules-0.4.2-py3-none-any.whl", hash = "sha256:29253a9207ce32b64c3ac6600edc75368f98473906e8fd1043bd6b5b1de2c14a"},
-    {file = "pyasn1_modules-0.4.2.tar.gz", hash = "sha256:677091de870a80aae844b1ca6134f54652fa2c8c5a52aa396440ac3106e941e6"},
-]
-
-[package.dependencies]
-pyasn1 = ">=0.6.1,<0.7.0"
-
-[[package]]
 name = "pycodestyle"
 version = "2.13.0"
 description = "Python style guide checker"
@@ -4388,7 +4005,7 @@ description = "Python for Window Extensions"
 optional = false
 python-versions = "*"
 groups = ["main"]
-markers = "sys_platform == \"win32\""
+markers = "sys_platform == \"win32\" and platform_python_implementation != \"PyPy\""
 files = [
     {file = "pywin32-310-cp310-cp310-win32.whl", hash = "sha256:6dd97011efc8bf51d6793a82292419eba2c71cf8e7250cfac03bba284454abc1"},
     {file = "pywin32-310-cp310-cp310-win_amd64.whl", hash = "sha256:c3e78706e4229b915a0821941a84e7ef420bf2b77e08c9dae3c76fd03fd2ae3d"},
@@ -4868,21 +4485,6 @@ files = [
 ]
 
 [[package]]
-name = "rsa"
-version = "4.9.1"
-description = "Pure-Python RSA implementation"
-optional = false
-python-versions = "<4,>=3.6"
-groups = ["main"]
-files = [
-    {file = "rsa-4.9.1-py3-none-any.whl", hash = "sha256:68635866661c6836b8d39430f97a996acbd61bfa49406748ea243539fe239762"},
-    {file = "rsa-4.9.1.tar.gz", hash = "sha256:e7bdbfdb5497da4c07dfd35530e1a902659db6ff241e39d9953cad06ebd0ae75"},
-]
-
-[package.dependencies]
-pyasn1 = ">=0.1.3"
-
-[[package]]
 name = "safetensors"
 version = "0.5.3"
 description = ""
@@ -5148,18 +4750,6 @@ files = [
 ]
 
 [[package]]
-name = "smmap"
-version = "5.0.2"
-description = "A pure Python implementation of a sliding window memory map manager"
-optional = false
-python-versions = ">=3.7"
-groups = ["main"]
-files = [
-    {file = "smmap-5.0.2-py3-none-any.whl", hash = "sha256:b30115f0def7d7531d22a0fb6502488d879e75b260a9db4d0819cfb25403af5e"},
-    {file = "smmap-5.0.2.tar.gz", hash = "sha256:26ea65a03958fa0c8a1c7e8c7a58fdc77221b8910f6be2131affade476898ad5"},
-]
-
-[[package]]
 name = "sniffio"
 version = "1.3.1"
 description = "Sniff out which async library your code is running under"
@@ -5280,22 +4870,6 @@ pymysql = ["pymysql"]
 sqlcipher = ["sqlcipher3_binary"]
 
 [[package]]
-name = "sqlparse"
-version = "0.5.3"
-description = "A non-validating SQL parser."
-optional = false
-python-versions = ">=3.8"
-groups = ["main"]
-files = [
-    {file = "sqlparse-0.5.3-py3-none-any.whl", hash = "sha256:cf2196ed3418f3ba5de6af7e82c694a9fbdbfecccdfc72e281548517081f16ca"},
-    {file = "sqlparse-0.5.3.tar.gz", hash = "sha256:09f67787f56a0b16ecdbde1bfc7f5d9c3371ca683cfeaa8e6ff60b4807ec9272"},
-]
-
-[package.extras]
-dev = ["build", "hatch"]
-doc = ["sphinx"]
-
-[[package]]
 name = "sseclient-py"
 version = "1.8.0"
 description = "SSE client for Python"
@@ -5351,25 +4925,6 @@ pure-eval = "*"
 
 [package.extras]
 tests = ["cython", "littleutils", "pygments", "pytest", "typeguard"]
-
-[[package]]
-name = "starlette"
-version = "0.47.2"
-description = "The little ASGI library that shines."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "starlette-0.47.2-py3-none-any.whl", hash = "sha256:c5847e96134e5c5371ee9fac6fdf1a67336d5815e09eb2a01fdb57a351ef915b"},
-    {file = "starlette-0.47.2.tar.gz", hash = "sha256:6ae9aa5db235e4846decc1e7b79c4f346adf41e9777aebeb49dfd09bbd7023d8"},
-]
-
-[package.dependencies]
-anyio = ">=3.6.2,<5"
-typing-extensions = {version = ">=4.10.0", markers = "python_version < \"3.13\""}
-
-[package.extras]
-full = ["httpx (>=0.27.0,<0.29.0)", "itsdangerous", "jinja2", "python-multipart (>=0.0.18)", "pyyaml"]
 
 [[package]]
 name = "sympy"
@@ -5815,26 +5370,6 @@ socks = ["pysocks (>=1.5.6,!=1.5.7,<2.0)"]
 zstd = ["zstandard (>=0.18.0)"]
 
 [[package]]
-name = "uvicorn"
-version = "0.35.0"
-description = "The lightning-fast ASGI server."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "uvicorn-0.35.0-py3-none-any.whl", hash = "sha256:197535216b25ff9b785e29a0b79199f55222193d47f820816e7da751e9bc8d4a"},
-    {file = "uvicorn-0.35.0.tar.gz", hash = "sha256:bc662f087f7cf2ce11a1d7fd70b90c9f98ef2e2831556dd078d131b96cc94a01"},
-]
-
-[package.dependencies]
-click = ">=7.0"
-h11 = ">=0.8"
-typing-extensions = {version = ">=4.0", markers = "python_version < \"3.11\""}
-
-[package.extras]
-standard = ["colorama (>=0.4) ; sys_platform == \"win32\"", "httptools (>=0.6.3)", "python-dotenv (>=0.13)", "pyyaml (>=5.1)", "uvloop (>=0.15.1) ; sys_platform != \"win32\" and sys_platform != \"cygwin\" and platform_python_implementation != \"PyPy\"", "watchfiles (>=0.13)", "websockets (>=10.4)"]
-
-[[package]]
 name = "virtualenv"
 version = "20.31.2"
 description = "Virtual Python Environment builder"
@@ -5854,23 +5389,6 @@ platformdirs = ">=3.9.1,<5"
 [package.extras]
 docs = ["furo (>=2023.7.26)", "proselint (>=0.13)", "sphinx (>=7.1.2,!=7.3)", "sphinx-argparse (>=0.4)", "sphinxcontrib-towncrier (>=0.2.1a0)", "towncrier (>=23.6)"]
 test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess (>=1)", "flaky (>=3.7)", "packaging (>=23.1)", "pytest (>=7.4)", "pytest-env (>=0.8.2)", "pytest-freezer (>=0.4.8) ; platform_python_implementation == \"PyPy\" or platform_python_implementation == \"GraalVM\" or platform_python_implementation == \"CPython\" and sys_platform == \"win32\" and python_version >= \"3.13\"", "pytest-mock (>=3.11.1)", "pytest-randomly (>=3.12)", "pytest-timeout (>=2.1)", "setuptools (>=68)", "time-machine (>=2.10) ; platform_python_implementation == \"CPython\""]
-
-[[package]]
-name = "waitress"
-version = "3.0.2"
-description = "Waitress WSGI server"
-optional = false
-python-versions = ">=3.9.0"
-groups = ["main"]
-markers = "platform_system == \"Windows\""
-files = [
-    {file = "waitress-3.0.2-py3-none-any.whl", hash = "sha256:c56d67fd6e87c2ee598b76abdd4e96cfad1f24cacdea5078d382b1f9d7b5ed2e"},
-    {file = "waitress-3.0.2.tar.gz", hash = "sha256:682aaaf2af0c44ada4abfb70ded36393f0e307f4ab9456a215ce0020baefc31f"},
-]
-
-[package.extras]
-docs = ["Sphinx (>=1.8.1)", "docutils", "pylons-sphinx-themes (>=1.0.9)"]
-testing = ["coverage (>=7.6.0)", "pytest", "pytest-cov"]
 
 [[package]]
 name = "wcwidth"
@@ -5962,24 +5480,6 @@ files = [
     {file = "websockets-15.0.1-py3-none-any.whl", hash = "sha256:f7a866fbc1e97b5c617ee4116daaa09b722101d4a3c170c787450ba409f9736f"},
     {file = "websockets-15.0.1.tar.gz", hash = "sha256:82544de02076bafba038ce055ee6412d68da13ab47f0c60cab827346de828dee"},
 ]
-
-[[package]]
-name = "werkzeug"
-version = "3.1.3"
-description = "The comprehensive WSGI web application library."
-optional = false
-python-versions = ">=3.9"
-groups = ["main"]
-files = [
-    {file = "werkzeug-3.1.3-py3-none-any.whl", hash = "sha256:54b78bf3716d19a65be4fceccc0d1d7b89e608834989dfae50ea87564639213e"},
-    {file = "werkzeug-3.1.3.tar.gz", hash = "sha256:60723ce945c19328679790e3282cc758aa4a6040e4bb330f53d30fa546d44746"},
-]
-
-[package.dependencies]
-MarkupSafe = ">=2.1.1"
-
-[package.extras]
-watchdog = ["watchdog (>=2.3)"]
 
 [[package]]
 name = "widgetsnbextension"
@@ -6181,4 +5681,4 @@ type = ["pytest-mypy"]
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.10,<4.0"
-content-hash = "e097262e715d6a74bfaed080f24aeb7435d1fea5c68e9528079044ea9ed2b82f"
+content-hash = "d6958a1a43960a3cbf216eb0ced266e8d54132c1b111c24cc4a9f1399e10065e"
