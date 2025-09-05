@@ -1,13 +1,24 @@
 from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
+import pandas as pd
 from rich.console import Console
 
 # Keep unused imports for future use, but add noqa comments to suppress warnings
-from rich.panel import Panel  # noqa: F401
+from rich.panel import Panel
 from rich.rule import Rule  # noqa: F401
 from rich.table import Table
 from stable_baselines3.common.env_util import make_vec_env
+
+from quantrl_lab.custom_envs.stock.strategies.actions.base_action import (
+    BaseActionStrategy,
+)
+from quantrl_lab.custom_envs.stock.strategies.observations.base_observation import (
+    BaseObservationStrategy,
+)
+from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
+    BaseRewardStrategy,
+)
 
 from .evaluation import evaluate_model, get_action_statistics
 from .training import train_model
@@ -36,7 +47,7 @@ class BacktestRunner:
         config: Optional[Dict] = None,
         preset: str = "default",
         total_timesteps: int = 50000,
-        n_envs: int = 4,
+        n_envs: int = 4,  # no. of parallel envs
         num_eval_episodes: int = 5,
     ) -> Dict[str, Any]:
         """Run a single experiment: train and evaluate a model.
@@ -147,6 +158,10 @@ class BacktestRunner:
         # 3. Calculate metrics
         train_return = self._calculate_average_return(train_episodes)
         test_return = self._calculate_average_return(test_episodes)
+        train_return_list = self._calculate_returns_list(train_episodes)
+        test_return_list = self._calculate_returns_list(test_episodes)
+        train_final_values = self._get_final_values(train_episodes)
+        test_final_values = self._get_final_values(test_episodes)
 
         # 4. Get action statistics
         train_action_stats = get_action_statistics(train_episodes)
@@ -166,6 +181,10 @@ class BacktestRunner:
             "test_avg_reward": np.mean(test_rewards),
             "train_avg_return_pct": train_return,
             "test_avg_return_pct": test_return,
+            "train_return_list_pct": train_return_list,
+            "test_return_list_pct": test_return_list,
+            "train_final_values": train_final_values,
+            "test_final_values": test_final_values,
             "train_reward_std": np.std(train_rewards),
             "test_reward_std": np.std(test_rewards),
             "train_action_stats": train_action_stats,
@@ -588,6 +607,104 @@ class BacktestRunner:
         """
         return kwargs
 
+    @staticmethod
+    def inspect_single_experiment(results: dict) -> None:
+        """
+        Inspect and display the results of a single backtesting
+        experiment from
+        BacktestRunner.inspect_single_experiment(experiment_results)
+
+        Args:
+            results (dict): results dictionary returned from
+            BacktestRunner.run_single_experiment()
+
+        Returns:
+            None
+        """
+        # --- Main Summary Panel ---
+        algo_name = results.get("algo_class", "N/A")
+        preset = results.get("preset", "N/A")
+        train_return = results.get("train_avg_return_pct", 0.0)
+        test_return = results.get("test_avg_return_pct", 0.0)
+
+        train_return_color = "green" if train_return >= 0 else "red"
+        test_return_color = "green" if test_return >= 0 else "red"
+
+        summary_text = (
+            f"Algorithm: [bold cyan]{algo_name}[/bold cyan]\n"
+            f"Preset: [yellow]{preset}[/yellow]\n"
+            f"Train Avg Return: [{train_return_color}]{train_return:.2f}%[/{train_return_color}]\n"
+            f"Test Avg Return:  [{test_return_color}]{test_return:.2f}%[/{test_return_color}]"
+        )
+        console.print(Panel(summary_text, title="[bold]Experiment Summary[/bold]", expand=False))
+
+        # --- Action Statistics Table ---
+        train_stats = results.get("train_action_stats", {})
+        test_stats = results.get("test_action_stats", {})
+
+        action_table = Table(title="Action Distribution", show_header=True, header_style="bold magenta")
+        action_table.add_column("Action", style="cyan")
+        action_table.add_column("Train %", justify="right", style="green")
+        action_table.add_column("Test %", justify="right", style="blue")
+
+        train_action_counts = train_stats.get("action_counts", {})
+        test_action_counts = test_stats.get("action_counts", {})
+        all_actions = sorted(set(train_action_counts.keys()) | set(test_action_counts.keys()))
+
+        if all_actions:
+            for action in all_actions:
+                train_pct = train_stats.get("action_percentages", {}).get(action, 0.0)
+                test_pct = test_stats.get("action_percentages", {}).get(action, 0.0)
+                action_table.add_row(str(action), f"{train_pct:.1f}%", f"{test_pct:.1f}%")
+            console.print(action_table)
+        else:
+            console.print("[yellow]No action statistics available.[/yellow]")
+
+        # --- Episode Details Table ---
+        episode_table = Table(title="Episode Performance Details", show_header=True, header_style="bold magenta")
+        episode_table.add_column("Dataset", style="cyan")
+        episode_table.add_column("Episode", justify="center")
+        episode_table.add_column("Return %", justify="right")
+        episode_table.add_column("Reward", justify="right")
+        episode_table.add_column("Final Value", justify="right")
+        episode_table.add_column("Total Steps", justify="right")
+
+        # Function to add rows for a dataset (train/test)
+        def add_episode_rows(dataset_name, episodes, rewards, final_values):
+            if not episodes:
+                return
+            for i, (ep, reward, final_value) in enumerate(zip(episodes, rewards, final_values)):
+                if "error" in ep:
+                    continue
+                initial = ep.get("initial_value", 0)
+                ret = ((final_value - initial) / initial) * 100 if initial != 0 else 0
+                ret_color = "green" if ret >= 0 else "red"
+                reward_color = "green" if reward >= 0 else "red"
+
+                episode_table.add_row(
+                    dataset_name,
+                    str(i + 1),
+                    f"[{ret_color}]{ret:.2f}%[/{ret_color}]",
+                    f"[{reward_color}]{reward:.2f}[/{reward_color}]",
+                    f"${final_value:,.2f}",
+                    str(ep.get("steps", "N/A")),
+                )
+
+        train_episodes = results.get("train_episodes", [])
+        test_episodes = results.get("test_episodes", [])
+        train_rewards = results.get("train_rewards", [])
+        test_rewards = results.get("test_rewards", [])
+        train_final_values = results.get("train_final_values", [])
+        test_final_values = results.get("test_final_values", [])
+
+        add_episode_rows("Train", train_episodes, train_rewards, train_final_values)
+        add_episode_rows("Test", test_episodes, test_rewards, test_final_values)
+
+        if train_episodes or test_episodes:
+            console.print(episode_table)
+        else:
+            console.print("[yellow]No episode data available.[/yellow]")
+
     def _calculate_average_return(self, episodes: List[Dict[str, Any]]) -> float:
         """
         Calculate average return percentage from episodes.
@@ -604,6 +721,44 @@ class BacktestRunner:
 
         returns = [((ep["final_value"] - ep["initial_value"]) / ep["initial_value"]) * 100 for ep in valid_episodes]
         return np.mean(returns)
+
+    def _calculate_returns_list(self, episodes: List[Dict[str, Any]]) -> List[float]:
+        """
+        Calculate a list of return percentages from episodes.
+
+        Args:
+            episodes (List[Dict[str, Any]]): List of episode results.
+
+        Returns:
+            List[float]: A list of return percentages for each episode.
+        """
+        valid_episodes = [ep for ep in episodes if "error" not in ep]
+        if not valid_episodes:
+            return []
+
+        returns = [
+            ((ep["final_value"] - ep["initial_value"]) / ep["initial_value"]) * 100
+            for ep in valid_episodes
+            if ep.get("initial_value") is not None and ep.get("initial_value") != 0
+        ]
+        return returns
+
+    def _get_final_values(self, episodes: List[Dict[str, Any]]) -> List[float]:
+        """
+        Extract the final portfolio value from each episode.
+
+        Args:
+            episodes (List[Dict[str, Any]]): List of episode results.
+
+        Returns:
+            List[float]: A list of final portfolio values for each episode.
+        """
+        valid_episodes = [ep for ep in episodes if "error" not in ep]
+        if not valid_episodes:
+            return []
+
+        final_values = [ep.get("final_value", 0) for ep in valid_episodes]
+        return final_values
 
     def _print_algorithm_comparison(self, results: Dict[str, Dict[str, Any]]):
         """
@@ -889,102 +1044,6 @@ class BacktestRunner:
 
         console.print(steps_table)
 
-    # Backward compatibility methods (deprecated - will be removed in future versions)
-    def run_single_experiment_legacy(
-        self,
-        algo_class: type,
-        train_env_factory: Callable,
-        test_env_factory: Callable,
-        config: Optional[Dict] = None,
-        preset: str = "default",
-        total_timesteps: int = 50000,
-        n_envs: int = 4,
-        num_eval_episodes: int = 5,
-    ) -> Dict[str, Any]:
-        """
-        DEPRECATED: Use run_single_experiment with env_config instead.
-
-        Legacy method for backward compatibility.
-        """
-        console.print(
-            "[yellow]WARNING: run_single_experiment_legacy is deprecated. "
-            "Use run_single_experiment with env_config instead.[/yellow]"
-        )
-
-        env_config = {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
-
-        return self.run_single_experiment(
-            algo_class=algo_class,
-            env_config=env_config,
-            config=config,
-            preset=preset,
-            total_timesteps=total_timesteps,
-            n_envs=n_envs,
-            num_eval_episodes=num_eval_episodes,
-        )
-
-    def run_algorithm_comparison_legacy(
-        self,
-        algorithms: List[type],
-        train_env_factory: Callable,
-        test_env_factory: Callable,
-        preset: str = "default",
-        total_timesteps: int = 50000,
-        n_envs: int = 4,
-        num_eval_episodes: int = 5,
-    ) -> Dict[str, Dict[str, Any]]:
-        """
-        DEPRECATED: Use run_algorithm_comparison with env_config instead.
-
-        Legacy method for backward compatibility.
-        """
-        console.print(
-            "[yellow]WARNING: run_algorithm_comparison_legacy is deprecated. "
-            "Use run_algorithm_comparison with env_config instead.[/yellow]"
-        )
-
-        env_config = {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
-
-        return self.run_algorithm_comparison(
-            algorithms=algorithms,
-            env_config=env_config,
-            preset=preset,
-            total_timesteps=total_timesteps,
-            n_envs=n_envs,
-            num_eval_episodes=num_eval_episodes,
-        )
-
-    def run_preset_comparison_legacy(
-        self,
-        algo_class: type,
-        train_env_factory: Callable,
-        test_env_factory: Callable,
-        presets: List[str] = None,
-        total_timesteps: int = 50000,
-        n_envs: int = 4,
-        num_eval_episodes: int = 5,
-    ) -> Dict[str, Dict[str, Any]]:
-        """
-        DEPRECATED: Use run_preset_comparison with env_config instead.
-
-        Legacy method for backward compatibility.
-        """
-        console.print(
-            "[yellow]WARNING: run_preset_comparison_legacy is deprecated. "
-            "Use run_preset_comparison with env_config instead.[/yellow]"
-        )
-
-        env_config = {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
-
-        return self.run_preset_comparison(
-            algo_class=algo_class,
-            env_config=env_config,
-            presets=presets,
-            total_timesteps=total_timesteps,
-            n_envs=n_envs,
-            num_eval_episodes=num_eval_episodes,
-        )
-
     @staticmethod
     def create_env_config(train_env_factory: Callable, test_env_factory: Callable) -> Dict[str, Callable]:
         """
@@ -1005,6 +1064,68 @@ class BacktestRunner:
             )
         """
         return {"train_env_factory": train_env_factory, "test_env_factory": test_env_factory}
+
+    @staticmethod
+    def create_env_config_factory(
+        train_data: "pd.DataFrame",
+        test_data: "pd.DataFrame",
+        action_strategy: "BaseActionStrategy",
+        reward_strategy: "BaseRewardStrategy",
+        observation_strategy: "BaseObservationStrategy",
+        eval_data: Optional["pd.DataFrame"] = None,  # Optional evaluation dataset
+        initial_balance: float = 100000.0,
+        transaction_cost_pct: float = 0.001,
+        window_size: int = 20,
+    ):
+        """
+        Creates a dictionary of environment factories for training,
+        testing, and optionally, evaluation.
+
+        Args:
+            train_data (pd.DataFrame): DataFrame for the training environment.
+            test_data (pd.DataFrame): DataFrame for the test environment.
+            action_strategy (BaseActionStrategy): The action strategy to use.
+            reward_strategy (BaseRewardStrategy): The reward strategy to use.
+            observation_strategy (BaseObservationStrategy): The observation strategy.
+            eval_data (Optional[pd.DataFrame], optional): DataFrame for the evaluation
+                environment. If provided, an 'eval_env_factory' will be created.
+                Defaults to None.
+            initial_balance (float, optional): Initial portfolio balance.
+            transaction_cost_pct (float, optional): Transaction cost percentage.
+            window_size (int, optional): The size of the observation window.
+
+        Returns:
+            Dict[str, Callable]: A dictionary containing 'train_env_factory',
+            'test_env_factory', and optionally 'eval_env_factory'.
+        """
+        from ..custom_envs.stock.env_single_stock import SingleStockTradingEnv
+        from ..custom_envs.stock.stock_config import SingleStockEnvConfig
+
+        # Helper function to create a single environment factory
+        def _create_factory(data: "pd.DataFrame"):
+            return lambda: SingleStockTradingEnv(
+                data=data,
+                config=SingleStockEnvConfig(
+                    initial_balance=initial_balance,
+                    transaction_cost_pct=transaction_cost_pct,
+                    window_size=window_size,
+                ),
+                action_strategy=action_strategy,
+                reward_strategy=reward_strategy,
+                observation_strategy=observation_strategy,
+            )
+
+        # Create the base configuration with train and test factories
+        env_factories = {
+            "train_env_factory": _create_factory(train_data),
+            "test_env_factory": _create_factory(test_data),
+        }
+
+        # Add the evaluation factory only if eval_data is provided
+        if eval_data is not None:
+            env_factories["eval_env_factory"] = _create_factory(eval_data)
+
+        return env_factories
 
     # API Usage Examples (Updated for Consistent Design)
     """

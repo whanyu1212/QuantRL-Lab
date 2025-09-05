@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from itertools import product
 from typing import Any, Dict, List, Optional
 
 import numpy as np
@@ -51,6 +52,10 @@ class IndicatorAnalysis:
         """
         Generate indicator configs from simplified definitions.
 
+        This method supports two formats:
+        1.  A `params` list for explicit parameter sets.
+        2.  A `param_grid` dict for generating a Cartesian product of parameters.
+
         Returns:
             Dict[str, Dict[str, Any]]: Mapping of indicator names
             to their configurations.
@@ -59,16 +64,24 @@ class IndicatorAnalysis:
 
         for config in configs:
             indicator_name = config["name"]
-            param_sets = config["params"]
             strategy_params = config.get("strategy_params", {})
+            param_sets = []
 
-            for i, params in enumerate(param_sets):
+            if "params" in config:
+                param_sets = config["params"]
+            elif "param_grid" in config:
+                # Generate parameter sets from the grid
+                grid = config["param_grid"]
+                keys, values = grid.keys(), grid.values()
+                for v in product(*values):
+                    param_sets.append(dict(zip(keys, v)))
+
+            for params in param_sets:
                 # Use base name for single configs, descriptive names for multiple
-                if len(param_sets) == 1:
+                if len(param_sets) == 1 and not params:
                     config_name = indicator_name  # Just 'SMA', 'RSI', etc.
                 else:
-                    # param_str = "_".join([f"{v}" if k == 'window' else f"{k}{v}" for k, v in params.items()])
-                    param_str = "_".join([f"{v}" for v in params.values()])
+                    param_str = "_".join(map(str, params.values()))
                     config_name = f"{indicator_name}_{param_str}"  # 'SMA_20', etc.
 
                 result[config_name] = {"indicator_params": params, "strategy_params": strategy_params}
