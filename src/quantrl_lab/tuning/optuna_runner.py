@@ -189,8 +189,7 @@ class OptunaRunner:
         )
 
         console.rule(
-            f"[bold blue]Starting optimization for [/bold blue][yellow]{n_trials}",
-            "[/yellow][bold blue] trials[/bold blue]",
+            (f"[bold blue]Starting optimization for {n_trials} " f"trials[/bold blue]"),
         )
         console.print()
 
