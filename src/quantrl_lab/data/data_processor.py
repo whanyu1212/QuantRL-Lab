@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -393,39 +393,84 @@ class DataProcessor:
 
     def data_processing_pipeline(
         self, indicators: Optional[List[Union[str, Dict]]] = None, fillna_strategy: str = "neutral", **kwargs
-    ) -> pd.DataFrame:
+    ) -> Tuple[pd.DataFrame, Dict]:
         """
         Main data processing pipeline.
 
         Args:
             indicators (Optional[List[Union[str, Dict]]], optional):
                 List of indicators to apply. Defaults to None.
-            strategy (str, optional): Strategy for handling missing sentiment scores.
+            fillna_strategy (str, optional): Strategy for handling missing sentiment scores.
                 Defaults to "neutral".
 
         Returns:
-            pd.DataFrame: Processed DataFrame with technical indicators and sentiment scores.
+            tuple[pd.DataFrame, Dict]: A tuple containing:
+                - Processed DataFrame with technical indicators and sentiment scores
+                - Metadata dictionary containing processing information
         """
+        # Initialize metadata collection
+        metadata = {
+            "symbol": None,
+            "date_range": {"start": None, "end": None},
+            "fillna_strategy": fillna_strategy,
+            "technical_indicators": [],
+            "news_sentiment_applied": False,
+            "columns_dropped": [],
+            "original_shape": self.olhcv_data.shape,
+            "final_shape": None,
+        }
+
+        # Extract symbol if available in the data
+        if "Symbol" in self.olhcv_data.columns:
+            unique_symbols = self.olhcv_data["Symbol"].unique()
+            metadata["symbol"] = unique_symbols[0] if len(unique_symbols) == 1 else unique_symbols.tolist()
+
+        # Extract date range
+        date_column = None
+        for col in ["Date", "date", "timestamp", "Timestamp"]:
+            if col in self.olhcv_data.columns:
+                date_column = col
+                break
+
+        if date_column:
+            dates = pd.to_datetime(self.olhcv_data[date_column])
+            metadata["date_range"]["start"] = dates.min().strftime("%Y-%m-%d")
+            metadata["date_range"]["end"] = dates.max().strftime("%Y-%m-%d")
+
+        # Track indicators applied
+        if indicators:
+            metadata["technical_indicators"] = indicators.copy() if isinstance(indicators, list) else [indicators]
+
         processed_data = self.append_technical_indicators(self.olhcv_data, indicators, **kwargs)
 
         if self.news_data is None:
             console.print("[yellow]⚠️  No news data provided. Skipping sentiment analysis.[/yellow]")
-            return processed_data
-
-        data_w_sentiment = self.append_news_sentiment_data(processed_data, fillna_strategy)
+            final_data = processed_data
+        else:
+            data_w_sentiment = self.append_news_sentiment_data(processed_data, fillna_strategy)
+            metadata["news_sentiment_applied"] = True
+            final_data = data_w_sentiment
 
         # Drop unwanted columns if specified
         columns_to_drop = kwargs.get("columns_to_drop", None)
         if columns_to_drop is not None:
-            data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment, columns_to_drop)
+            final_data = self.drop_unwanted_columns(final_data, columns_to_drop)
+            metadata["columns_dropped"] = columns_to_drop
         else:
-            data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment)
+            default_columns_to_drop = ["Date", "Timestamp", "Symbol"]
+            # Only track actually dropped columns
+            actually_dropped = [col for col in default_columns_to_drop if col in final_data.columns]
+            final_data = self.drop_unwanted_columns(final_data)
+            metadata["columns_dropped"] = actually_dropped
 
         # Convert specified columns to numeric
         columns_to_convert = kwargs.get("columns_to_convert", None)
         if columns_to_convert is not None:
-            data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment, columns_to_convert)
+            final_data = self.convert_columns_to_numeric(final_data, columns_to_convert)
         else:
-            data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment)
+            final_data = self.convert_columns_to_numeric(final_data)
 
-        return data_w_sentiment.dropna().reset_index(drop=True)
+        final_data = final_data.dropna().reset_index(drop=True)
+        metadata["final_shape"] = final_data.shape
+
+        return final_data, metadata
