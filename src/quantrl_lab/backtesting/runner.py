@@ -1075,7 +1075,9 @@ class BacktestRunner:
         eval_data: Optional["pd.DataFrame"] = None,  # Optional evaluation dataset
         initial_balance: float = 100000.0,
         transaction_cost_pct: float = 0.001,
+        slippage_pct: float = 0.0005,
         window_size: int = 20,
+        order_expiration_steps: int = 5,
     ):
         """
         Creates a dictionary of environment factories for training,
@@ -1108,7 +1110,9 @@ class BacktestRunner:
                 config=SingleStockEnvConfig(
                     initial_balance=initial_balance,
                     transaction_cost_pct=transaction_cost_pct,
+                    slippage=slippage_pct,
                     window_size=window_size,
+                    order_expiration_steps=order_expiration_steps,
                 ),
                 action_strategy=action_strategy,
                 reward_strategy=reward_strategy,
