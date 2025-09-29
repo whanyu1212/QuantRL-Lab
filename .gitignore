@@ -182,3 +182,5 @@ mlruns/
 
 # macOS
 .DS_Store
+
+report/
