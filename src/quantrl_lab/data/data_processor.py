@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import torch
@@ -361,7 +361,9 @@ class DataProcessor:
 
         return merged_data
 
-    def drop_unwanted_columns(self, df: pd.DataFrame, columns_to_drop: Optional[List[str]] = None) -> pd.DataFrame:
+    def drop_unwanted_columns(
+        self, df: pd.DataFrame, columns_to_drop: Optional[List[str]] = None, keep_date: bool = False
+    ) -> pd.DataFrame:
         """
         Drop unwanted columns from the DataFrame.
 
@@ -369,7 +371,7 @@ class DataProcessor:
             df (pd.DataFrame): Input DataFrame.
             columns_to_drop (Optional[List[str]], optional): List of column names to drop.
                 If None, will drop default columns ('Date', 'Timestamp', 'Symbol'). Defaults to None.
-
+            keep_date (bool): If True, date-related columns will not be dropped.
         Returns:
             pd.DataFrame: DataFrame with specified columns dropped.
         """
@@ -378,54 +380,202 @@ class DataProcessor:
         elif not isinstance(columns_to_drop, list):
             raise ValueError("columns_to_drop must be a list of column names.")
 
+        if keep_date:
+            date_cols = ["Date", "date", "timestamp", "Timestamp"]
+            columns_to_drop = [col for col in columns_to_drop if col not in date_cols]
+
         return df.drop(columns=columns_to_drop, errors="ignore")
 
     def convert_columns_to_numeric(self, df: pd.DataFrame, columns: Optional[List[str]] = None) -> pd.DataFrame:
+        """
+        Convert specified columns to numeric, handling date columns
+        carefully.
+
+        Args:
+            df (pd.DataFrame): Input DataFrame
+            columns (Optional[List[str]]): Specific columns to convert. If None, converts all object columns.
+
+        Returns:
+            pd.DataFrame: DataFrame with numeric conversions applied
+        """
         if columns is None:
-            columns = df.columns
+            # Only convert object columns that are not date-like
+            columns = []
+            for col in df.columns:
+                if df[col].dtype == "object":
+                    # Skip columns that look like dates
+                    if col.lower() in ["date", "timestamp", "created_at", "time"]:
+                        continue
+                    # Check if it's actually a date column by looking at the data
+                    sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
+                    if sample_val is not None:
+                        try:
+                            pd.to_datetime(sample_val)
+                            # If conversion succeeds, it's probably a date column - skip it
+                            continue
+                        except (ValueError, TypeError):
+                            # Not a date, safe to convert to numeric
+                            columns.append(col)
         elif not isinstance(columns, list):
             raise ValueError("columns must be a list of column names.")
+
         for col in columns:
-            if df[col].dtype == "object":
+            if col in df.columns and df[col].dtype == "object":
                 df[col] = pd.to_numeric(df[col], errors="coerce")
 
         return df
 
     def data_processing_pipeline(
-        self, indicators: Optional[List[Union[str, Dict]]] = None, fillna_strategy: str = "neutral", **kwargs
-    ) -> pd.DataFrame:
+        self,
+        indicators: Optional[List[Union[str, Dict]]] = None,
+        fillna_strategy: str = "neutral",
+        split_config: Optional[Dict] = None,
+        **kwargs,
+    ) -> Tuple[Union[pd.DataFrame, Dict[str, pd.DataFrame]], Dict]:
         """
         Main data processing pipeline.
-
         Args:
             indicators (Optional[List[Union[str, Dict]]], optional):
                 List of indicators to apply. Defaults to None.
-            strategy (str, optional): Strategy for handling missing sentiment scores.
+            fillna_strategy (str, optional): Strategy for handling missing sentiment scores.
                 Defaults to "neutral".
-
+            split_config (Optional[Dict], optional): Configuration for data splitting.
+                If None, returns a single DataFrame. Otherwise, returns a dictionary of split DataFrames.
+                Example by ratio: {'train': 0.7, 'test': 0.3}
+                Example by dates: {'train': ('2020-01-01', '2021-12-31'), 'test': ('2022-01-01', '2022-12-31')}
         Returns:
-            pd.DataFrame: Processed DataFrame with technical indicators and sentiment scores.
+            tuple[Union[pd.DataFrame, Dict[str, pd.DataFrame]], Dict]: A tuple containing:
+                - Processed DataFrame (or dictionary of DataFrames if split)
+                - Metadata dictionary containing processing information
         """
+        # Initialize metadata collection
+        metadata = {
+            "symbol": None,
+            "date_ranges": {},  # Changed from date_range to date_ranges
+            "fillna_strategy": fillna_strategy,
+            "technical_indicators": [],
+            "news_sentiment_applied": False,
+            "columns_dropped": [],
+            "original_shape": self.olhcv_data.shape,
+            "final_shapes": {},  # Changed from final_shape to final_shapes
+        }
+
+        # Extract symbol if available in the data
+        if "Symbol" in self.olhcv_data.columns:
+            unique_symbols = self.olhcv_data["Symbol"].unique()
+            metadata["symbol"] = unique_symbols[0] if len(unique_symbols) == 1 else unique_symbols.tolist()
+
+        # Track indicators applied
+        if indicators:
+            metadata["technical_indicators"] = indicators.copy() if isinstance(indicators, list) else [indicators]
+
         processed_data = self.append_technical_indicators(self.olhcv_data, indicators, **kwargs)
 
         if self.news_data is None:
             console.print("[yellow]⚠️  No news data provided. Skipping sentiment analysis.[/yellow]")
-            return processed_data
-
-        data_w_sentiment = self.append_news_sentiment_data(processed_data, fillna_strategy)
+            final_data = processed_data
+        else:
+            data_w_sentiment = self.append_news_sentiment_data(processed_data, fillna_strategy)
+            metadata["news_sentiment_applied"] = True
+            final_data = data_w_sentiment
 
         # Drop unwanted columns if specified
         columns_to_drop = kwargs.get("columns_to_drop", None)
         if columns_to_drop is not None:
-            data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment, columns_to_drop)
+            final_data = self.drop_unwanted_columns(final_data, columns_to_drop)
+            metadata["columns_dropped"] = columns_to_drop
         else:
-            data_w_sentiment = self.drop_unwanted_columns(data_w_sentiment)
+            default_columns_to_drop = ["Date", "Timestamp", "Symbol"]
+            # Only track actually dropped columns
+            actually_dropped = [col for col in default_columns_to_drop if col in final_data.columns]
+            final_data = self.drop_unwanted_columns(final_data, keep_date=True)  # Keep date for splitting
+            metadata["columns_dropped"] = actually_dropped
 
         # Convert specified columns to numeric
         columns_to_convert = kwargs.get("columns_to_convert", None)
         if columns_to_convert is not None:
-            data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment, columns_to_convert)
+            final_data = self.convert_columns_to_numeric(final_data, columns_to_convert)
         else:
-            data_w_sentiment = self.convert_columns_to_numeric(data_w_sentiment)
+            final_data = self.convert_columns_to_numeric(final_data)
 
-        return data_w_sentiment.dropna().reset_index(drop=True)
+        final_data = final_data.dropna().reset_index(drop=True)
+
+        if split_config:
+            split_data, split_metadata = self._split_data(final_data, split_config)
+            metadata["date_ranges"] = split_metadata["date_ranges"]
+            metadata["final_shapes"] = split_metadata["final_shapes"]
+
+            # Drop date column after splitting
+            for key in split_data:
+                split_data[key] = self.drop_unwanted_columns(split_data[key], ["Date", "Timestamp", "Symbol"])
+
+            return split_data, metadata
+        else:
+            # Handle metadata for non-split data
+            date_column = next(
+                (col for col in ["Date", "date", "timestamp", "Timestamp"] if col in final_data.columns), None
+            )
+            if date_column:
+                dates = pd.to_datetime(final_data[date_column])
+                metadata["date_ranges"]["full_data"] = {
+                    "start": dates.min().strftime("%Y-%m-%d"),
+                    "end": dates.max().strftime("%Y-%m-%d"),
+                }
+            metadata["final_shapes"]["full_data"] = final_data.shape
+            final_data = self.drop_unwanted_columns(final_data, ["Date", "Timestamp", "Symbol"])
+            return final_data, metadata
+
+    def _split_data(self, df: pd.DataFrame, split_config: Dict) -> Tuple[Dict[str, pd.DataFrame], Dict]:
+        """
+        Split the data into respective sets according to the config.
+
+        Args:
+            df (pd.DataFrame): input dataframe
+            split_config (Dict): split config in dictionary format
+
+        Raises:
+            ValueError: No date or timestamps to work with for splitting
+
+        Returns:
+            Tuple[Dict[str, pd.DataFrame], Dict]: datasets in dict and metadata
+        """
+        date_column = next((col for col in ["Date", "date", "timestamp", "Timestamp"] if col in df.columns), None)
+        if not date_column:
+            raise ValueError("Date column not found for splitting.")
+
+        df[date_column] = pd.to_datetime(df[date_column]).dt.tz_localize(None)
+        df = df.sort_values(by=date_column).reset_index(drop=True)
+
+        split_data = {}
+        metadata = {"date_ranges": {}, "final_shapes": {}}
+
+        # Check if splitting by date ranges or ratios
+        is_date_based = any(isinstance(v, (tuple, list)) for v in split_config.values())
+
+        if is_date_based:
+            for key, (start_date, end_date) in split_config.items():
+                mask = (df[date_column] >= pd.to_datetime(start_date)) & (df[date_column] <= pd.to_datetime(end_date))
+                subset = df[mask].copy()
+                split_data[key] = subset
+                if not subset.empty:
+                    metadata["date_ranges"][key] = {
+                        "start": subset[date_column].min().strftime("%Y-%m-%d"),
+                        "end": subset[date_column].max().strftime("%Y-%m-%d"),
+                    }
+                    metadata["final_shapes"][key] = subset.shape
+        else:  # Ratio-based split
+            total_len = len(df)
+            start_idx = 0
+            for key, ratio in split_config.items():
+                end_idx = start_idx + int(total_len * ratio)
+                subset = df.iloc[start_idx:end_idx].copy()
+                split_data[key] = subset
+                if not subset.empty:
+                    metadata["date_ranges"][key] = {
+                        "start": subset[date_column].min().strftime("%Y-%m-%d"),
+                        "end": subset[date_column].max().strftime("%Y-%m-%d"),
+                    }
+                    metadata["final_shapes"][key] = subset.shape
+                start_idx = end_idx
+
+        return split_data, metadata

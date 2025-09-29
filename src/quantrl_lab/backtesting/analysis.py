@@ -75,7 +75,7 @@ class BenchmarkAnalyzer:
 
     def compare_with_benchmarks(self, agent_results: Dict[str, Any]) -> Dict[str, Any]:
         """Compare agent performance with multiple benchmarks."""
-        initial_capital = agent_results.get("initial_capital", 100000)
+        initial_capital = agent_results.get("initial_value", 100000)
 
         benchmarks = {
             "RL_Agent": self._extract_agent_metrics(agent_results),
@@ -146,7 +146,7 @@ class BenchmarkAnalyzer:
         """Extract metrics from agent results."""
         # This would process your agent's episode results
         # and calculate the same metrics
-        episodes = agent_results.get("episodes", [])
+        episodes = agent_results.get("test_episodes", [])
 
         if not episodes:
             return PerformanceMetrics(0, 0, 0, 0, 0, 0, 0, 0, 0)

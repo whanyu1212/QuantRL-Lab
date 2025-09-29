@@ -14,8 +14,6 @@ class Actions(IntEnum):
 
 
 class HedgingActions(IntEnum):
-    """Actions that explicitly define the paired trades for a hedging
-    strategy between Stock A and Stock B."""
 
     Hold = 0  # Maintain the current position (either cash or an existing hedge).
     Liquidate = 1  # Close any open hedged position and return to cash.
