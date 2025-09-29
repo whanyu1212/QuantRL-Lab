@@ -68,7 +68,7 @@ line_length = 120
 
 
 [tool.poetry.group.dev.dependencies]
-pytest-cov = "^6.2.1"
+pytest-cov = "^7.0.0"
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]

@@ -56,7 +56,23 @@ flowchart LR
     classDef optional stroke-dasharray: 5 5
     class C,F optional
 ```
-
+```mermaid
+graph LR
+    A[Start: Raw OHLCV DataFrame] --> B{Initialize DataProcessor};
+    B --> C[append_technical_indicators];
+    C --> D{News Data Provided?};
+    D -- Yes --> E[append_news_sentiment_data];
+    E --> F[Merge DataFrames];
+    D -- No --> F;
+    F --> G[convert_columns_to_numeric];
+    G --> H[dropna];
+    H --> I{Split Config Provided?};
+    I -- Yes --> J[_split_data];
+    J --> K[Drop Date Column from Splits];
+    K --> L[End: Dictionary of Split DataFrames & Metadata];
+    I -- No --> M[Drop Date Column];
+    M --> N[End: Single Processed DataFrame & Metadata];
+```
 ---
 
 

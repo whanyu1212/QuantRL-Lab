@@ -18,12 +18,13 @@ class WeightedCompositeReward(BaseRewardStrategy):
     This class implements the Composite design pattern.
     """
 
-    def __init__(self, strategies: List[BaseRewardStrategy], weights: List[float]):
+    def __init__(self, strategies: List[BaseRewardStrategy], weights: List[float], normalize_weights: bool = True):
         if len(strategies) != len(weights):
             raise ValueError("The number of strategies and weights must be equal.")
 
         self.strategies = strategies
         self.weights = weights
+        self.normalize_weights = normalize_weights
 
     def calculate_reward(self, env: TradingEnvProtocol) -> float:
         """
@@ -36,8 +37,14 @@ class WeightedCompositeReward(BaseRewardStrategy):
         Returns:
             float: The weighted composite reward based on the child strategies.
         """
+        weights_to_use = self.weights
+        if self.normalize_weights:
+            total_weight = sum(self.weights)
+            if total_weight == 0:
+                raise ValueError("Sum of weights must not be zero when normalize_weights is True.")
+            weights_to_use = [w / total_weight for w in self.weights]
         total_reward = 0.0
-        for strategy, weight in zip(self.strategies, self.weights):
+        for strategy, weight in zip(self.strategies, weights_to_use):
             # Calculate the reward from the child strategy and apply the weight
             component_reward = strategy.calculate_reward(env)
             total_reward += weight * component_reward

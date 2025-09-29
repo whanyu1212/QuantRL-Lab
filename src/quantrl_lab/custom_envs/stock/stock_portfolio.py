@@ -62,6 +62,52 @@ class StockPortfolio(Portfolio):
         """
         return self.units_held + self._get_reserved_shares()
 
+    def get_value(self, current_price: float) -> float:
+        """
+        Calculate the total value of the portfolio including unfilled
+        orders and reserved money.
+
+        This overrides the parent's get_value method to account for:
+        - Current balance (free cash not tied up in orders)
+        - Value of currently held shares (free shares not reserved in orders)
+        - Reserved cash in pending buy orders (money locked up waiting for execution)
+        - Value of shares reserved in pending sell/stop/take-profit orders
+
+        The accounting works as follows:
+        - When a limit buy is placed: cash is moved from balance to cost_reserved
+        - When a limit sell is placed: shares are moved from units_held to the order
+        - When risk management orders are placed: shares are moved from units_held to respective order lists
+        - This method sums all these components to get the true portfolio value
+
+        Args:
+            current_price (float): The current market price of the asset.
+
+        Returns:
+            float: The total portfolio value including all positions and reserved amounts.
+        """
+        # Base value: free balance + value of free shares
+        total_value = self.balance + (self.units_held * current_price)
+
+        # Add reserved cash from pending buy orders
+        for order in self.pending_orders:
+            if order["type"] == "limit_buy":
+                total_value += order["cost_reserved"]
+
+        # Add value of shares reserved in pending sell orders
+        for order in self.pending_orders:
+            if order["type"] == "limit_sell":
+                total_value += order["shares"] * current_price
+
+        # Add value of shares reserved in stop loss orders
+        for order in self.stop_loss_orders:
+            total_value += order["shares"] * current_price
+
+        # Add value of shares reserved in take profit orders
+        for order in self.take_profit_orders:
+            total_value += order["shares"] * current_price
+
+        return total_value
+
     def process_open_orders(self, current_step: int, current_price: float) -> None:
         """
         Process all open orders at the current market price.
