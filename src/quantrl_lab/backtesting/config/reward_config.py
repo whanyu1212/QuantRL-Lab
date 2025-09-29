@@ -21,7 +21,7 @@ class RewardCombination(BaseModel):
     weights: List[float]
 
 
-def create_reward_strategy_from_combination(combination: 'RewardCombination') -> WeightedCompositeReward:
+def create_reward_strategy_from_combination(combination: "RewardCombination") -> WeightedCompositeReward:
     """
     Creates a WeightedCompositeReward instance from a RewardCombination.
 
