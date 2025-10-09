@@ -10,7 +10,7 @@ from gymnasium import spaces
 if TYPE_CHECKING:
     from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
 
-from quantrl_lab.custom_envs.core.calculations import calculate_trend_strength
+from quantrl_lab.custom_envs.utils.trend import calculate_trend_strength
 
 from .base_observation import BaseObservationStrategy
 
