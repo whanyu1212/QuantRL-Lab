@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from quantrl_lab.custom_envs.stock.strategies.rewards.base_reward import (
     BaseRewardStrategy,
 )
-from quantrl_lab.custom_envs.utils.trend import calculate_trend_strength
+from quantrl_lab.utils.trend import calculate_trend_strength
 
 
 # TODO: Think of a more robust way to reward trend following actions.
