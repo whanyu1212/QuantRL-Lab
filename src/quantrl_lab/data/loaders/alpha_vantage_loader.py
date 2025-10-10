@@ -14,9 +14,7 @@ from quantrl_lab.data.interface import (
     MacroDataCapable,
     NewsDataCapable,
 )
-from quantrl_lab.data.loaders.alpha_vantage_mappings import (
-    ALPHA_VANTAGE_COLUMN_MAPPER,
-)
+from quantrl_lab.data.mappings import ALPHA_VANTAGE_COLUMN_MAPPER
 from quantrl_lab.utils.common import convert_datetime_to_alpha_vantage_format
 from quantrl_lab.utils.config import (
     ALPHA_VANTAGE_API_BASE,
@@ -136,14 +134,14 @@ class AlphaVantageDataLoader(
             # For daily data, default to full if no date filtering
             if not parsed_start_date and not parsed_end_date and "outputsize" not in kwargs:
                 kwargs["outputsize"] = "full"
-                logger.info("Defaulting to outputsize='full' for daily data with no date range specified")
+                logger.debug("Defaulting to outputsize='full' for daily data with no date range specified")
 
             if adjusted:
                 raw_data = self._get_daily_adjusted_data(symbols, **kwargs)
-                logger.info(f"Using adjusted daily data for {symbols}")
+                logger.debug(f"Using adjusted daily data for {symbols}")
             else:
                 raw_data = self._get_daily_data(symbols, **kwargs)
-                logger.info(f"Using raw daily data for {symbols}")
+                logger.debug(f"Using raw daily data for {symbols}")
 
             time_series_key = "Time Series (Daily)"
 
@@ -158,7 +156,7 @@ class AlphaVantageDataLoader(
                 logger.info(
                     f"Fetching {interval} intraday data for {symbols} (recent data - typically last 15-30 days)"
                 )
-                logger.info("For historical intraday data, specify 'month=\"YYYY-MM\"' in kwargs")
+                logger.debug("For historical intraday data, specify 'month=\"YYYY-MM\"' in kwargs")
 
             raw_data = self._get_intraday_data(symbols, interval=interval, **kwargs)
             time_series_key = f"Time Series ({interval})"
@@ -179,7 +177,7 @@ class AlphaVantageDataLoader(
                 "This may be due to rate limits, invalid symbol, or no data available."
             )
             available_keys = list(raw_data.keys())
-            logger.info(f"Available keys in response: {available_keys}")
+            logger.debug(f"Available keys in response: {available_keys}")
             return pd.DataFrame()
 
         time_series = raw_data[time_series_key]
@@ -236,7 +234,7 @@ class AlphaVantageDataLoader(
                 if (interval == "1d" and adjusted)
                 else (f"{interval} intraday" if interval != "1d" else "daily")
             )
-            logger.info(f"Retrieved {len(df)} {data_type} records for {symbols}")
+            logger.success(f"Retrieved {len(df)} {data_type} records for {symbols}")
 
         df.reset_index(inplace=True)
         df["Date"] = df["Date"].dt.strftime("%Y-%m-%d")
@@ -296,7 +294,7 @@ class AlphaVantageDataLoader(
 
                 if data:
                     results[metric_enum.value] = data
-                    logger.info(f"Successfully fetched {metric_enum.value} for {symbol}")
+                    logger.success(f"Successfully fetched {metric_enum.value} for {symbol}")
                 else:
                     logger.warning(f"Failed to fetch {metric_enum.value} for {symbol}")
                     results[metric_enum.value] = None
@@ -366,12 +364,12 @@ class AlphaVantageDataLoader(
         # Check for additional sort parameter in kwargs
         if "sort" in kwargs:
             params["sort"] = kwargs.pop("sort")
-            logger.info(f"Using sort order: {params['sort']}")
+            logger.debug(f"Using sort order: {params['sort']}")
 
         # Check for additional topics parameter in kwargs
         if "topics" in kwargs:
             params["topics"] = kwargs.pop("topics")
-            logger.info(f"Using topics from kwargs: {params['topics']}")
+            logger.debug(f"Using topics from kwargs: {params['topics']}")
 
         params.update(kwargs)
 
@@ -379,7 +377,7 @@ class AlphaVantageDataLoader(
         # it uses tickers instead, so we pass an empty string for symbol)
         news_data = self._make_api_request("NEWS_SENTIMENT", symbol="", **params)
 
-        news_df = pd.DataFrame(news_data["feed"])
+        news_df = pd.DataFrame(news_data["feed"]) if news_data and "feed" in news_data else pd.DataFrame()
 
         # Rename time_published to created_at to standardize the column name
         if "time_published" in news_df.columns:
@@ -389,9 +387,12 @@ class AlphaVantageDataLoader(
         news_df["created_at"] = pd.to_datetime(news_df["created_at"], format="%Y%m%dT%H%M%S")
         news_df["Date"] = news_df["created_at"].dt.date
 
-        news_df["sentiment_score"] = (
-            news_df["ticker_sentiment"].apply(lambda x: self._find_ticker_sentiment(x, tickers)).astype(float)
-        )
+        if not news_df.empty and "ticker_sentiment" in news_df.columns:
+            news_df["sentiment_score"] = (
+                news_df["ticker_sentiment"].apply(lambda x: self._find_ticker_sentiment(x, tickers)).astype(float)
+            )
+
+        logger.success(f"Retrieved {len(news_df)} news items for {tickers}")
 
         return news_df
 
@@ -512,7 +513,7 @@ class AlphaVantageDataLoader(
                     data = method(**method_kwargs)
                     if data:
                         results[indicator_enum.value] = data
-                        logger.info(f"Successfully fetched {indicator_enum.value} data")
+                        logger.success(f"Successfully fetched {indicator_enum.value} data")
                     else:
                         logger.warning(f"Failed to fetch {indicator_enum.value} data")
                         results[indicator_enum.value] = None

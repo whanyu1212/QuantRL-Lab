@@ -14,8 +14,7 @@ from alpaca.data.requests import (
     StockLatestQuoteRequest,
     StockLatestTradeRequest,
 )
-from rich.console import Console
-from rich.progress import BarColumn, Progress, SpinnerColumn, TextColumn, TimeRemainingColumn
+from loguru import logger
 
 from quantrl_lab.data.interface import (
     ConnectionManaged,
@@ -25,9 +24,7 @@ from quantrl_lab.data.interface import (
     NewsDataCapable,
     StreamingCapable,
 )
-from quantrl_lab.data.loaders.alpaca_mappings import ALPACA_MAPPINGS
-
-console = Console()
+from quantrl_lab.data.mappings import ALPACA_MAPPINGS
 
 
 class AlpacaDataLoader(
@@ -134,8 +131,12 @@ class AlpacaDataLoader(
             pd.DataFrame: raw OHLCV data
         """
 
-        console.print(
-            f"[green]Fetching historical data for {symbols} from {start} to {end} with timeframe {timeframe}[/green]"
+        logger.info(
+            "Fetching historical data for {symbols} from {start} to {end} with timeframe {timeframe}",
+            symbols=symbols,
+            start=start,
+            end=end,
+            timeframe=timeframe,
         )
 
         # Convert string inputs to proper types
@@ -175,6 +176,11 @@ class AlpacaDataLoader(
             inplace=True,
         )
         bars_df["Date"] = bars_df["Timestamp"].dt.date
+        logger.success(
+            "Fetched {n} OHLCV rows for {num_symbols} symbol(s)",
+            n=len(bars_df),
+            num_symbols=len(set(bars_df["Symbol"])) if "Symbol" in bars_df.columns else 1,
+        )
         return bars_df
 
     def get_latest_quote(self, symbol: str, **kwargs) -> Dict:
@@ -208,12 +214,13 @@ class AlpacaDataLoader(
 
     async def _trade_handler(self, trade_data: Trade):
         """Processes incoming trade data."""
-        console.print("--- New Trade Received ---")
-        console.print(f"Symbol: {trade_data.symbol}")
-        console.print(f"Price: {trade_data.price}")
-        console.print(f"Volume: {trade_data.size}")
-        console.print(f"Timestamp: {trade_data.timestamp}")
-        console.print("--------------------------\n")
+        logger.debug(
+            "Trade: symbol={symbol} price={price} size={size} ts={ts}",
+            symbol=trade_data.symbol,
+            price=trade_data.price,
+            size=trade_data.size,
+            ts=trade_data.timestamp,
+        )
 
     async def subscribe_to_updates(self, symbol: str, data_type: str = "trades") -> None:
         """
@@ -228,38 +235,40 @@ class AlpacaDataLoader(
         elif data_type == "quotes":
             # Define or use a quote handler
             async def quote_handler(data):
-                console.print(f"[green]Received quote: {data}[/green]")
+                logger.debug("Quote: {data}", data=data)
 
             self.stock_stream_client.subscribe_quotes(quote_handler, symbol)
         elif data_type == "bars":
             # Define or use a bar handler
             async def bar_handler(data):
-                console.print(f"[blue]Received bar: {data}[/blue]")
+                logger.debug("Bar: {data}", data=data)
 
             self.stock_stream_client.subscribe_bars(bar_handler, symbol)
         else:
-            console.print(f"[red]Error: Unknown data type '{data_type}'[/red]")
+            logger.error("Unknown data type '{data_type}' for subscription", data_type=data_type)
             return
 
         self._subscribed_symbols.add(symbol)
-        console.print(f"Subscribed to {data_type} for {symbol}")
+        logger.success("Subscribed to {data_type} for {symbol}", data_type=data_type, symbol=symbol)
 
     async def start_streaming(self):
         """Initializes, subscribes, and runs the data stream."""
-        console.print("Initializing stream...")
+        logger.info("Initializing stream...")
         try:
             if not self._subscribed_symbols:
-                console.print("[yellow]No symbols subscribed. Call subscribe_to_updates() first.[/yellow]")
+                logger.warning("No symbols subscribed. Call subscribe_to_updates() first.")
                 return
             await self.stock_stream_client._run_forever()
         except KeyboardInterrupt:
-            console.print("Stream stopped by user.")
+            logger.info("Stream stopped by user.")
         except Exception as e:
-            console.print(f"An error occurred: {e}")
+            logger.exception("An error occurred while streaming: {e}", e=e)
 
     async def stop_streaming(self):
         """Stop the WebSocket connection and clean up resources."""
+        logger.info("Stopping WebSocket connection...")
         await self.stock_stream_client.stop_ws()
+        logger.success("WebSocket connection stopped")
 
     def get_news_data(
         self,
@@ -323,51 +332,49 @@ class AlpacaDataLoader(
         page_token = None
         page_count = 0
 
-        # Create progress bar for news fetching
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            BarColumn(),
-            TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
-            TimeRemainingColumn(),
-            console=console,
-        ) as progress:
-            # We don't know the total number of pages, so we'll use an indeterminate progress
-            task = progress.add_task(f"[cyan]Fetching news for {symbols}...", total=None)
+        logger.info(
+            "Fetching news for {symbols} from {start} to {end} (limit={limit}, include_content={include})",
+            symbols=symbols,
+            start=start,
+            end=end,
+            limit=limit,
+            include=include_content,
+        )
 
-            while True:
-                # Add page token if we have one
-                if page_token:
-                    params["page_token"] = page_token
+        while True:
+            # Add page token if we have one
+            if page_token:
+                params["page_token"] = page_token
 
-                try:
-                    response = requests.get(base_url, headers=headers, params=params)
-                    response.raise_for_status()  # Raise exception for HTTP errors
+            try:
+                response = requests.get(base_url, headers=headers, params=params)
+                response.raise_for_status()  # Raise exception for HTTP errors
 
-                    data = response.json()
-                    news_items = data.get("news", [])
+                data = response.json()
+                news_items = data.get("news", [])
 
-                    if not news_items:
-                        break
-
-                    all_news.extend(news_items)
-                    page_count += 1
-
-                    # Update progress description with current stats
-                    progress.update(
-                        task, description=f"[cyan]Fetched page {page_count} ({len(all_news)} news items total)..."
-                    )
-
-                    # Check if there's a next page
-                    page_token = data.get("next_page_token")
-                    if not page_token:
-                        break
-
-                except requests.exceptions.RequestException as e:
-                    console.print(f"[red]Error fetching news: {e}[/red]")
+                if not news_items:
                     break
 
-        console.print(f"[green]✓ Total news items fetched: {len(all_news)}[/green]")
+                all_news.extend(news_items)
+                page_count += 1
+
+                logger.debug(
+                    "Fetched page {page} (total_items={total})",
+                    page=page_count,
+                    total=len(all_news),
+                )
+
+                # Check if there's a next page
+                page_token = data.get("next_page_token")
+                if not page_token:
+                    break
+
+            except requests.exceptions.RequestException as e:
+                logger.error("Error fetching news: {e}", e=e)
+                break
+
+        logger.success("Total news items fetched: {n}", n=len(all_news))
 
         # Convert to DataFrame
         if all_news:
@@ -384,28 +391,26 @@ if __name__ == "__main__":
     async def main():
         alpaca_client = AlpacaDataLoader()
         # Test historical data
-        console.print("\n[bold blue]Testing historical data:[/bold blue]")
+        logger.info("Testing historical data...")
         df = alpaca_client.get_historical_ohlcv_data("AAPL", start="2023-01-01", end="2023-01-10")
-        console.print(df.head())
+        logger.debug("Historical data head:\n{df}", df=df.head())
 
         # Test news data
-        console.print("\n[bold blue]Testing news data:[/bold blue]")
+        logger.info("Testing news data...")
         news_df = alpaca_client.get_news_data("AAPL", start="2023-01-01", end="2023-01-10", limit=10)
         if not news_df.empty:
-            console.print(news_df.iloc[:5][["headline", "created_at", "summary"]])
+            logger.debug("News sample:\n{df}", df=news_df.iloc[:5][["headline", "created_at", "summary"]])
 
         # Set up the subscription
-        console.print("\n[bold blue]Testing websocket:[/bold blue]")
-
-        # Set up the subscription
+        logger.info("Testing websocket...")
         await alpaca_client.subscribe_to_updates("AAPL")
 
         # Start streaming data
         try:
-            console.print("[cyan]Starting WebSocket connection...[/cyan]")
+            logger.info("Starting WebSocket connection...")
             await alpaca_client.start_streaming()
         except KeyboardInterrupt:
-            console.print("[yellow]Closing connection...[/yellow]")
+            logger.info("Closing connection...")
         finally:
             await alpaca_client.stop_streaming()
 
