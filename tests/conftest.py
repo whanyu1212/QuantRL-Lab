@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from quantrl_lab.custom_envs.stock import SingleStockEnvConfig, SingleStockTradingEnv
-from quantrl_lab.custom_envs.stock.strategies.actions.types.standard_market_action_strategy import (
+from quantrl_lab.custom_envs.stock.strategies.actions.standard_market_action_strategy import (
     StandardMarketActionStrategy,
 )
 from quantrl_lab.custom_envs.stock.strategies.observations import (

@@ -1,41 +1,16 @@
 import json
-import logging
-from typing import List, Optional
+from typing import Optional
 
 from dotenv import load_dotenv
 from litellm import completion
-from pydantic import BaseModel, Field
+from loguru import logger
 
-logger = logging.getLogger(__name__)
-
-
-class HedgeRecommendation(BaseModel):
-    """Individual hedge recommendation model."""
-
-    symbol: str = Field(..., description="Hedge instrument ticker symbol")
-    name: str = Field(..., description="Company or fund name")
-    hedge_type: str = Field(
-        ...,
-        description=(
-            "Type of hedge: negative_correlation, inverse_sector, " "volatility_hedge, commodity_hedge, currency_hedge"
-        ),
-    )
-    correlation: Optional[str] = Field(None, description="Historical correlation coefficient if available")
-    rationale: str = Field(..., description="Why this is an effective hedge")
-    hedge_ratio: str = Field(..., description="Suggested position sizing relative to target")
-    effectiveness_conditions: List[str] = Field(..., description="Market conditions when this hedge works best")
-    limitations: List[str] = Field(..., description="When this hedge may fail")
-    liquidity: str = Field(..., description="Execution liquidity: high, medium, low")
-
-
-class HedgeScreeningResult(BaseModel):
-    """Complete hedge screening result model."""
-
-    target_stock: str = Field(..., description="Stock being hedged")
-    hedge_criteria: str = Field(..., description="Criteria used for screening")
-    hedge_recommendations: List[HedgeRecommendation] = Field(..., description="List of hedge recommendations")
-    overall_strategy: str = Field(..., description="Summary of the hedging approach")
-    disclaimer: str = Field(..., description="Risk management disclaimer")
+from quantrl_lab.screener.data_models import HedgeScreeningResult
+from quantrl_lab.screener.prompt import (
+    build_hedge_screening_prompts,
+    build_structured_hedge_screening_prompts,
+)
+from quantrl_lab.screener.response_schemas import HEDGE_SCREENING_RESPONSE_SCHEMA
 
 
 class LLMStockScreener:
@@ -129,38 +104,7 @@ class LLMStockScreener:
         Returns:
             str: Hedge stock recommendations with real-time data
         """
-        system_prompt = """You are a professional risk management analyst with access to real-time market data.
-
-        Use the search tool to find current market information, correlations, and hedge effectiveness data.
-
-        When recommending hedge instruments:
-        1. Search for current correlation data between target and potential hedges
-        2. Look up recent performance of hedge instruments
-        3. Check current market conditions affecting hedge effectiveness
-        4. Verify liquidity and trading volumes
-        5. Consider sector rotation opportunities (cyclical vs defensive)
-        6. Look for volatility hedges (VIX products, low-beta stocks)
-        7. Check inverse/short ETFs in the same sector
-
-        Always provide:
-        1. Stock symbols and names of recommended hedges
-        2. Type of hedge relationship (negative correlation, inverse sector, etc.)
-        3. Current correlation data when available
-        4. Specific hedge ratios or position sizing suggestions
-        5. Risks and limitations of each hedge
-        6. Market conditions where the hedge works best/worst
-
-        Be specific about hedge effectiveness and provide actionable recommendations with current market context."""
-
-        criteria_text = f" with additional criteria: {hedge_criteria}" if hedge_criteria else ""
-        user_prompt = f"""Find effective hedge instruments for {target_stock}{criteria_text}.
-
-        Please search for:
-        1. Current correlation data for {target_stock} with potential hedge instruments
-        2. Recent market performance of defensive/inverse instruments
-        3. Current volatility and market conditions
-
-        Then provide specific hedge recommendations with current market context."""
+        system_prompt, user_prompt = build_hedge_screening_prompts(target_stock, hedge_criteria)
         # Add tools to kwargs if not already present
         if "tools" not in kwargs:
             kwargs["tools"] = [{"googleSearch": {}}]
@@ -184,105 +128,12 @@ class LLMStockScreener:
         Returns:
             HedgeScreeningResult: Structured hedge recommendations with real-time data
         """
-        # Define the response schema
-        response_schema = {
-            "type": "object",
-            "properties": {
-                "target_stock": {"type": "string", "description": "Stock being hedged"},
-                "hedge_criteria": {"type": "string", "description": "Criteria used for screening"},
-                "hedge_recommendations": {
-                    "type": "array",
-                    "items": {
-                        "type": "object",
-                        "properties": {
-                            "symbol": {"type": "string", "description": "Hedge instrument ticker symbol"},
-                            "name": {"type": "string", "description": "Company or fund name"},
-                            "hedge_type": {
-                                "type": "string",
-                                "enum": [
-                                    "negative_correlation",
-                                    "inverse_sector",
-                                    "volatility_hedge",
-                                    "commodity_hedge",
-                                    "currency_hedge",
-                                ],
-                                "description": "Type of hedge",
-                            },
-                            "correlation": {
-                                "type": "string",
-                                "description": "Historical correlation coefficient if available",
-                            },
-                            "rationale": {"type": "string", "description": "Why this is an effective hedge"},
-                            "hedge_ratio": {
-                                "type": "string",
-                                "description": "Suggested position sizing relative to target",
-                            },
-                            "effectiveness_conditions": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "Market conditions when this hedge works best",
-                            },
-                            "limitations": {
-                                "type": "array",
-                                "items": {"type": "string"},
-                                "description": "When this hedge may fail",
-                            },
-                            "liquidity": {
-                                "type": "string",
-                                "enum": ["high", "medium", "low"],
-                                "description": "Execution liquidity",
-                            },
-                        },
-                        "required": [
-                            "symbol",
-                            "name",
-                            "hedge_type",
-                            "rationale",
-                            "hedge_ratio",
-                            "effectiveness_conditions",
-                            "limitations",
-                            "liquidity",
-                        ],
-                    },
-                },
-                "overall_strategy": {"type": "string", "description": "Summary of the hedging approach"},
-                "disclaimer": {"type": "string", "description": "Risk management disclaimer"},
-            },
-            "required": ["target_stock", "hedge_criteria", "hedge_recommendations", "overall_strategy", "disclaimer"],
-        }
-
-        system_prompt = """You are a professional risk management analyst.
-
-For hedge_type field, use one of these values: negative_correlation, inverse_sector,
-volatility_hedge, commodity_hedge, currency_hedge
-For liquidity field, use one of: high, medium, low
-
-When recommending hedge instruments, consider:
-1. Historical correlation data between target and potential hedges
-2. Recent performance patterns of hedge instruments
-3. Current market conditions affecting hedge effectiveness
-4. Liquidity and trading volumes
-5. Sector rotation opportunities (cyclical vs defensive)
-6. Volatility hedges (VIX products, low-beta stocks)
-7. Inverse/short ETFs in the same sector
-
-Provide hedge recommendations based on your training data and market knowledge."""
-
-        criteria_text = f" with additional criteria: {hedge_criteria}" if hedge_criteria else ""
-        user_prompt = f"""Find hedge instruments for {target_stock}{criteria_text}.
-
-Analyze and provide hedge recommendations considering:
-1. Historical correlation patterns for {target_stock}
-2. Performance characteristics of potential hedge instruments
-3. Current market environment and conditions
-4. Liquidity and execution considerations
-
-Provide structured hedge recommendations."""
+        system_prompt, user_prompt = build_structured_hedge_screening_prompts(target_stock, hedge_criteria)
 
         # Use enhanced JSON mode with schema validation
         kwargs["response_format"] = {
             "type": "json_object",
-            "response_schema": response_schema,
+            "response_schema": HEDGE_SCREENING_RESPONSE_SCHEMA,
             "enforce_validation": True,
         }
 
@@ -315,43 +166,43 @@ if __name__ == "__main__":
     load_dotenv()
     screener = LLMStockScreener(model_name="gemini/gemini-2.5-pro")
 
-    # print("=== Hedge Screening (with real-time search but no structured output) ===")
+    # logger.info("=== Hedge Screening (with real-time search but no structured output) ===")
     # try:
     #     hedge_result = screener.screen_hedge_stocks("MU", "protect against tech sector downturn")
-    #     print(hedge_result)
+    #     logger.info(hedge_result)
     # except Exception as e:
-    #     print(f"Search-enabled hedge screening failed: {e}")
+    #     logger.error(f"Search-enabled hedge screening failed: {e}")
 
-    print("\n=== Structured Hedge Screening ===")
+    logger.info("\n=== Structured Hedge Screening ===")
     try:
         structured_hedge = screener.screen_hedge_stocks_structured("MU", "protect against tech sector downturn")
-        print(f"Target stock: {structured_hedge.target_stock}")
-        print(f"Strategy: {structured_hedge.overall_strategy}")
-        print(f"Number of hedge recommendations: {len(structured_hedge.hedge_recommendations)}")
+        logger.info(f"Target stock: {structured_hedge.target_stock}")
+        logger.info(f"Strategy: {structured_hedge.overall_strategy}")
+        logger.info(f"Number of hedge recommendations: {len(structured_hedge.hedge_recommendations)}")
 
-        print(structured_hedge)
+        logger.info(structured_hedge)
         if structured_hedge.hedge_recommendations:
             first_hedge = structured_hedge.hedge_recommendations[0]
-            print(f"Top hedge symbol: {first_hedge.symbol}")
-            print(f"Top hedge name: {first_hedge.name}")
-            print(f"Correlation: {first_hedge.correlation}")
-            print(f"Hedge ratio: {first_hedge.hedge_ratio}")
-            print(f"Effectiveness conditions: {', '.join(first_hedge.effectiveness_conditions)}")
-            print(f"Limitations: {', '.join(first_hedge.limitations)}")
-            print(f"Liquidity: {first_hedge.liquidity}")
-            print(f"Hedge type: {first_hedge.hedge_type}")
-            print(f"Rationale: {first_hedge.rationale}")
+            logger.info(f"Top hedge symbol: {first_hedge.symbol}")
+            logger.info(f"Top hedge name: {first_hedge.name}")
+            logger.info(f"Correlation: {first_hedge.correlation}")
+            logger.info(f"Hedge ratio: {first_hedge.hedge_ratio}")
+            logger.info(f"Effectiveness conditions: {', '.join(first_hedge.effectiveness_conditions)}")
+            logger.info(f"Limitations: {', '.join(first_hedge.limitations)}")
+            logger.info(f"Liquidity: {first_hedge.liquidity}")
+            logger.info(f"Hedge type: {first_hedge.hedge_type}")
+            logger.info(f"Rationale: {first_hedge.rationale}")
     except Exception as e:
-        print(f"Structured hedge screening failed: {e}")
+        logger.error(f"Structured hedge screening failed: {e}")
 
     # Example of disabling search tools if needed
-    # print("\n=== Hedge Screening without search tools ===")
+    # logger.info("\n=== Hedge Screening without search tools ===")
     # try:
     #     no_search_result = screener.screen_hedge_stocks(
     #         "MU",
     #         "protect against tech sector downturn",
     #         tools=[]  # Disable tools
     #     )
-    #     print(no_search_result)
+    #     logger.info(no_search_result)
     # except Exception as e:
-    #     print(f"Non-search hedge screening failed: {e}")
+    #     logger.error(f"Non-search hedge screening failed: {e}")
