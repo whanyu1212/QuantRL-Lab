@@ -123,7 +123,7 @@ jobs:
           import numpy as np
           from stable_baselines3.common.env_checker import check_env
           from quantrl_lab.custom_envs.stock import SingleStockTradingEnv, SingleStockEnvConfig
-          from quantrl_lab.custom_envs.stock.strategies.actions.types.standard_market_action_strategy import StandardMarketActionStrategy
+          from quantrl_lab.custom_envs.stock.strategies.actions.standard_market_action_strategy import StandardMarketActionStrategy
           from quantrl_lab.custom_envs.stock.strategies.rewards import PortfolioValueChangeReward
           from quantrl_lab.custom_envs.stock.strategies.observations import PortfolioWithTrendObservation
 
