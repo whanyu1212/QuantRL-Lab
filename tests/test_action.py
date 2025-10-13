@@ -2,7 +2,7 @@ import gymnasium as gym
 import numpy as np
 
 from quantrl_lab.custom_envs.core.trading_env import TradingEnvProtocol
-from quantrl_lab.custom_envs.stock.strategies.actions.types.standard_market_action_strategy import (
+from quantrl_lab.custom_envs.stock.strategies.actions.standard_market_action_strategy import (
     StandardMarketActionStrategy,
 )
 
