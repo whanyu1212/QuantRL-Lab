@@ -8,6 +8,7 @@ A Python testbed for Reinforcement Learning in finance, designed to enable resea
   - [Example usage:](#example-usage)
   - [Roadmap 🔄](#roadmap-)
   - [Setup Guide](#setup-guide)
+  - [Development \& Publishing](#development--publishing)
   - [Literature Review](#literature-review)
 
 ### Motivation
@@ -221,6 +222,43 @@ git commit -m "your message" --no-verify
 
 For more details, please refer to `.pre-commit-config.yaml` file.
 
+---
+
+### Development & Publishing
+
+**CI/CD Pipeline**
+
+This project uses GitHub Actions for continuous integration and deployment:
+- **CI (Continuous Integration)**: Automatically runs tests, linting, and compatibility checks on every push/PR
+- **CD (Continuous Deployment)**: Automatically publishes to PyPI when a new release is created
+
+**Publishing to PyPI**
+
+The package is published to PyPI for easy installation. For maintainers looking to publish updates:
+
+1. **Quick release** (recommended):
+```bash
+# For bug fixes (0.1.0 → 0.1.1)
+./release.sh patch
+
+# For new features (0.1.0 → 0.2.0)
+./release.sh minor
+
+# For breaking changes (0.1.0 → 1.0.0)
+./release.sh major
+```
+
+2. **Create GitHub Release**: After the script completes, create a release on GitHub to trigger automatic publishing to PyPI
+
+For detailed setup instructions and troubleshooting, see:
+- 📖 [Complete Publishing Guide](docs/PYPI_PUBLISHING.md)
+- ✅ [Publishing Checklist](docs/PUBLISHING_CHECKLIST.md)
+- 📝 [CD Setup Summary](docs/CD_SETUP_SUMMARY.md)
+
+**Installation from PyPI** (after first release):
+```bash
+pip install quantrl-lab
+```
 
 ---
 

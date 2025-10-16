@@ -8,6 +8,22 @@ authors = [
 license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.10,<4.0"
+homepage = "https://github.com/whanyu1212/QuantRL-Lab"
+repository = "https://github.com/whanyu1212/QuantRL-Lab"
+keywords = ["reinforcement-learning", "trading", "finance", "quantitative", "backtesting", "gymnasium", "stable-baselines3"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+    "Topic :: Office/Business :: Financial :: Investment",
+    "Operating System :: OS Independent",
+]
 dependencies = [
     "pandas (>=2.2.3,<3.0.0)",
     "numpy (>=2.2.6,<3.0.0)",
