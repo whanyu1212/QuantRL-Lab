@@ -1,14 +1,32 @@
 <!-- omit in toc -->
 # QuantRL-Lab
+
+[![PyPI version](https://badge.fury.io/py/quantrl-lab.svg)](https://badge.fury.io/py/quantrl-lab)
+[![Python](https://img.shields.io/pypi/pyversions/quantrl-lab.svg)](https://pypi.org/project/quantrl-lab/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 A Python testbed for Reinforcement Learning in finance, designed to enable researchers and developers to experiment with and evaluate RL algorithms in financial contexts. The project emphasizes modularity and configurability, allowing users to tailor the environment, data sources, and algorithmic settings to their specific needs
 
+## Installation
+
+```bash
+pip install quantrl-lab
+```
+
 ## Table of Contents
+- [Installation](#installation)
 - [Table of Contents](#table-of-contents)
   - [Motivation](#motivation)
   - [Example usage:](#example-usage)
   - [Roadmap 🔄](#roadmap-)
-  - [Setup Guide](#setup-guide)
-  - [Development \& Publishing](#development--publishing)
+  - [Development Setup](#development-setup)
+    - [For Contributors and Developers](#for-contributors-and-developers)
+- [Contributing](#contributing)
+  - [How to Contribute](#how-to-contribute)
+  - [Code of Conduct](#code-of-conduct)
+- [Contributors](#contributors)
+  - [Main Contributors](#main-contributors)
+  - [How to Become a Contributor](#how-to-become-a-contributor)
   - [Literature Review](#literature-review)
 
 ### Motivation
@@ -151,11 +169,16 @@ For more detailed use cases, please refer to the notebooks:
 
 ---
 
-### Setup Guide
+### Development Setup
+
+> **Note:** This section is for developers who want to contribute to QuantRL-Lab or run it from source. If you just want to use the library, simply install it with `pip install quantrl-lab`.
+
+#### For Contributors and Developers
 
 1. Clone the Repository
 ```bash
 git clone https://github.com/whanyu1212/QuantRL-Lab.git
+cd QuantRL-Lab
 ```
 
 2. Install Poetry for dependency management
@@ -163,102 +186,102 @@ git clone https://github.com/whanyu1212/QuantRL-Lab.git
 curl -sSL https://install.python-poetry.org | python3 -
 ```
 
-3. Sync dependencies (It also installs the current project in dev mode)
+3. Install dependencies (installs the project in development mode)
 ```bash
 poetry install
 ```
 
-4. Activate virtual environment (Note that the `shell` command is deprecated in the latest poetry version)
+4. Activate virtual environment
 ```bash
-poetry env activate
-# a venv path will be printed in the terminal, just copy and run it
-# e.g.,
-source /home/codespace/.cache/pypoetry/virtualenvs/multi-agent-quant-cj6_z41n-py3.12/bin/activate
+# The shell command is deprecated, use this instead:
+poetry env info  # This shows the venv path
+# Then activate it manually, e.g.:
+source /path/to/virtualenv/bin/activate  # macOS/Linux
 ```
 
-5. Install jupyter kernel
+5. (Optional) Install jupyter kernel for notebook examples
 ```bash
-# You can change the name and display name according to your preference
-python -m ipykernel install --user --name multi-agent-quant --display-name "Multi Agent Quant"
+python -m ipykernel install --user --name quantrl-lab --display-name "QuantRL-Lab"
 ```
 
-6. Set up environment variables
+6. Set up environment variables (for data sources like Alpaca, Alpha Vantage, etc.)
 ```bash
 # Copy the example environment file
 cp .env.example .env
 
-# Open .env file and replace the placeholder values with your actual credentials
-# You can use any text editor, here using VS Code
-code .env
+# Edit .env and add your API keys
+# Never commit the .env file to version control
 ```
 
-Make sure to replace all placeholder values in the `.env` file with your actual API keys and credentials. Never commit the `.env` file to version control.
-
-<br>
-
-7. Set up pre-commit hooks
+7. Set up pre-commit hooks (for code quality)
 ```bash
-# Install pre-commit
-poetry add pre-commit
-
 # Install the git hooks
 pre-commit install
 
-# Optional: run pre-commit on all files
+# (Optional) Run on all files to test
 pre-commit run --all-files
 ```
 
-The pre-commit hooks will check for:
+The pre-commit hooks will automatically check:
 - Code formatting (black)
 - Import sorting (isort)
 - Code linting (flake8)
 - Docstring formatting (docformatter)
-- Basic file checks (trailing whitespace, YAML validation, etc.)
+- File checks (trailing whitespace, YAML validation, etc.)
 
 To skip pre-commit hooks temporarily:
 ```bash
 git commit -m "your message" --no-verify
 ```
 
-For more details, please refer to `.pre-commit-config.yaml` file.
+---
+
+## Contributing
+
+We welcome contributions from the community! Whether you're fixing bugs, adding features, improving documentation, or suggesting ideas, your help is appreciated.
+
+### How to Contribute
+
+1. **Fork the repository** and create a branch for your feature or fix
+2. **Make your changes** following our coding standards
+3. **Write tests** for new functionality
+4. **Submit a pull request** with a clear description
+
+Please read our [Contributing Guide](CONTRIBUTING.md) for detailed instructions on:
+- Setting up your development environment
+- Coding standards and style guidelines
+- Testing requirements
+- Pull request process
+
+### Code of Conduct
+
+Be respectful, inclusive, and constructive. We're all here to learn and build something great together!
 
 ---
 
-### Development & Publishing
+## Contributors
 
-**CI/CD Pipeline**
+This project exists thanks to all the people who contribute.
 
-This project uses GitHub Actions for continuous integration and deployment:
-- **CI (Continuous Integration)**: Automatically runs tests, linting, and compatibility checks on every push/PR
-- **CD (Continuous Deployment)**: Automatically publishes to PyPI when a new release is created
+### Main Contributors
 
-**Publishing to PyPI**
+<table>
+  <tr>
+    <td align="center">
+      <a href="https://github.com/whanyu1212">
+        <img src="https://github.com/whanyu1212.png" width="100px;" alt="whanyu1212"/>
+        <br />
+        <sub><b>whanyu1212</b></sub>
+      </a>
+      <br />
+      <sub>Creator & Maintainer</sub>
+    </td>
+  </tr>
+</table>
 
-The package is published to PyPI for easy installation. For maintainers looking to publish updates:
+### How to Become a Contributor
 
-1. **Quick release** (recommended):
-```bash
-# For bug fixes (0.1.0 → 0.1.1)
-./release.sh patch
-
-# For new features (0.1.0 → 0.2.0)
-./release.sh minor
-
-# For breaking changes (0.1.0 → 1.0.0)
-./release.sh major
-```
-
-2. **Create GitHub Release**: After the script completes, create a release on GitHub to trigger automatic publishing to PyPI
-
-For detailed setup instructions and troubleshooting, see:
-- 📖 [Complete Publishing Guide](docs/PYPI_PUBLISHING.md)
-- ✅ [Publishing Checklist](docs/PUBLISHING_CHECKLIST.md)
-- 📝 [CD Setup Summary](docs/CD_SETUP_SUMMARY.md)
-
-**Installation from PyPI** (after first release):
-```bash
-pip install quantrl-lab
-```
+We welcome contributions! See our [Contributing Guide](CONTRIBUTING.md) to get started.
 
 ---
 
