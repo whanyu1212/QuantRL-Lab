@@ -1,0 +1,132 @@
+name: Build and Publish to PyPI
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch: # Allows manual triggering for testing
+    inputs:
+      publish_to_test_pypi:
+        description: "Publish to Test PyPI instead of PyPI"
+        required: false
+        default: "true"
+        type: choice
+        options:
+          - "true"
+          - "false"
+
+jobs:
+  test:
+    name: Run Tests Before Publishing
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction
+          poetry add pytest-cov
+
+      - name: Run tests
+        run: |
+          poetry run pytest tests/ --cov=src/quantrl_lab --cov-report=xml
+
+  build-and-publish:
+    name: Build and Publish Package
+    runs-on: ubuntu-latest
+    needs: test
+    permissions:
+      id-token: write # IMPORTANT: this permission is mandatory for trusted publishing
+      contents: read
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.10
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.10"
+
+      - name: Install Poetry
+        run: |
+          curl -sSL https://install.python-poetry.org | python3 -
+          echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+      - name: Configure Poetry
+        run: |
+          poetry config virtualenvs.in-project true
+
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: .venv
+          key: ${{ runner.os }}-poetry-${{ hashFiles('**/poetry.lock') }}
+
+      - name: Install dependencies
+        run: |
+          poetry install --no-interaction
+
+      - name: Build package
+        run: |
+          poetry build
+
+      - name: Check package contents
+        run: |
+          tar -tzf dist/*.tar.gz
+          echo "---"
+          unzip -l dist/*.whl
+
+      # Option 1: Publish using PyPI API token (traditional method)
+      - name: Publish to Test PyPI (Manual trigger only)
+        if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_test_pypi == 'true'
+        env:
+          POETRY_PYPI_TOKEN_TESTPYPI: ${{ secrets.TEST_PYPI_API_TOKEN }}
+        run: |
+          poetry config repositories.testpypi https://test.pypi.org/legacy/
+          poetry publish -r testpypi --username __token__ --password $POETRY_PYPI_TOKEN_TESTPYPI
+
+      - name: Publish to PyPI (On Release)
+        if: github.event_name == 'release'
+        env:
+          POETRY_PYPI_TOKEN_PYPI: ${{ secrets.PYPI_API_TOKEN }}
+        run: |
+          poetry publish --username __token__ --password $POETRY_PYPI_TOKEN_PYPI
+
+      # Option 2: Publish using Trusted Publishing (more secure, no API token needed)
+      # Uncomment the sections below if you prefer to use Trusted Publishing
+      # You'll need to configure this on PyPI first
+      # See: https://docs.pypi.org/trusted-publishers/
+
+      # - name: Publish to Test PyPI with Trusted Publishing
+      #   if: github.event_name == 'workflow_dispatch' && github.event.inputs.publish_to_test_pypi == 'true'
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+      #   with:
+      #     repository-url: https://test.pypi.org/legacy/
+
+      # - name: Publish to PyPI with Trusted Publishing
+      #   if: github.event_name == 'release'
+      #   uses: pypa/gh-action-pypi-publish@release/v1
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v3
+        with:
+          name: dist-packages
+          path: dist/
