@@ -621,6 +621,479 @@ classDiagram
 
 </details>
 
+<details>
+<summary><b>🔍 Protocol Pattern in Action</b> - Structural typing for flexible, decoupled design</summary>
+
+```mermaid
+graph TB
+    subgraph Concept["💡 Protocol Concept"]
+        direction TB
+        PROTO_DEF["Protocol defines interface<br/>━━━━━━━━━━━━━━━━<br/>• No inheritance required<br/>• Duck typing with type checking<br/>• Structural subtyping"]
+
+        PROTO_ADV["Advantages<br/>━━━━━━━━━━<br/>✓ Loose coupling<br/>✓ Multiple capabilities<br/>✓ Runtime checkable<br/>✓ No diamond problem"]
+    end
+
+    subgraph DataProtocols["📡 Data Source Protocols"]
+        direction TB
+
+        BASE[DataSource<br/>━━━━━━━━━━<br/>Abstract Base Class<br/>Common interface]
+
+        P1[HistoricalDataCapable<br/>━━━━━━━━━━━━━━━━<br/>get_historical_ohlcv_data]
+        P2[LiveDataCapable<br/>━━━━━━━━━━━━━━<br/>get_latest_quote<br/>get_latest_trade]
+        P3[NewsDataCapable<br/>━━━━━━━━━━━━━<br/>get_news_data]
+        P4[StreamingCapable<br/>━━━━━━━━━━━━━<br/>subscribe, start/stop_streaming]
+        P5[ConnectionManaged<br/>━━━━━━━━━━━━━━<br/>connect, disconnect, is_connected]
+        P6[FundamentalDataCapable<br/>━━━━━━━━━━━━━━━━━<br/>get_fundamental_data]
+        P7[MacroDataCapable<br/>━━━━━━━━━━━━━<br/>get_macro_data]
+    end
+
+    subgraph EnvProtocol["🏪 Environment Protocol"]
+        direction TB
+
+        EP[TradingEnvProtocol<br/>━━━━━━━━━━━━━━━<br/>Defines required attributes<br/>& methods for trading envs]
+
+        EP_ATTRS["Required Attributes:<br/>• data: np.ndarray<br/>• current_step: int<br/>• window_size: int<br/>• action_space<br/>• observation_space"]
+
+        EP_METHODS["Required Methods:<br/>• step<br/>• reset<br/>• render<br/>• close"]
+
+        EP --> EP_ATTRS
+        EP --> EP_METHODS
+    end
+
+    subgraph Implementations["🔧 Concrete Implementations"]
+        direction TB
+
+        YF[YfinanceDataloader<br/>━━━━━━━━━━━━━━<br/>Inherits: DataSource<br/>Implements: HistoricalDataCapable<br/>           FundamentalDataCapable]
+
+        ALP[AlpacaDataLoader<br/>━━━━━━━━━━━━━<br/>Inherits: DataSource<br/>Implements: HistoricalDataCapable<br/>           LiveDataCapable<br/>           StreamingCapable<br/>           NewsDataCapable<br/>           ConnectionManaged]
+
+        TE[TradingEnv<br/>━━━━━━━━━<br/>Implements: TradingEnvProtocol<br/>Has all required attributes<br/>& methods]
+    end
+
+    subgraph Usage["💼 Usage Pattern"]
+        direction TB
+
+        CHECK["Runtime Check<br/>━━━━━━━━━━━━<br/>isinstance(obj, Protocol)<br/>Checks structural compatibility"]
+
+        FEATURE["Feature Detection<br/>━━━━━━━━━━━━━━<br/>if isinstance(source, LiveDataCapable):<br/>    # Use live data features<br/>else:<br/>    # Fall back to historical"]
+
+        COMPOSE["Compose Capabilities<br/>━━━━━━━━━━━━━━━━<br/>Class can implement<br/>multiple protocols<br/>to gain multiple capabilities"]
+    end
+
+    subgraph Benefits["✨ Benefits in QuantRL-Lab"]
+        direction TB
+
+        B1["Flexibility<br/>━━━━━━━━━<br/>Data sources can<br/>implement any combination<br/>of capabilities"]
+
+        B2["Type Safety<br/>━━━━━━━━━<br/>Static type checkers<br/>validate protocol<br/>compliance"]
+
+        B3["Decoupling<br/>━━━━━━━━━<br/>Code depends on<br/>protocols, not<br/>concrete classes"]
+
+        B4["Discoverability<br/>━━━━━━━━━━━<br/>supported_features()<br/>checks which protocols<br/>are implemented"]
+    end
+
+    PROTO_DEF -.-> P1
+    PROTO_DEF -.-> P2
+    PROTO_DEF -.-> EP
+
+    BASE --> YF
+    BASE --> ALP
+
+    P1 -.->|structural typing| YF
+    P6 -.->|structural typing| YF
+
+    P1 -.->|structural typing| ALP
+    P2 -.->|structural typing| ALP
+    P3 -.->|structural typing| ALP
+    P4 -.->|structural typing| ALP
+    P5 -.->|structural typing| ALP
+
+    EP -.->|structural typing| TE
+
+    YF --> CHECK
+    ALP --> CHECK
+    CHECK --> FEATURE
+    FEATURE --> COMPOSE
+
+    COMPOSE --> B1
+    COMPOSE --> B2
+    COMPOSE --> B3
+    COMPOSE --> B4
+
+    style PROTO_DEF fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style PROTO_ADV fill:#b3e5fc,stroke:#0277bd
+
+    style BASE fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style P1 fill:#ffe0b2,stroke:#f57c00
+    style P2 fill:#ffe0b2,stroke:#f57c00
+    style P3 fill:#ffe0b2,stroke:#f57c00
+    style P4 fill:#ffe0b2,stroke:#f57c00
+    style P5 fill:#ffe0b2,stroke:#f57c00
+    style P6 fill:#ffe0b2,stroke:#f57c00
+    style P7 fill:#ffe0b2,stroke:#f57c00
+
+    style EP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style EP_ATTRS fill:#e1bee7,stroke:#7b1fa2
+    style EP_METHODS fill:#e1bee7,stroke:#7b1fa2
+
+    style YF fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style ALP fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+    style TE fill:#c8e6c9,stroke:#388e3c,stroke-width:2px
+
+    style CHECK fill:#fff9c4,stroke:#f57f17
+    style FEATURE fill:#fff9c4,stroke:#f57f17
+    style COMPOSE fill:#fff9c4,stroke:#f57f17
+
+    style B1 fill:#b2dfdb,stroke:#00695c
+    style B2 fill:#b2dfdb,stroke:#00695c
+    style B3 fill:#b2dfdb,stroke:#00695c
+    style B4 fill:#b2dfdb,stroke:#00695c
+
+    classDef protocol fill:#ffccbc,stroke:#d84315
+    class P1,P2,P3,P4,P5,P6,P7,EP protocol
+```
+
+**How Protocols Work in QuantRL-Lab:**
+
+1. **Protocol Definition**: Instead of forcing inheritance, protocols define what methods/attributes a class must have
+2. **Structural Typing**: A class automatically satisfies a protocol if it has the required methods/attributes
+3. **Multiple Capabilities**: Data sources can implement multiple protocols (e.g., Alpaca implements 5 protocols)
+4. **Runtime Checking**: Use `isinstance(obj, Protocol)` to check if an object supports certain capabilities
+5. **Feature Discovery**: The `supported_features` property checks which protocols are implemented
+6. **Type Safety**: Static type checkers (mypy, pyright) validate protocol compliance at development time
+
+**Example:**
+```python
+# Any class with these methods satisfies HistoricalDataCapable
+class CustomDataSource:
+    def get_historical_ohlcv_data(self, symbols, start, end, timeframe):
+        # Implementation
+        pass
+
+# No inheritance needed! This works:
+if isinstance(custom_source, HistoricalDataCapable):
+    data = custom_source.get_historical_ohlcv_data(...)
+```
+
+</details>
+
+<details>
+<summary><b>📋 Registry Pattern for Technical Indicators</b> - Centralized, extensible indicator management</summary>
+
+```mermaid
+graph TB
+    subgraph Pattern["🎯 Registry Pattern Concept"]
+        direction TB
+
+        REG_IDEA["Centralized Registration<br/>━━━━━━━━━━━━━━━━━<br/>• Single source of truth<br/>• Dynamic discovery<br/>• Decoupled architecture<br/>• Plugin-like extensibility"]
+
+        REG_FLOW["Registration Flow<br/>━━━━━━━━━━━━━━<br/>1. Decorator marks function<br/>2. Function added to registry<br/>3. Available for lookup<br/>4. Can be applied dynamically"]
+    end
+
+    subgraph Registry["📚 IndicatorRegistry Class"]
+        direction TB
+
+        REG_STORE["_indicators: Dict[str, Callable]<br/>━━━━━━━━━━━━━━━━━━━━━━<br/>Central storage for all indicators"]
+
+        REG_METHODS["Core Methods<br/>━━━━━━━━━━━"]
+
+        M1["@register(name)<br/>Decorator to add indicators"]
+        M2["get(name)<br/>Retrieve indicator function"]
+        M3["list_all()<br/>Show all registered indicators"]
+        M4["apply(name, df, **kwargs)<br/>Execute indicator on data"]
+
+        REG_METHODS --> M1
+        REG_METHODS --> M2
+        REG_METHODS --> M3
+        REG_METHODS --> M4
+    end
+
+    subgraph Indicators["📊 Registered Technical Indicators"]
+        direction TB
+
+        I1["@register('SMA')<br/>Simple Moving Average"]
+        I2["@register('EMA')<br/>Exponential Moving Average"]
+        I3["@register('RSI')<br/>Relative Strength Index"]
+        I4["@register('MACD')<br/>Moving Average Convergence"]
+        I5["@register('ATR')<br/>Average True Range"]
+        I6["@register('BB')<br/>Bollinger Bands"]
+        I7["@register('STOCH')<br/>Stochastic Oscillator"]
+        I8["@register('OBV')<br/>On-Balance Volume"]
+        I9["... more indicators<br/>Easily extensible"]
+    end
+
+    subgraph Usage["💼 Usage in DataProcessor"]
+        direction TB
+
+        DP[DataProcessor<br/>━━━━━━━━━━━<br/>Processes OHLCV data<br/>with technical indicators]
+
+        STEP1["1. Check Available<br/>━━━━━━━━━━━━━━<br/>IndicatorRegistry.list_all()<br/>Returns: ['SMA', 'EMA', 'RSI', ...]"]
+
+        STEP2["2. Apply Indicator<br/>━━━━━━━━━━━━━━<br/>IndicatorRegistry.apply('RSI', df, window=14)<br/>Returns: DataFrame with RSI_14 column"]
+
+        STEP3["3. Batch Processing<br/>━━━━━━━━━━━━━━━<br/>Loop through multiple indicators<br/>Apply with different parameters"]
+
+        DP --> STEP1
+        STEP1 --> STEP2
+        STEP2 --> STEP3
+    end
+
+    subgraph Extension["🔧 Adding Custom Indicators"]
+        direction TB
+
+        CUSTOM["How to Extend<br/>━━━━━━━━━━━━"]
+
+        CODE1["1. Define Function<br/>━━━━━━━━━━━━━━<br/>def my_indicator(df, **params):<br/>    # Your logic<br/>    return df"]
+
+        CODE2["2. Register with Decorator<br/>━━━━━━━━━━━━━━━━━━<br/>@IndicatorRegistry.register('MyIndicator')<br/>def my_indicator(df, **params):"]
+
+        CODE3["3. Use Immediately<br/>━━━━━━━━━━━━━━━<br/>IndicatorRegistry.apply('MyIndicator', df)<br/>No modification to core code!"]
+
+        CUSTOM --> CODE1
+        CODE1 --> CODE2
+        CODE2 --> CODE3
+    end
+
+    subgraph Benefits["✨ Benefits"]
+        direction TB
+
+        B1["No Hard-Coding<br/>━━━━━━━━━━━━<br/>Indicators are<br/>discovered dynamically"]
+
+        B2["Easy Testing<br/>━━━━━━━━━━<br/>Swap indicators<br/>without code changes"]
+
+        B3["Plugin Architecture<br/>━━━━━━━━━━━━━━<br/>Add new indicators<br/>without modifying registry"]
+
+        B4["Consistent Interface<br/>━━━━━━━━━━━━━━━<br/>All indicators follow<br/>same pattern"]
+
+        B5["Feature Selection<br/>━━━━━━━━━━━━━<br/>Programmatically test<br/>different combinations"]
+    end
+
+    REG_IDEA --> REG_STORE
+    REG_STORE --> REG_METHODS
+
+    M1 -.->|registers| I1
+    M1 -.->|registers| I2
+    M1 -.->|registers| I3
+    M1 -.->|registers| I4
+    M1 -.->|registers| I5
+    M1 -.->|registers| I6
+    M1 -.->|registers| I7
+    M1 -.->|registers| I8
+    M1 -.->|registers| I9
+
+    I1 --> REG_STORE
+    I2 --> REG_STORE
+    I3 --> REG_STORE
+    I4 --> REG_STORE
+    I5 --> REG_STORE
+    I6 --> REG_STORE
+    I7 --> REG_STORE
+    I8 --> REG_STORE
+    I9 --> REG_STORE
+
+    REG_METHODS --> STEP1
+    REG_STORE --> STEP2
+
+    CODE2 -.->|extends| M1
+    CODE3 --> STEP2
+
+    STEP3 --> B1
+    STEP3 --> B2
+    STEP3 --> B3
+    STEP3 --> B4
+    STEP3 --> B5
+
+    style REG_IDEA fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style REG_FLOW fill:#b3e5fc,stroke:#0277bd
+
+    style REG_STORE fill:#fff3e0,stroke:#e65100,stroke-width:3px
+    style REG_METHODS fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
+
+    style M1 fill:#ffccbc,stroke:#d84315
+    style M2 fill:#ffccbc,stroke:#d84315
+    style M3 fill:#ffccbc,stroke:#d84315
+    style M4 fill:#ffccbc,stroke:#d84315
+
+    style I1 fill:#c8e6c9,stroke:#388e3c
+    style I2 fill:#c8e6c9,stroke:#388e3c
+    style I3 fill:#c8e6c9,stroke:#388e3c
+    style I4 fill:#c8e6c9,stroke:#388e3c
+    style I5 fill:#c8e6c9,stroke:#388e3c
+    style I6 fill:#c8e6c9,stroke:#388e3c
+    style I7 fill:#c8e6c9,stroke:#388e3c
+    style I8 fill:#c8e6c9,stroke:#388e3c
+    style I9 fill:#c8e6c9,stroke:#388e3c,stroke-dasharray: 5 5
+
+    style DP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style STEP1 fill:#e1bee7,stroke:#7b1fa2
+    style STEP2 fill:#e1bee7,stroke:#7b1fa2
+    style STEP3 fill:#e1bee7,stroke:#7b1fa2
+
+    style CUSTOM fill:#fff9c4,stroke:#f57f17,stroke-width:2px
+    style CODE1 fill:#fff59d,stroke:#f9a825
+    style CODE2 fill:#fff59d,stroke:#f9a825
+    style CODE3 fill:#fff59d,stroke:#f9a825
+
+    style B1 fill:#b2dfdb,stroke:#00695c
+    style B2 fill:#b2dfdb,stroke:#00695c
+    style B3 fill:#b2dfdb,stroke:#00695c
+    style B4 fill:#b2dfdb,stroke:#00695c
+    style B5 fill:#b2dfdb,stroke:#00695c
+```
+
+**How the Registry Pattern Works:**
+
+1. **Registration Phase**: Indicators are decorated with `@IndicatorRegistry.register(name)` which adds them to the central registry dictionary
+
+2. **Discovery Phase**: Use `list_all()` to see all available indicators without hardcoding names
+
+3. **Application Phase**: Call `apply(name, df, **kwargs)` to execute any registered indicator dynamically
+
+4. **Extension Phase**: Add new indicators by simply decorating functions - no need to modify the registry class
+
+**Example Usage:**
+```python
+from quantrl_lab.data.indicators import IndicatorRegistry
+
+# See what's available
+print(IndicatorRegistry.list_all())
+# Output: ['SMA', 'EMA', 'RSI', 'MACD', 'ATR', 'BB', 'STOCH', 'OBV']
+
+# Apply indicator dynamically
+df_with_rsi = IndicatorRegistry.apply('RSI', df, window=14)
+df_with_sma = IndicatorRegistry.apply('SMA', df, window=20, column='Close')
+
+# Add your own indicator
+@IndicatorRegistry.register('CustomIndicator')
+def custom_indicator(df, param1, param2):
+    # Your calculation
+    return df
+
+# Use it immediately
+df = IndicatorRegistry.apply('CustomIndicator', df, param1=10, param2=20)
+```
+
+**Key Advantage**: The DataProcessor can loop through indicators programmatically, making it trivial to test hundreds of indicator combinations for feature selection without code changes!
+
+</details>
+
+<details>
+<summary><b>⚡ Reward Strategy Pattern</b> - How reward strategies decouple from environment instantiation</summary>
+
+```mermaid
+graph LR
+    subgraph Creation["1️⃣ Create Reward Strategy"]
+        direction TB
+
+        BASE["BaseRewardStrategy<br/>━━━━━━━━━━━━━━<br/>Abstract Interface"]
+
+        R1["PortfolioValueChangeReward<br/>calculate_reward(env)"]
+        R2["TrendFollowingReward<br/>calculate_reward(env)"]
+        R3["InvalidActionPenalty<br/>calculate_reward(env)"]
+
+        COMPOSITE["WeightedCompositeReward<br/>━━━━━━━━━━━━━━━━━━<br/>Combines multiple rewards"]
+
+        BASE -.-> R1
+        BASE -.-> R2
+        BASE -.-> R3
+        BASE -.-> COMPOSITE
+
+        R1 -.-> COMPOSITE
+        R2 -.-> COMPOSITE
+        R3 -.-> COMPOSITE
+    end
+
+    subgraph Injection["2️⃣ Inject into Environment"]
+        direction TB
+
+        STRAT["reward_strategy = <br/>WeightedCompositeReward([<br/>  PortfolioValueChangeReward(),<br/>  TrendFollowingReward()<br/>], weights=[0.7, 0.3])"]
+
+        ENV["env = SingleStockTradingEnv(<br/>  data=df,<br/>  config=config,<br/>  reward_strategy=reward_strategy<br/>)"]
+
+        STORE["Environment stores reference:<br/>self.reward_strategy = reward_strategy"]
+
+        STRAT --> ENV
+        ENV --> STORE
+    end
+
+    subgraph Usage["3️⃣ Environment Delegates at Runtime"]
+        direction TB
+
+        STEP["env.step(action)"]
+
+        EXECUTE["Inside step():<br/>━━━━━━━━━━━━<br/>1. Process action<br/>2. Update portfolio<br/>3. Call: reward = <br/>   self.reward_strategy<br/>     .calculate_reward(self)<br/>4. Return observation, reward"]
+
+        CALC["Reward Strategy Executes:<br/>━━━━━━━━━━━━━━━━━━<br/>• Accesses env.portfolio<br/>• Reads current state<br/>• Computes reward<br/>• Returns scalar value"]
+
+        STEP --> EXECUTE
+        EXECUTE --> CALC
+    end
+
+    subgraph Benefits["✨ Benefits"]
+        direction TB
+
+        B1["🔄 Easy Swapping<br/>Change reward logic<br/>without touching env"]
+
+        B2["🧪 A/B Testing<br/>Test multiple reward<br/>formulations"]
+
+        B3["🎯 Single Responsibility<br/>Reward logic isolated<br/>in strategy class"]
+    end
+
+    COMPOSITE --> STRAT
+    STORE --> STEP
+    CALC --> B1
+    CALC --> B2
+    CALC --> B3
+
+    style Creation fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
+    style BASE fill:#e1bee7,stroke:#7b1fa2,stroke-width:2px
+    style R1 fill:#ce93d8,stroke:#8e24aa
+    style R2 fill:#ce93d8,stroke:#8e24aa
+    style R3 fill:#ce93d8,stroke:#8e24aa
+    style COMPOSITE fill:#ba68c8,stroke:#7b1fa2,stroke-width:2px
+
+    style Injection fill:#e1f5fe,stroke:#01579b,stroke-width:2px
+    style STRAT fill:#81d4fa,stroke:#0288d1
+    style ENV fill:#4fc3f7,stroke:#039be5,stroke-width:2px
+    style STORE fill:#29b6f6,stroke:#0277bd
+
+    style Usage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
+    style STEP fill:#a5d6a7,stroke:#43a047
+    style EXECUTE fill:#81c784,stroke:#388e3c
+    style CALC fill:#66bb6a,stroke:#2e7d32,stroke-width:2px
+
+    style Benefits fill:#fff3e0,stroke:#e65100,stroke-width:2px
+    style B1 fill:#ffe0b2,stroke:#f57c00
+    style B2 fill:#ffe0b2,stroke:#f57c00
+    style B3 fill:#ffe0b2,stroke:#f57c00
+```
+
+**How It Works:**
+
+```python
+# 1️⃣ Create reward strategy (outside environment)
+reward_strategy = WeightedCompositeReward([
+    PortfolioValueChangeReward(),
+    TrendFollowingReward(),
+], weights=[0.7, 0.3])
+
+# 2️⃣ Inject into environment
+env = SingleStockTradingEnv(
+    data=df,
+    config=config,
+    reward_strategy=reward_strategy  # ← Injected here!
+)
+
+# 3️⃣ Environment delegates during step
+obs, reward, done, truncated, info = env.step(action)
+# Inside step():
+#   reward = self.reward_strategy.calculate_reward(self)
+```
+
+**Key Insight**: The environment doesn't know *how* rewards are calculated. It just calls `calculate_reward()` and the strategy does the rest. Want different rewards? Just inject a different strategy!
+
+</details>
+
 ---
 
 
