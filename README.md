@@ -59,32 +59,32 @@ Most existing RL frameworks for finance suffer from tightly coupled, monolithic 
 <summary><b>📋 Workflow Diagram</b> - End-to-end process from data acquisition to evaluation</summary>
 
 ```mermaid
-flowchart LR
-    A[Fetch<br/>Historical<br/>Data] --> B{Feature<br/>Selection?}
+flowchart TD
+    A[Fetch Historical Data] --> B{Feature Selection?}
 
-    B -->|Yes| C[Select<br/>Indicators]
-    B -->|No| D[Configure<br/>Pipeline]
+    B -->|Yes| C[Select Indicators]
+    B -->|No| D[Configure Pipeline]
     C --> D
 
-    D --> E[Compute<br/>Indicators<br/>RSI, MACD]
+    D --> E[Compute Indicators<br/>RSI, MACD, etc.]
 
-    E --> F[Instantiate<br/>Environment]
+    E --> F[Instantiate Environment]
 
-    F --> G[Action<br/>Strategy]
-    F --> H[Observation<br/>Strategy]
-    F --> I[Reward<br/>Strategy]
+    F --> G[Action Strategy]
+    F --> H[Observation Strategy]
+    F --> I[Reward Strategy]
 
-    G --> J[Train<br/>RL Agent<br/>PPO/SAC/A2C]
+    G --> J[Train RL Agent<br/>PPO/SAC/A2C]
     H --> J
     I --> J
 
-    J --> K{HP<br/>Tuning?}
+    J --> K{Hyperparameter Tuning?}
 
-    K -->|Yes| L[Optuna<br/>Optimize]
-    K -->|No| M[Evaluate<br/>vs<br/>Benchmarks]
+    K -->|Yes| L[Optuna Optimization]
+    K -->|No| M[Evaluate vs Benchmarks]
     L --> M
 
-    M --> N[Analyze<br/>Results]
+    M --> N[Analyze Results]
     N --> O{Iterate?}
 
     O -->|Yes| D
