@@ -59,32 +59,33 @@ Most existing RL frameworks for finance suffer from tightly coupled, monolithic 
 <summary><b>📋 Workflow Diagram</b> - End-to-end process from data acquisition to evaluation</summary>
 
 ```mermaid
-flowchart TD
+flowchart TB
     A[Fetch Historical Data] --> B{Feature Selection?}
 
     B -->|Yes| C[Select Indicators]
     B -->|No| D[Configure Pipeline]
     C --> D
 
-    D --> E[Compute Indicators<br/>RSI, MACD, etc.]
+    D --> E[Compute Indicators: RSI, MACD, etc.]
 
-    E --> F[Instantiate Environment]
+    E --> F[Instantiate Environment with Strategies]
 
     F --> G[Action Strategy]
     F --> H[Observation Strategy]
     F --> I[Reward Strategy]
 
-    G --> J[Train RL Agent<br/>PPO/SAC/A2C]
+    G --> J
     H --> J
     I --> J
 
-    J --> K{Hyperparameter Tuning?}
+    J[Train RL Agent: PPO/SAC/A2C] --> K{HP Tuning?}
 
-    K -->|Yes| L[Optuna Optimization]
-    K -->|No| M[Evaluate vs Benchmarks]
+    K -->|No| M
+    K -->|Yes| L[Optuna]
     L --> M
 
-    M --> N[Analyze Results]
+    M[Evaluate vs Benchmarks] --> N[Analyze Results]
+
     N --> O{Iterate?}
 
     O -->|Yes| D
