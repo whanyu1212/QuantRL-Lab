@@ -60,56 +60,41 @@ Most existing RL frameworks for finance suffer from tightly coupled, monolithic 
 
 ```mermaid
 flowchart TB
-    A[Fetch Historical Data] --> B{Feature Selection?}
+    A[Fetch Historical Data] --> B[Configure Pipeline]
 
-    B -->|Yes| C[Select Indicators]
-    B -->|No| D[Configure Pipeline]
-    C --> D
+    B --> C[Compute Indicators: RSI, MACD, etc.]
 
-    D --> E[Compute Indicators: RSI, MACD, etc.]
+    C --> D[Instantiate Environment with Strategies]
 
-    E --> F[Instantiate Environment with Strategies]
+    D --> E[Action Strategy]
+    D --> F[Observation Strategy]
+    D --> G[Reward Strategy]
 
-    F --> G[Action Strategy]
-    F --> H[Observation Strategy]
-    F --> I[Reward Strategy]
+    E --> H
+    F --> H
+    G --> H
 
-    G --> J
-    H --> J
-    I --> J
+    H[Train RL Agent: PPO/SAC/A2C] --> I[Evaluate vs Benchmarks]
 
-    J[Train RL Agent: PPO/SAC/A2C] --> K{HP Tuning?}
+    I --> J[Analyze Results]
 
-    K -->|No| M
-    K -->|Yes| L[Optuna]
-    L --> M
+    J --> K{Iterate?}
 
-    M[Evaluate vs Benchmarks] --> N[Analyze Results]
-
-    N --> O{Iterate?}
-
-    O -->|Yes| D
-    O -->|No| P[End]
+    K -->|Yes| B
+    K -->|No| L[End]
 
     style A fill:#e1f5fe
-    style B fill:#fff3e0
-    style C fill:#fff3e0
-    style D fill:#f3e5f5
-    style E fill:#f3e5f5
+    style B fill:#f3e5f5
+    style C fill:#f3e5f5
+    style D fill:#e8f5e8
+    style E fill:#e8f5e8
     style F fill:#e8f5e8
     style G fill:#e8f5e8
-    style H fill:#e8f5e8
-    style I fill:#e8f5e8
-    style J fill:#fce4ec
-    style K fill:#fff8e1
-    style L fill:#fff8e1
-    style M fill:#e0f2f1
-    style N fill:#f1f8e9
-    style O fill:#fce4ec
-    style P fill:#c8e6c9
-
-    classDef optional stroke-dasharray: 5 5
-    class B,C,K,L optional
+    style H fill:#fce4ec
+    style I fill:#e0f2f1
+    style J fill:#f1f8e9
+    style K fill:#fce4ec
+    style L fill:#c8e6c9
 ```
 
 </details>
