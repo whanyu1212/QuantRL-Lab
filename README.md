@@ -767,164 +767,41 @@ if isinstance(custom_source, HistoricalDataCapable):
 <summary><b>📋 Registry Pattern for Technical Indicators</b> - Centralized, extensible indicator management</summary>
 
 ```mermaid
-graph TB
-    subgraph Pattern["🎯 Registry Pattern Concept"]
-        direction TB
-
-        REG_IDEA["Centralized Registration<br/>━━━━━━━━━━━━━━━━━<br/>• Single source of truth<br/>• Dynamic discovery<br/>• Decoupled architecture<br/>• Plugin-like extensibility"]
-
-        REG_FLOW["Registration Flow<br/>━━━━━━━━━━━━━━<br/>1. Decorator marks function<br/>2. Function added to registry<br/>3. Available for lookup<br/>4. Can be applied dynamically"]
+graph LR
+    subgraph Registry["IndicatorRegistry"]
+        REG["@register decorator<br/>get() | list_all() | apply()"]
     end
 
-    subgraph Registry["📚 IndicatorRegistry Class"]
-        direction TB
-
-        REG_STORE["_indicators: Dict[str, Callable]<br/>━━━━━━━━━━━━━━━━━━━━━━<br/>Central storage for all indicators"]
-
-        REG_METHODS["Core Methods<br/>━━━━━━━━━━━"]
-
-        M1["@register(name)<br/>Decorator to add indicators"]
-        M2["get(name)<br/>Retrieve indicator function"]
-        M3["list_all()<br/>Show all registered indicators"]
-        M4["apply(name, df, **kwargs)<br/>Execute indicator on data"]
-
-        REG_METHODS --> M1
-        REG_METHODS --> M2
-        REG_METHODS --> M3
-        REG_METHODS --> M4
+    subgraph Indicators["Technical Indicators"]
+        I1["SMA"]
+        I2["EMA"]
+        I3["RSI"]
+        I4["MACD"]
+        I5["..."]
     end
 
-    subgraph Indicators["📊 Registered Technical Indicators"]
-        direction TB
-
-        I1["@register('SMA')<br/>Simple Moving Average"]
-        I2["@register('EMA')<br/>Exponential Moving Average"]
-        I3["@register('RSI')<br/>Relative Strength Index"]
-        I4["@register('MACD')<br/>Moving Average Convergence"]
-        I5["@register('ATR')<br/>Average True Range"]
-        I6["@register('BB')<br/>Bollinger Bands"]
-        I7["@register('STOCH')<br/>Stochastic Oscillator"]
-        I8["@register('OBV')<br/>On-Balance Volume"]
-        I9["... more indicators<br/>Easily extensible"]
+    subgraph Usage["DataProcessor"]
+        U1["list_all()"]
+        U2["apply('RSI', df)"]
     end
 
-    subgraph Usage["💼 Usage in DataProcessor"]
-        direction TB
+    I1 -->|registered| REG
+    I2 -->|registered| REG
+    I3 -->|registered| REG
+    I4 -->|registered| REG
+    I5 -->|registered| REG
 
-        DP[DataProcessor<br/>━━━━━━━━━━━<br/>Processes OHLCV data<br/>with technical indicators]
+    REG --> U1
+    REG --> U2
 
-        STEP1["1. Check Available<br/>━━━━━━━━━━━━━━<br/>IndicatorRegistry.list_all()<br/>Returns: ['SMA', 'EMA', 'RSI', ...]"]
-
-        STEP2["2. Apply Indicator<br/>━━━━━━━━━━━━━━<br/>IndicatorRegistry.apply('RSI', df, window=14)<br/>Returns: DataFrame with RSI_14 column"]
-
-        STEP3["3. Batch Processing<br/>━━━━━━━━━━━━━━━<br/>Loop through multiple indicators<br/>Apply with different parameters"]
-
-        DP --> STEP1
-        STEP1 --> STEP2
-        STEP2 --> STEP3
-    end
-
-    subgraph Extension["🔧 Adding Custom Indicators"]
-        direction TB
-
-        CUSTOM["How to Extend<br/>━━━━━━━━━━━━"]
-
-        CODE1["1. Define Function<br/>━━━━━━━━━━━━━━<br/>def my_indicator(df, **params):<br/>    # Your logic<br/>    return df"]
-
-        CODE2["2. Register with Decorator<br/>━━━━━━━━━━━━━━━━━━<br/>@IndicatorRegistry.register('MyIndicator')<br/>def my_indicator(df, **params):"]
-
-        CODE3["3. Use Immediately<br/>━━━━━━━━━━━━━━━<br/>IndicatorRegistry.apply('MyIndicator', df)<br/>No modification to core code!"]
-
-        CUSTOM --> CODE1
-        CODE1 --> CODE2
-        CODE2 --> CODE3
-    end
-
-    subgraph Benefits["✨ Benefits"]
-        direction TB
-
-        B1["No Hard-Coding<br/>━━━━━━━━━━━━<br/>Indicators are<br/>discovered dynamically"]
-
-        B2["Easy Testing<br/>━━━━━━━━━━<br/>Swap indicators<br/>without code changes"]
-
-        B3["Plugin Architecture<br/>━━━━━━━━━━━━━━<br/>Add new indicators<br/>without modifying registry"]
-
-        B4["Consistent Interface<br/>━━━━━━━━━━━━━━━<br/>All indicators follow<br/>same pattern"]
-
-        B5["Feature Selection<br/>━━━━━━━━━━━━━<br/>Programmatically test<br/>different combinations"]
-    end
-
-    REG_IDEA --> REG_STORE
-    REG_STORE --> REG_METHODS
-
-    M1 -.->|registers| I1
-    M1 -.->|registers| I2
-    M1 -.->|registers| I3
-    M1 -.->|registers| I4
-    M1 -.->|registers| I5
-    M1 -.->|registers| I6
-    M1 -.->|registers| I7
-    M1 -.->|registers| I8
-    M1 -.->|registers| I9
-
-    I1 --> REG_STORE
-    I2 --> REG_STORE
-    I3 --> REG_STORE
-    I4 --> REG_STORE
-    I5 --> REG_STORE
-    I6 --> REG_STORE
-    I7 --> REG_STORE
-    I8 --> REG_STORE
-    I9 --> REG_STORE
-
-    REG_METHODS --> STEP1
-    REG_STORE --> STEP2
-
-    CODE2 -.->|extends| M1
-    CODE3 --> STEP2
-
-    STEP3 --> B1
-    STEP3 --> B2
-    STEP3 --> B3
-    STEP3 --> B4
-    STEP3 --> B5
-
-    style REG_IDEA fill:#e1f5fe,stroke:#01579b,stroke-width:2px
-    style REG_FLOW fill:#b3e5fc,stroke:#0277bd
-
-    style REG_STORE fill:#fff3e0,stroke:#e65100,stroke-width:3px
-    style REG_METHODS fill:#ffe0b2,stroke:#f57c00,stroke-width:2px
-
-    style M1 fill:#ffccbc,stroke:#d84315
-    style M2 fill:#ffccbc,stroke:#d84315
-    style M3 fill:#ffccbc,stroke:#d84315
-    style M4 fill:#ffccbc,stroke:#d84315
-
+    style REG fill:#fff3e0,stroke:#e65100,stroke-width:2px
     style I1 fill:#c8e6c9,stroke:#388e3c
     style I2 fill:#c8e6c9,stroke:#388e3c
     style I3 fill:#c8e6c9,stroke:#388e3c
     style I4 fill:#c8e6c9,stroke:#388e3c
     style I5 fill:#c8e6c9,stroke:#388e3c
-    style I6 fill:#c8e6c9,stroke:#388e3c
-    style I7 fill:#c8e6c9,stroke:#388e3c
-    style I8 fill:#c8e6c9,stroke:#388e3c
-    style I9 fill:#c8e6c9,stroke:#388e3c,stroke-dasharray: 5 5
-
-    style DP fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
-    style STEP1 fill:#e1bee7,stroke:#7b1fa2
-    style STEP2 fill:#e1bee7,stroke:#7b1fa2
-    style STEP3 fill:#e1bee7,stroke:#7b1fa2
-
-    style CUSTOM fill:#fff9c4,stroke:#f57f17,stroke-width:2px
-    style CODE1 fill:#fff59d,stroke:#f9a825
-    style CODE2 fill:#fff59d,stroke:#f9a825
-    style CODE3 fill:#fff59d,stroke:#f9a825
-
-    style B1 fill:#b2dfdb,stroke:#00695c
-    style B2 fill:#b2dfdb,stroke:#00695c
-    style B3 fill:#b2dfdb,stroke:#00695c
-    style B4 fill:#b2dfdb,stroke:#00695c
-    style B5 fill:#b2dfdb,stroke:#00695c
+    style U1 fill:#e1bee7,stroke:#7b1fa2
+    style U2 fill:#e1bee7,stroke:#7b1fa2
 ```
 
 **How the Registry Pattern Works:**
