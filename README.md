@@ -844,22 +844,19 @@ df = IndicatorRegistry.apply('CustomIndicator', df, param1=10, param2=20)
 <summary><b>⚡ Reward Strategy Pattern</b> - How reward strategies decouple from environment instantiation</summary>
 
 ```mermaid
-graph LR
+graph TB
     subgraph Creation["1️⃣ Create Reward Strategy"]
-        direction TB
+        BASE["BaseRewardStrategy<br/>Abstract Interface"]
 
-        BASE["BaseRewardStrategy<br/>━━━━━━━━━━━━━━<br/>Abstract Interface"]
+        R1["PortfolioValueChangeReward"]
+        R2["TrendFollowingReward"]
+        R3["InvalidActionPenalty"]
 
-        R1["PortfolioValueChangeReward<br/>calculate_reward(env)"]
-        R2["TrendFollowingReward<br/>calculate_reward(env)"]
-        R3["InvalidActionPenalty<br/>calculate_reward(env)"]
-
-        COMPOSITE["WeightedCompositeReward<br/>━━━━━━━━━━━━━━━━━━<br/>Combines multiple rewards"]
+        COMPOSITE["WeightedCompositeReward<br/>Combines multiple rewards"]
 
         BASE -.-> R1
         BASE -.-> R2
         BASE -.-> R3
-        BASE -.-> COMPOSITE
 
         R1 -.-> COMPOSITE
         R2 -.-> COMPOSITE
@@ -867,46 +864,26 @@ graph LR
     end
 
     subgraph Injection["2️⃣ Inject into Environment"]
-        direction TB
+        STRAT["Create composite strategy<br/>with weights"]
 
-        STRAT["reward_strategy = <br/>WeightedCompositeReward([<br/>  PortfolioValueChangeReward(),<br/>  TrendFollowingReward()<br/>], weights=[0.7, 0.3])"]
-
-        ENV["env = SingleStockTradingEnv(<br/>  data=df,<br/>  config=config,<br/>  reward_strategy=reward_strategy<br/>)"]
-
-        STORE["Environment stores reference:<br/>self.reward_strategy = reward_strategy"]
+        ENV["SingleStockTradingEnv<br/>receives reward_strategy"]
 
         STRAT --> ENV
-        ENV --> STORE
     end
 
-    subgraph Usage["3️⃣ Environment Delegates at Runtime"]
-        direction TB
-
+    subgraph Usage["3️⃣ Runtime Execution"]
         STEP["env.step(action)"]
 
-        EXECUTE["Inside step():<br/>━━━━━━━━━━━━<br/>1. Process action<br/>2. Update portfolio<br/>3. Call: reward = <br/>   self.reward_strategy<br/>     .calculate_reward(self)<br/>4. Return observation, reward"]
+        EXECUTE["Process action<br/>Update portfolio<br/>Call reward_strategy"]
 
-        CALC["Reward Strategy Executes:<br/>━━━━━━━━━━━━━━━━━━<br/>• Accesses env.portfolio<br/>• Reads current state<br/>• Computes reward<br/>• Returns scalar value"]
+        CALC["calculate_reward(self)<br/>Returns scalar value"]
 
         STEP --> EXECUTE
         EXECUTE --> CALC
     end
 
-    subgraph Benefits["✨ Benefits"]
-        direction TB
-
-        B1["🔄 Easy Swapping<br/>Change reward logic<br/>without touching env"]
-
-        B2["🧪 A/B Testing<br/>Test multiple reward<br/>formulations"]
-
-        B3["🎯 Single Responsibility<br/>Reward logic isolated<br/>in strategy class"]
-    end
-
     COMPOSITE --> STRAT
-    STORE --> STEP
-    CALC --> B1
-    CALC --> B2
-    CALC --> B3
+    ENV --> STEP
 
     style Creation fill:#f3e5f5,stroke:#6a1b9a,stroke-width:2px
     style BASE fill:#e1bee7,stroke:#7b1fa2,stroke-width:2px
@@ -918,17 +895,11 @@ graph LR
     style Injection fill:#e1f5fe,stroke:#01579b,stroke-width:2px
     style STRAT fill:#81d4fa,stroke:#0288d1
     style ENV fill:#4fc3f7,stroke:#039be5,stroke-width:2px
-    style STORE fill:#29b6f6,stroke:#0277bd
 
     style Usage fill:#e8f5e9,stroke:#2e7d32,stroke-width:2px
     style STEP fill:#a5d6a7,stroke:#43a047
     style EXECUTE fill:#81c784,stroke:#388e3c
     style CALC fill:#66bb6a,stroke:#2e7d32,stroke-width:2px
-
-    style Benefits fill:#fff3e0,stroke:#e65100,stroke-width:2px
-    style B1 fill:#ffe0b2,stroke:#f57c00
-    style B2 fill:#ffe0b2,stroke:#f57c00
-    style B3 fill:#ffe0b2,stroke:#f57c00
 ```
 
 **How It Works:**
