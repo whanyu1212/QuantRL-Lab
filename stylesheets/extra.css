@@ -1,0 +1,57 @@
+/* Nav logo sizing */
+.md-header__button.md-logo img,
+.md-header__button.md-logo svg {
+  height: 2rem;
+  width: auto;
+}
+
+/* Hero banner gradient */
+.md-typeset .md-content > .md-content__inner > h1:first-child {
+  font-weight: 700;
+}
+
+/* Card grid improvements */
+.md-typeset .grid.cards > ul > li {
+  border: 1px solid var(--md-default-fg-color--lightest);
+  border-radius: 0.4rem;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+
+.md-typeset .grid.cards > ul > li:hover {
+  border-color: var(--md-accent-fg-color);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+/* Better admonition styling */
+.md-typeset .admonition,
+.md-typeset details {
+  border-radius: 0.4rem;
+}
+
+/* Mermaid diagram centering */
+.md-typeset .mermaid {
+  text-align: center;
+  margin: 1.5em 0;
+}
+
+/* Slightly larger code block font */
+.md-typeset code {
+  font-size: 0.82em;
+}
+
+/* Spacing between sections */
+.md-typeset h2 {
+  margin-top: 2em;
+}
+
+/* Badge row on homepage */
+.md-typeset .badges {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1.5rem;
+}
+
+.md-typeset .badges img {
+  height: 20px;
+}

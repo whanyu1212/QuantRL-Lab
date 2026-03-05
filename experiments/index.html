@@ -1,0 +1,2294 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A modular reinforcement learning framework for quantitative trading">
+      
+      
+        <meta name="author" content="Han Yu Wu">
+      
+      
+        <link rel="canonical" href="https://whanyu1212.github.io/QuantRL-Lab/experiments/">
+      
+      
+        <link rel="prev" href="../environments/">
+      
+      
+        <link rel="next" href="../api-reference/environments/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Experiments - QuantRL-Lab</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#experiments" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="QuantRL-Lab" class="md-header__button md-logo" aria-label="QuantRL-Lab" data-md-component="logo">
+      
+  <img src="../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantRL-Lab
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Experiments
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/whanyu1212/QuantRL-Lab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    whanyu1212/QuantRL-Lab
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../user-guide/overview/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ARCHITECTURE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../DATA_SOURCES/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data Sources
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../data-processing/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data Processing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../environments/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Environments
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Experiments
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api-reference/environments/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../examples/basic-backtest/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantRL-Lab" class="md-nav__button md-logo" aria-label="QuantRL-Lab" data-md-component="logo">
+      
+  <img src="../assets/logo.svg" alt="logo">
+
+    </a>
+    QuantRL-Lab
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/whanyu1212/QuantRL-Lab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    whanyu1212/QuantRL-Lab
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/custom-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/backtesting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backtesting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/reward_shaping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reward Shaping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/generalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generalization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DATA_SOURCES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Sources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../data-processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../environments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#module-overview" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Module Overview
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#core-concepts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Core Concepts
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#building-environment-configs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Building Environment Configs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Building Environment Configs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#with-backtestenvironmentbuilder-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With BacktestEnvironmentBuilder (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-backtestrunnercreate_env_config-manual-factories" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With BacktestRunner.create_env_config (manual factories)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-single-job" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a Single Job
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running a Single Job">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#inspecting-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting results
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#accessing-result-data-directly" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Accessing result data directly
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#running-a-batch-of-jobs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a Batch of Jobs
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Running a Batch of Jobs">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#manual-batch" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Manual batch
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#grid-search-with-jobgenerator" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Grid search with JobGenerator
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#metrics-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Metrics Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#feature-importance-agentexplainer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Feature Importance: AgentExplainer
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#hyperparameter-tuning-optunarunner" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hyperparameter Tuning: OptunaRunner
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Hyperparameter Tuning: OptunaRunner">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#defining-a-search-space" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Defining a search space
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#running-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Running a study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#resuming-a-study" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Resuming a study
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#querying-results" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Querying results
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-end-to-end-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full End-to-End Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#integrating-alpha-signals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Integrating Alpha Signals
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/environments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/data-sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Sources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments & Utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/basic-backtest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basic Backtest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/feature-engineering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/hyperparameter-tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hyperparameter Tuning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="experiments">Experiments</h1>
+<p>The <code>experiments</code> module provides a structured, reproducible workflow for training RL agents, evaluating them on held-out data, and tuning hyperparameters. It sits on top of the environment layer and handles the boilerplate of vectorized training, evaluation, metrics, and reporting.</p>
+<hr />
+<h2 id="module-overview">Module Overview</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>experiments/
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>├── backtesting/
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>│   ├── core.py          # ExperimentJob, ExperimentResult, JobGenerator
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>│   ├── runner.py        # BacktestRunner — orchestrates train + evaluate
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>│   ├── builder.py       # BacktestEnvironmentBuilder — fluent env factory
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>│   ├── metrics.py       # MetricsCalculator — financial + RL metrics
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>│   ├── explainer.py     # AgentExplainer — feature importance analysis
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>│   ├── training.py      # train_model() helper
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a>│   └── config/
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>│       └── environment_config.py  # BacktestEnvironmentConfig
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>└── tuning/
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>    └── optuna_runner.py  # OptunaRunner + pre-built search spaces
+</code></pre></div>
+<hr />
+<h2 id="core-concepts">Core Concepts</h2>
+<p>The experiment workflow is built around three objects:</p>
+<table>
+<thead>
+<tr>
+<th>Object</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>BacktestEnvironmentConfig</code></td>
+<td>Holds callable factories that create train/test envs</td>
+</tr>
+<tr>
+<td><code>ExperimentJob</code></td>
+<td>Bundles an algorithm class + env config + run params into one reproducible unit</td>
+</tr>
+<tr>
+<td><code>ExperimentResult</code></td>
+<td>Returned by the runner: metrics, trained model, episode data, feature importance</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>BacktestRunner</code> takes a job, trains the agent, evaluates on both train and test splits, computes metrics, and runs feature importance analysis — all in one call.</p>
+<hr />
+<h2 id="building-environment-configs">Building Environment Configs</h2>
+<h3 id="with-backtestenvironmentbuilder-recommended">With <code>BacktestEnvironmentBuilder</code> (recommended)</h3>
+<p>The fluent builder is the cleanest way to create env configs. It handles data processing, strategy wiring, and factory creation.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestEnvironmentBuilder</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.actions.standard</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardActionStrategy</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.observations.feature_aware</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureAwareObservationStrategy</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.composite</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompositeReward</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.sortino</span><span class="w"> </span><span class="kn">import</span> <span class="n">DifferentialSortinoReward</span>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.drawdown</span><span class="w"> </span><span class="kn">import</span> <span class="n">DrawdownPenaltyReward</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">env_config</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    <span class="n">BacktestEnvironmentBuilder</span><span class="p">()</span>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>    <span class="o">.</span><span class="n">with_data</span><span class="p">(</span><span class="n">train_data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">test_data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>    <span class="o">.</span><span class="n">with_strategies</span><span class="p">(</span>
+<a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>        <span class="n">action</span><span class="o">=</span><span class="n">StandardActionStrategy</span><span class="p">(),</span>
+<a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>        <span class="n">reward</span><span class="o">=</span><span class="n">CompositeReward</span><span class="p">(</span>
+<a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>            <span class="n">strategies</span><span class="o">=</span><span class="p">[</span><span class="n">DifferentialSortinoReward</span><span class="p">(),</span> <span class="n">DrawdownPenaltyReward</span><span class="p">()],</span>
+<a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>            <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="mf">0.7</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">],</span>
+<a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>        <span class="p">),</span>
+<a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>        <span class="n">observation</span><span class="o">=</span><span class="n">FeatureAwareObservationStrategy</span><span class="p">(),</span>
+<a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a>    <span class="p">)</span>
+<a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>    <span class="o">.</span><span class="n">with_env_params</span><span class="p">(</span>
+<a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="n">initial_balance</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
+<a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a>        <span class="n">window_size</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+<a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a>        <span class="n">transaction_cost_pct</span><span class="o">=</span><span class="mf">0.001</span><span class="p">,</span>
+<a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a>        <span class="n">slippage</span><span class="o">=</span><span class="mf">0.0005</span><span class="p">,</span>
+<a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>    <span class="p">)</span>
+<a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a>    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="p">)</span>
+</code></pre></div>
+<p>The builder also accepts a custom <code>name</code> via <code>BacktestEnvironmentConfig</code> — useful for identifying results in batch runs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.config.environment_config</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestEnvironmentConfig</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">config</span> <span class="o">=</span> <span class="n">env_config</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">config</span><span class="o">.</span><span class="n">name</span> <span class="o">=</span> <span class="s2">&quot;AAPL_Sortino_w20&quot;</span>
+</code></pre></div>
+<h3 id="with-backtestrunnercreate_env_config-manual-factories">With <code>BacktestRunner.create_env_config</code> (manual factories)</h3>
+<p>Use this when you need direct control over the factory functions:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestRunner</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.single</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleStockTradingEnv</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.components.config</span><span class="w"> </span><span class="kn">import</span> <span class="n">SingleStockEnvConfig</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">base_config</span> <span class="o">=</span> <span class="n">SingleStockEnvConfig</span><span class="p">(</span><span class="n">initial_balance</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="n">env_config</span> <span class="o">=</span> <span class="n">BacktestRunner</span><span class="o">.</span><span class="n">create_env_config</span><span class="p">(</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">train_env_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">SingleStockTradingEnv</span><span class="p">(</span>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="n">data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">base_config</span><span class="p">,</span>
+<a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">action_strategy</span><span class="o">=</span><span class="n">StandardActionStrategy</span><span class="p">(),</span>
+<a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">reward_strategy</span><span class="o">=</span><span class="n">DifferentialSortinoReward</span><span class="p">(),</span>
+<a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">observation_strategy</span><span class="o">=</span><span class="n">FeatureAwareObservationStrategy</span><span class="p">(),</span>
+<a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>    <span class="p">),</span>
+<a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>    <span class="n">test_env_factory</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="n">SingleStockTradingEnv</span><span class="p">(</span>
+<a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>        <span class="n">data</span><span class="o">=</span><span class="n">test_df</span><span class="p">,</span> <span class="n">config</span><span class="o">=</span><span class="n">base_config</span><span class="p">,</span>
+<a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="n">action_strategy</span><span class="o">=</span><span class="n">StandardActionStrategy</span><span class="p">(),</span>
+<a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        <span class="n">reward_strategy</span><span class="o">=</span><span class="n">DifferentialSortinoReward</span><span class="p">(),</span>
+<a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>        <span class="n">observation_strategy</span><span class="o">=</span><span class="n">FeatureAwareObservationStrategy</span><span class="p">(),</span>
+<a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>    <span class="p">),</span>
+<a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="running-a-single-job">Running a Single Job</h2>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stable_baselines3</span><span class="w"> </span><span class="kn">import</span> <span class="n">PPO</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExperimentJob</span>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestRunner</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">job</span> <span class="o">=</span> <span class="n">ExperimentJob</span><span class="p">(</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">algorithm_class</span><span class="o">=</span><span class="n">PPO</span><span class="p">,</span>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">env_config</span><span class="o">=</span><span class="n">env_config</span><span class="p">,</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">n_envs</span><span class="o">=</span><span class="mi">4</span><span class="p">,</span>               <span class="c1"># parallel envs used during training only</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">num_eval_episodes</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>    <span class="c1"># episodes run for train + test evaluation</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="s2">&quot;reward&quot;</span><span class="p">:</span> <span class="s2">&quot;sortino&quot;</span><span class="p">},</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="p">)</span>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>
+<a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a><span class="n">runner</span> <span class="o">=</span> <span class="n">BacktestRunner</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a><span class="n">result</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run_job</span><span class="p">(</span><span class="n">job</span><span class="p">)</span>
+</code></pre></div>
+<p>The runner prints live progress via Rich:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>══════════════════════════════════════════════════════════
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>RUNNING JOB: a3f1b2c4
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>Algo: PPO | Env: default_env
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>🔄 Training...
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>📊 Evaluating...
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>🧠 Analyzing Feature Importance...
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>Result:
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>  Train: +12.34% (Sharpe: 1.21)
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>  Test:   +7.89% (Sharpe: 0.94)
+</code></pre></div></p>
+<h3 id="inspecting-results">Inspecting results</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">BacktestRunner</span><span class="o">.</span><span class="n">inspect_result</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+</code></pre></div>
+<p>Prints a Rich panel with:
+- Job ID, algorithm, env name, status
+- Train / test average return and Sharpe
+- Max drawdown
+- Top learned features with importance scores
+- Per-episode breakdown table (return %, reward, final value, steps)</p>
+<h3 id="accessing-result-data-directly">Accessing result data directly</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># Metrics dict (train_ and test_ prefixed)</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">metrics</span><span class="p">)</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="c1"># {</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="c1">#   &#39;train_avg_return_pct&#39;: 12.34,</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="c1">#   &#39;train_avg_sharpe_ratio&#39;: 1.21,</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="c1">#   &#39;test_avg_return_pct&#39;: 7.89,</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="c1">#   &#39;test_avg_sharpe_ratio&#39;: 0.94,</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="c1">#   &#39;test_avg_max_drawdown&#39;: -0.08,</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="c1">#   &#39;test_win_rate&#39;: 0.6,</span>
+<a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a><span class="c1">#   ...</span>
+<a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="c1"># }</span>
+<a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>
+<a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="c1"># Trained model (stable-baselines3 object)</span>
+<a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a><span class="n">model</span> <span class="o">=</span> <span class="n">result</span><span class="o">.</span><span class="n">model</span>
+<a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="n">obs</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">test_env</span><span class="o">.</span><span class="n">reset</span><span class="p">()</span>
+<a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="n">action</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">obs</span><span class="p">,</span> <span class="n">deterministic</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>
+<a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a><span class="c1"># Top features (name → importance score)</span>
+<a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a><span class="nb">print</span><span class="p">(</span><span class="n">result</span><span class="o">.</span><span class="n">top_features</span><span class="p">)</span>
+<a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a><span class="c1"># {&#39;RSI_14_t-0&#39;: 0.42, &#39;portfolio_balance_ratio&#39;: -0.31, ...}</span>
+<a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>
+<a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a><span class="c1"># Raw episode data</span>
+<a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a><span class="k">for</span> <span class="n">ep</span> <span class="ow">in</span> <span class="n">result</span><span class="o">.</span><span class="n">test_episodes</span><span class="p">:</span>
+<a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>    <span class="nb">print</span><span class="p">(</span><span class="n">ep</span><span class="p">[</span><span class="s2">&quot;final_value&quot;</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;total_reward&quot;</span><span class="p">],</span> <span class="n">ep</span><span class="p">[</span><span class="s2">&quot;steps&quot;</span><span class="p">])</span>
+</code></pre></div>
+<hr />
+<h2 id="running-a-batch-of-jobs">Running a Batch of Jobs</h2>
+<h3 id="manual-batch">Manual batch</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stable_baselines3</span><span class="w"> </span><span class="kn">import</span> <span class="n">PPO</span><span class="p">,</span> <span class="n">SAC</span><span class="p">,</span> <span class="n">A2C</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">jobs</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">ExperimentJob</span><span class="p">(</span><span class="n">PPO</span><span class="p">,</span> <span class="n">env_config_aapl</span><span class="p">,</span> <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;AAPL&quot;</span><span class="p">}),</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">ExperimentJob</span><span class="p">(</span><span class="n">SAC</span><span class="p">,</span> <span class="n">env_config_aapl</span><span class="p">,</span> <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;AAPL&quot;</span><span class="p">}),</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">ExperimentJob</span><span class="p">(</span><span class="n">PPO</span><span class="p">,</span> <span class="n">env_config_msft</span><span class="p">,</span> <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span> <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;symbol&quot;</span><span class="p">:</span> <span class="s2">&quot;MSFT&quot;</span><span class="p">}),</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">]</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>
+<a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="n">runner</span> <span class="o">=</span> <span class="n">BacktestRunner</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="n">results</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run_batch</span><span class="p">(</span><span class="n">jobs</span><span class="p">)</span>
+<a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>
+<a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="n">BacktestRunner</span><span class="o">.</span><span class="n">inspect_batch</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div>
+<p><code>inspect_batch</code> renders a summary table across all jobs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>╔══════════════════════════════════════════════════════════════╗
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>║                   BATCH EXPERIMENT SUMMARY                   ║
+<a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>╠════════╦══════╦══════════╦══════════╦══════════╦═══════════╣
+<a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>║ ID     ║ Algo ║ Env      ║ Status   ║ Train %  ║ Test %    ║
+<a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>╠════════╬══════╬══════════╬══════════╬══════════╬═══════════╣
+<a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>║ a3f1b2 ║ PPO  ║ AAPL_... ║ ✓        ║ +12.34%  ║ +7.89%   ║
+<a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>║ c8d4e5 ║ SAC  ║ AAPL_... ║ ✓        ║  +9.11%  ║ +5.22%   ║
+<a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>║ f7a2b1 ║ PPO  ║ MSFT_... ║ ✓        ║ +15.02%  ║ +3.44%   ║
+<a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>╚════════╩══════╩══════════╩══════════╩══════════╩═══════════╝
+</code></pre></div>
+<h3 id="grid-search-with-jobgenerator">Grid search with <code>JobGenerator</code></h3>
+<p><code>JobGenerator.generate_grid</code> creates the full combinatorial product of algorithms × env configs × algorithm configs:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">JobGenerator</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="c1"># Multiple env configs (e.g. different reward functions or symbols)</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a><span class="n">env_configs</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="s2">&quot;AAPL_sortino&quot;</span><span class="p">:</span>  <span class="n">env_config_aapl_sortino</span><span class="p">,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a>    <span class="s2">&quot;AAPL_sharpe&quot;</span><span class="p">:</span>   <span class="n">env_config_aapl_sharpe</span><span class="p">,</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>    <span class="s2">&quot;MSFT_sortino&quot;</span><span class="p">:</span>  <span class="n">env_config_msft_sortino</span><span class="p">,</span>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="p">}</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="c1"># Multiple hyperparameter configs to compare</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="n">algo_configs</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="p">{</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="mf">3e-4</span><span class="p">,</span> <span class="s2">&quot;n_steps&quot;</span><span class="p">:</span> <span class="mi">2048</span><span class="p">},</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="p">{</span><span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="mf">1e-4</span><span class="p">,</span> <span class="s2">&quot;n_steps&quot;</span><span class="p">:</span> <span class="mi">4096</span><span class="p">},</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="p">]</span>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="n">jobs</span> <span class="o">=</span> <span class="n">JobGenerator</span><span class="o">.</span><span class="n">generate_grid</span><span class="p">(</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>    <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="n">PPO</span><span class="p">,</span> <span class="n">A2C</span><span class="p">],</span>
+<a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>    <span class="n">env_configs</span><span class="o">=</span><span class="n">env_configs</span><span class="p">,</span>
+<a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>    <span class="n">algorithm_configs</span><span class="o">=</span><span class="n">algo_configs</span><span class="p">,</span>
+<a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>    <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
+<a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>    <span class="n">num_eval_episodes</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a><span class="p">)</span>
+<a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a><span class="c1"># Produces 2 algos × 3 envs × 2 configs = 12 jobs</span>
+<a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>
+<a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a><span class="n">results</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run_batch</span><span class="p">(</span><span class="n">jobs</span><span class="p">)</span>
+<a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a><span class="n">BacktestRunner</span><span class="o">.</span><span class="n">inspect_batch</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="metrics-reference">Metrics Reference</h2>
+<p><code>MetricsCalculator</code> computes the following metrics from evaluation episodes. All metrics are prefixed with <code>train_</code> or <code>test_</code> in the result object.</p>
+<table>
+<thead>
+<tr>
+<th>Metric key</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>avg_return_pct</code></td>
+<td>Mean portfolio return % across episodes</td>
+</tr>
+<tr>
+<td><code>std_return_pct</code></td>
+<td>Std-dev of return % across episodes</td>
+</tr>
+<tr>
+<td><code>win_rate</code></td>
+<td>Fraction of episodes with positive return</td>
+</tr>
+<tr>
+<td><code>avg_reward</code></td>
+<td>Mean total RL reward per episode</td>
+</tr>
+<tr>
+<td><code>std_reward</code></td>
+<td>Std-dev of RL reward</td>
+</tr>
+<tr>
+<td><code>avg_episode_length</code></td>
+<td>Mean steps per episode</td>
+</tr>
+<tr>
+<td><code>avg_sharpe_ratio</code></td>
+<td>Annualised Sharpe (252-day, 2% risk-free) averaged per episode</td>
+</tr>
+<tr>
+<td><code>avg_sortino_ratio</code></td>
+<td>Annualised Sortino (downside only) averaged per episode</td>
+</tr>
+<tr>
+<td><code>avg_max_drawdown</code></td>
+<td>Mean maximum drawdown across episodes (negative value)</td>
+</tr>
+<tr>
+<td><code>total_episodes</code></td>
+<td>Number of valid (non-errored) episodes</td>
+</tr>
+</tbody>
+</table>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Sharpe, Sortino, and drawdown require <code>detailed_actions</code> in episode data (the evaluation loop logs portfolio value at each step). These metrics are <code>None</code> if only summary episode data is available.</p>
+</div>
+<hr />
+<h2 id="feature-importance-agentexplainer">Feature Importance: <code>AgentExplainer</code></h2>
+<p><code>AgentExplainer</code> runs the trained agent through one full episode and measures which observation features drive its decisions.</p>
+<p>Two methods are available:</p>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>How it works</th>
+<th>When used</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>saliency</code></td>
+<td>Input × Gradient — computes the gradient of the policy output w.r.t. each observation feature</td>
+<td>Default; requires PyTorch model (PPO, SAC, A2C)</td>
+</tr>
+<tr>
+<td><code>correlation</code></td>
+<td>Pearson correlation between each feature and the primary action value</td>
+<td>Automatic fallback if saliency fails; also used for RecurrentPPO</td>
+</tr>
+</tbody>
+</table>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.explainer</span><span class="w"> </span><span class="kn">import</span> <span class="n">AgentExplainer</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="n">explainer</span> <span class="o">=</span> <span class="n">AgentExplainer</span><span class="p">(</span><span class="n">model</span><span class="o">=</span><span class="n">result</span><span class="o">.</span><span class="n">model</span><span class="p">,</span> <span class="n">env</span><span class="o">=</span><span class="n">test_env</span><span class="p">)</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="c1"># Get top-10 most important features</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="n">top_features</span> <span class="o">=</span> <span class="n">explainer</span><span class="o">.</span><span class="n">analyze_feature_importance</span><span class="p">(</span><span class="n">top_k</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">method</span><span class="o">=</span><span class="s2">&quot;saliency&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="k">for</span> <span class="n">feature</span><span class="p">,</span> <span class="n">score</span> <span class="ow">in</span> <span class="n">top_features</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;  </span><span class="si">{</span><span class="n">feature</span><span class="si">:</span><span class="s2">40s</span><span class="si">}</span><span class="s2">  </span><span class="si">{</span><span class="n">score</span><span class="si">:</span><span class="s2">+.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+<a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="c1"># {</span>
+<a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="c1">#   &#39;RSI_14_t-0&#39;:              +0.4211</span>
+<a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="c1">#   &#39;portfolio_balance_ratio&#39;: -0.3102</span>
+<a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="c1">#   &#39;close_t-0&#39;:               +0.2894</span>
+<a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a><span class="c1">#   &#39;recent_volatility&#39;:       -0.2211</span>
+<a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="c1">#   ...</span>
+<a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="c1"># }</span>
+</code></pre></div>
+<p>Feature importance is automatically computed inside <code>runner.run_job()</code> and stored in <code>result.top_features</code>. You only need to use <code>AgentExplainer</code> directly for custom post-hoc analysis.</p>
+<hr />
+<h2 id="hyperparameter-tuning-optunarunner">Hyperparameter Tuning: <code>OptunaRunner</code></h2>
+<p><code>OptunaRunner</code> wraps <code>BacktestRunner</code> with an Optuna study. Results are persisted to SQLite so runs can be resumed or analysed later.</p>
+<h3 id="defining-a-search-space">Defining a search space</h3>
+<p>The search space is a dict of param name → type + bounds:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="n">search_space</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="s2">&quot;learning_rate&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;float&quot;</span><span class="p">,</span>       <span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mf">1e-5</span><span class="p">,</span>  <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mf">1e-2</span><span class="p">,</span> <span class="s2">&quot;log&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="s2">&quot;n_steps&quot;</span><span class="p">:</span>       <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;categorical&quot;</span><span class="p">,</span>  <span class="s2">&quot;choices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">512</span><span class="p">,</span> <span class="mi">1024</span><span class="p">,</span> <span class="mi">2048</span><span class="p">,</span> <span class="mi">4096</span><span class="p">]},</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="s2">&quot;batch_size&quot;</span><span class="p">:</span>    <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;categorical&quot;</span><span class="p">,</span>  <span class="s2">&quot;choices&quot;</span><span class="p">:</span> <span class="p">[</span><span class="mi">64</span><span class="p">,</span> <span class="mi">128</span><span class="p">,</span> <span class="mi">256</span><span class="p">]},</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="s2">&quot;gamma&quot;</span><span class="p">:</span>         <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;float&quot;</span><span class="p">,</span>        <span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mf">0.90</span><span class="p">,</span>  <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mf">0.999</span><span class="p">},</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="s2">&quot;ent_coef&quot;</span><span class="p">:</span>      <span class="p">{</span><span class="s2">&quot;type&quot;</span><span class="p">:</span> <span class="s2">&quot;float&quot;</span><span class="p">,</span>        <span class="s2">&quot;low&quot;</span><span class="p">:</span> <span class="mf">1e-8</span><span class="p">,</span>  <span class="s2">&quot;high&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s2">&quot;log&quot;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a><span class="p">}</span>
+</code></pre></div>
+<p>Supported types: <code>"float"</code>, <code>"int"</code>, <code>"categorical"</code>, <code>"discrete_uniform"</code>.</p>
+<p><strong>Pre-built search spaces</strong> for common algorithms:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.tuning.optuna_runner</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="n">create_ppo_search_space</span><span class="p">,</span>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">create_sac_search_space</span><span class="p">,</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">create_a2c_search_space</span><span class="p">,</span>
+<a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="p">)</span>
+<a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
+<a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a><span class="n">search_space</span> <span class="o">=</span> <span class="n">create_ppo_search_space</span><span class="p">()</span>
+</code></pre></div>
+<h3 id="running-a-study">Running a study</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestRunner</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.tuning.optuna_runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptunaRunner</span>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stable_baselines3</span><span class="w"> </span><span class="kn">import</span> <span class="n">PPO</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="n">runner</span> <span class="o">=</span> <span class="n">BacktestRunner</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># quiet during tuning</span>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="n">optuna_runner</span> <span class="o">=</span> <span class="n">OptunaRunner</span><span class="p">(</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="n">runner</span><span class="o">=</span><span class="n">runner</span><span class="p">,</span>
+<a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a>    <span class="n">storage_url</span><span class="o">=</span><span class="s2">&quot;sqlite:///my_study.db&quot;</span><span class="p">,</span>   <span class="c1"># persists across runs</span>
+<a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a><span class="p">)</span>
+<a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>
+<a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a><span class="n">study</span> <span class="o">=</span> <span class="n">optuna_runner</span><span class="o">.</span><span class="n">optimize_hyperparameters</span><span class="p">(</span>
+<a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a>    <span class="n">algo_class</span><span class="o">=</span><span class="n">PPO</span><span class="p">,</span>
+<a id="__codelineno-14-13" name="__codelineno-14-13" href="#__codelineno-14-13"></a>    <span class="n">env_config</span><span class="o">=</span><span class="n">env_config</span><span class="p">,</span>
+<a id="__codelineno-14-14" name="__codelineno-14-14" href="#__codelineno-14-14"></a>    <span class="n">search_space</span><span class="o">=</span><span class="n">create_ppo_search_space</span><span class="p">(),</span>
+<a id="__codelineno-14-15" name="__codelineno-14-15" href="#__codelineno-14-15"></a>    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;ppo_aapl_sortino&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-16" name="__codelineno-14-16" href="#__codelineno-14-16"></a>    <span class="n">n_trials</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-14-17" name="__codelineno-14-17" href="#__codelineno-14-17"></a>    <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">50_000</span><span class="p">,</span>
+<a id="__codelineno-14-18" name="__codelineno-14-18" href="#__codelineno-14-18"></a>    <span class="n">num_eval_episodes</span><span class="o">=</span><span class="mi">3</span><span class="p">,</span>
+<a id="__codelineno-14-19" name="__codelineno-14-19" href="#__codelineno-14-19"></a>    <span class="n">optimization_metric</span><span class="o">=</span><span class="s2">&quot;test_avg_return_pct&quot;</span><span class="p">,</span>   <span class="c1"># or &quot;test_avg_sharpe_ratio&quot;</span>
+<a id="__codelineno-14-20" name="__codelineno-14-20" href="#__codelineno-14-20"></a>    <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;maximize&quot;</span><span class="p">,</span>
+<a id="__codelineno-14-21" name="__codelineno-14-21" href="#__codelineno-14-21"></a><span class="p">)</span>
+<a id="__codelineno-14-22" name="__codelineno-14-22" href="#__codelineno-14-22"></a>
+<a id="__codelineno-14-23" name="__codelineno-14-23" href="#__codelineno-14-23"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best value:  </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_value</span><span class="si">:</span><span class="s2">.4f</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-14-24" name="__codelineno-14-24" href="#__codelineno-14-24"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Best params: </span><span class="si">{</span><span class="n">study</span><span class="o">.</span><span class="n">best_params</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="resuming-a-study">Resuming a study</h3>
+<p>If the process is interrupted, re-running with the same <code>study_name</code> and <code>storage_url</code> continues from where it stopped (<code>load_if_exists=True</code> is set automatically):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="n">study</span> <span class="o">=</span> <span class="n">optuna_runner</span><span class="o">.</span><span class="n">optimize_hyperparameters</span><span class="p">(</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>    <span class="o">...</span><span class="p">,</span>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;ppo_aapl_sortino&quot;</span><span class="p">,</span>   <span class="c1"># same name → resumes</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">n_trials</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="querying-results">Querying results</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">import</span><span class="w"> </span><span class="nn">optuna</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a><span class="n">study</span> <span class="o">=</span> <span class="n">optuna</span><span class="o">.</span><span class="n">load_study</span><span class="p">(</span>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;ppo_aapl_sortino&quot;</span><span class="p">,</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">storage</span><span class="o">=</span><span class="s2">&quot;sqlite:///my_study.db&quot;</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a><span class="p">)</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a><span class="c1"># Best trial</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">params</span><span class="p">)</span>
+<a id="__codelineno-16-10" name="__codelineno-16-10" href="#__codelineno-16-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">study</span><span class="o">.</span><span class="n">best_trial</span><span class="o">.</span><span class="n">value</span><span class="p">)</span>
+<a id="__codelineno-16-11" name="__codelineno-16-11" href="#__codelineno-16-11"></a>
+<a id="__codelineno-16-12" name="__codelineno-16-12" href="#__codelineno-16-12"></a><span class="c1"># All trials as DataFrame</span>
+<a id="__codelineno-16-13" name="__codelineno-16-13" href="#__codelineno-16-13"></a><span class="n">df</span> <span class="o">=</span> <span class="n">study</span><span class="o">.</span><span class="n">trials_dataframe</span><span class="p">()</span>
+<a id="__codelineno-16-14" name="__codelineno-16-14" href="#__codelineno-16-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">df</span><span class="o">.</span><span class="n">sort_values</span><span class="p">(</span><span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="n">ascending</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span><span class="o">.</span><span class="n">head</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+</code></pre></div>
+<hr />
+<h2 id="full-end-to-end-example">Full End-to-End Example</h2>
+<p>A complete workflow: fetch data → process → build env → run grid → tune best algo.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">stable_baselines3</span><span class="w"> </span><span class="kn">import</span> <span class="n">PPO</span><span class="p">,</span> <span class="n">SAC</span>
+<a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a>
+<a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">YFinanceDataLoader</span>
+<a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.processor</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataProcessor</span>
+<a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestEnvironmentBuilder</span>
+<a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.core</span><span class="w"> </span><span class="kn">import</span> <span class="n">ExperimentJob</span><span class="p">,</span> <span class="n">JobGenerator</span>
+<a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestRunner</span>
+<a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.tuning.optuna_runner</span><span class="w"> </span><span class="kn">import</span> <span class="n">OptunaRunner</span><span class="p">,</span> <span class="n">create_ppo_search_space</span>
+<a id="__codelineno-17-9" name="__codelineno-17-9" href="#__codelineno-17-9"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.actions.standard</span><span class="w"> </span><span class="kn">import</span> <span class="n">StandardActionStrategy</span>
+<a id="__codelineno-17-10" name="__codelineno-17-10" href="#__codelineno-17-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.observations.feature_aware</span><span class="w"> </span><span class="kn">import</span> <span class="n">FeatureAwareObservationStrategy</span>
+<a id="__codelineno-17-11" name="__codelineno-17-11" href="#__codelineno-17-11"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.composite</span><span class="w"> </span><span class="kn">import</span> <span class="n">CompositeReward</span>
+<a id="__codelineno-17-12" name="__codelineno-17-12" href="#__codelineno-17-12"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.sortino</span><span class="w"> </span><span class="kn">import</span> <span class="n">DifferentialSortinoReward</span>
+<a id="__codelineno-17-13" name="__codelineno-17-13" href="#__codelineno-17-13"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.drawdown</span><span class="w"> </span><span class="kn">import</span> <span class="n">DrawdownPenaltyReward</span>
+<a id="__codelineno-17-14" name="__codelineno-17-14" href="#__codelineno-17-14"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.environments.stock.strategies.rewards.invalid_action</span><span class="w"> </span><span class="kn">import</span> <span class="n">InvalidActionPenalty</span>
+<a id="__codelineno-17-15" name="__codelineno-17-15" href="#__codelineno-17-15"></a>
+<a id="__codelineno-17-16" name="__codelineno-17-16" href="#__codelineno-17-16"></a><span class="c1"># ── 1. Data ──────────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-17-17" name="__codelineno-17-17" href="#__codelineno-17-17"></a><span class="n">loader</span> <span class="o">=</span> <span class="n">YFinanceDataLoader</span><span class="p">()</span>
+<a id="__codelineno-17-18" name="__codelineno-17-18" href="#__codelineno-17-18"></a><span class="n">raw_df</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">get_historical_ohlcv_data</span><span class="p">([</span><span class="s2">&quot;AAPL&quot;</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2018-01-01&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">)</span>
+<a id="__codelineno-17-19" name="__codelineno-17-19" href="#__codelineno-17-19"></a>
+<a id="__codelineno-17-20" name="__codelineno-17-20" href="#__codelineno-17-20"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DataProcessor</span><span class="p">(</span><span class="n">ohlcv_data</span><span class="o">=</span><span class="n">raw_df</span><span class="p">)</span>
+<a id="__codelineno-17-21" name="__codelineno-17-21" href="#__codelineno-17-21"></a><span class="n">splits</span><span class="p">,</span> <span class="n">meta</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span>
+<a id="__codelineno-17-22" name="__codelineno-17-22" href="#__codelineno-17-22"></a>    <span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;SMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">}},</span> <span class="p">{</span><span class="s2">&quot;EMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}},</span> <span class="s2">&quot;ATR&quot;</span><span class="p">,</span> <span class="s2">&quot;MACD&quot;</span><span class="p">],</span>
+<a id="__codelineno-17-23" name="__codelineno-17-23" href="#__codelineno-17-23"></a>    <span class="n">split_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="mf">0.8</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">},</span>
+<a id="__codelineno-17-24" name="__codelineno-17-24" href="#__codelineno-17-24"></a><span class="p">)</span>
+<a id="__codelineno-17-25" name="__codelineno-17-25" href="#__codelineno-17-25"></a><span class="n">train_df</span><span class="p">,</span> <span class="n">test_df</span> <span class="o">=</span> <span class="n">splits</span><span class="p">[</span><span class="s2">&quot;train&quot;</span><span class="p">],</span> <span class="n">splits</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span>
+<a id="__codelineno-17-26" name="__codelineno-17-26" href="#__codelineno-17-26"></a>
+<a id="__codelineno-17-27" name="__codelineno-17-27" href="#__codelineno-17-27"></a><span class="c1"># ── 2. Build env configs ───────────────────────────────────────────────────────</span>
+<a id="__codelineno-17-28" name="__codelineno-17-28" href="#__codelineno-17-28"></a><span class="k">def</span><span class="w"> </span><span class="nf">make_env_config</span><span class="p">(</span><span class="n">reward_strategy</span><span class="p">,</span> <span class="n">name</span><span class="p">):</span>
+<a id="__codelineno-17-29" name="__codelineno-17-29" href="#__codelineno-17-29"></a>    <span class="k">return</span> <span class="p">(</span>
+<a id="__codelineno-17-30" name="__codelineno-17-30" href="#__codelineno-17-30"></a>        <span class="n">BacktestEnvironmentBuilder</span><span class="p">()</span>
+<a id="__codelineno-17-31" name="__codelineno-17-31" href="#__codelineno-17-31"></a>        <span class="o">.</span><span class="n">with_data</span><span class="p">(</span><span class="n">train_data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">test_data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
+<a id="__codelineno-17-32" name="__codelineno-17-32" href="#__codelineno-17-32"></a>        <span class="o">.</span><span class="n">with_strategies</span><span class="p">(</span>
+<a id="__codelineno-17-33" name="__codelineno-17-33" href="#__codelineno-17-33"></a>            <span class="n">action</span><span class="o">=</span><span class="n">StandardActionStrategy</span><span class="p">(),</span>
+<a id="__codelineno-17-34" name="__codelineno-17-34" href="#__codelineno-17-34"></a>            <span class="n">reward</span><span class="o">=</span><span class="n">reward_strategy</span><span class="p">,</span>
+<a id="__codelineno-17-35" name="__codelineno-17-35" href="#__codelineno-17-35"></a>            <span class="n">observation</span><span class="o">=</span><span class="n">FeatureAwareObservationStrategy</span><span class="p">(),</span>
+<a id="__codelineno-17-36" name="__codelineno-17-36" href="#__codelineno-17-36"></a>        <span class="p">)</span>
+<a id="__codelineno-17-37" name="__codelineno-17-37" href="#__codelineno-17-37"></a>        <span class="o">.</span><span class="n">with_env_params</span><span class="p">(</span><span class="n">initial_balance</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span> <span class="n">window_size</span><span class="o">=</span><span class="mi">20</span><span class="p">)</span>
+<a id="__codelineno-17-38" name="__codelineno-17-38" href="#__codelineno-17-38"></a>        <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<a id="__codelineno-17-39" name="__codelineno-17-39" href="#__codelineno-17-39"></a>    <span class="p">)</span>
+<a id="__codelineno-17-40" name="__codelineno-17-40" href="#__codelineno-17-40"></a>
+<a id="__codelineno-17-41" name="__codelineno-17-41" href="#__codelineno-17-41"></a><span class="n">env_configs</span> <span class="o">=</span> <span class="p">{</span>
+<a id="__codelineno-17-42" name="__codelineno-17-42" href="#__codelineno-17-42"></a>    <span class="s2">&quot;sortino&quot;</span><span class="p">:</span>   <span class="n">make_env_config</span><span class="p">(</span><span class="n">DifferentialSortinoReward</span><span class="p">(),</span> <span class="s2">&quot;sortino&quot;</span><span class="p">),</span>
+<a id="__codelineno-17-43" name="__codelineno-17-43" href="#__codelineno-17-43"></a>    <span class="s2">&quot;composite&quot;</span><span class="p">:</span> <span class="n">make_env_config</span><span class="p">(</span>
+<a id="__codelineno-17-44" name="__codelineno-17-44" href="#__codelineno-17-44"></a>        <span class="n">CompositeReward</span><span class="p">(</span>
+<a id="__codelineno-17-45" name="__codelineno-17-45" href="#__codelineno-17-45"></a>            <span class="n">strategies</span><span class="o">=</span><span class="p">[</span><span class="n">DifferentialSortinoReward</span><span class="p">(),</span> <span class="n">DrawdownPenaltyReward</span><span class="p">(),</span> <span class="n">InvalidActionPenalty</span><span class="p">()],</span>
+<a id="__codelineno-17-46" name="__codelineno-17-46" href="#__codelineno-17-46"></a>            <span class="n">weights</span><span class="o">=</span><span class="p">[</span><span class="mf">0.6</span><span class="p">,</span> <span class="mf">0.3</span><span class="p">,</span> <span class="mf">0.1</span><span class="p">],</span>
+<a id="__codelineno-17-47" name="__codelineno-17-47" href="#__codelineno-17-47"></a>        <span class="p">),</span>
+<a id="__codelineno-17-48" name="__codelineno-17-48" href="#__codelineno-17-48"></a>        <span class="s2">&quot;composite&quot;</span><span class="p">,</span>
+<a id="__codelineno-17-49" name="__codelineno-17-49" href="#__codelineno-17-49"></a>    <span class="p">),</span>
+<a id="__codelineno-17-50" name="__codelineno-17-50" href="#__codelineno-17-50"></a><span class="p">}</span>
+<a id="__codelineno-17-51" name="__codelineno-17-51" href="#__codelineno-17-51"></a>
+<a id="__codelineno-17-52" name="__codelineno-17-52" href="#__codelineno-17-52"></a><span class="c1"># ── 3. Grid search: PPO vs SAC on both reward configs ─────────────────────────</span>
+<a id="__codelineno-17-53" name="__codelineno-17-53" href="#__codelineno-17-53"></a><span class="n">jobs</span> <span class="o">=</span> <span class="n">JobGenerator</span><span class="o">.</span><span class="n">generate_grid</span><span class="p">(</span>
+<a id="__codelineno-17-54" name="__codelineno-17-54" href="#__codelineno-17-54"></a>    <span class="n">algorithms</span><span class="o">=</span><span class="p">[</span><span class="n">PPO</span><span class="p">,</span> <span class="n">SAC</span><span class="p">],</span>
+<a id="__codelineno-17-55" name="__codelineno-17-55" href="#__codelineno-17-55"></a>    <span class="n">env_configs</span><span class="o">=</span><span class="n">env_configs</span><span class="p">,</span>
+<a id="__codelineno-17-56" name="__codelineno-17-56" href="#__codelineno-17-56"></a>    <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
+<a id="__codelineno-17-57" name="__codelineno-17-57" href="#__codelineno-17-57"></a>    <span class="n">num_eval_episodes</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>
+<a id="__codelineno-17-58" name="__codelineno-17-58" href="#__codelineno-17-58"></a><span class="p">)</span>
+<a id="__codelineno-17-59" name="__codelineno-17-59" href="#__codelineno-17-59"></a>
+<a id="__codelineno-17-60" name="__codelineno-17-60" href="#__codelineno-17-60"></a><span class="n">runner</span> <span class="o">=</span> <span class="n">BacktestRunner</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<a id="__codelineno-17-61" name="__codelineno-17-61" href="#__codelineno-17-61"></a><span class="n">results</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run_batch</span><span class="p">(</span><span class="n">jobs</span><span class="p">)</span>
+<a id="__codelineno-17-62" name="__codelineno-17-62" href="#__codelineno-17-62"></a><span class="n">BacktestRunner</span><span class="o">.</span><span class="n">inspect_batch</span><span class="p">(</span><span class="n">results</span><span class="p">)</span>
+<a id="__codelineno-17-63" name="__codelineno-17-63" href="#__codelineno-17-63"></a>
+<a id="__codelineno-17-64" name="__codelineno-17-64" href="#__codelineno-17-64"></a><span class="c1"># ── 4. Pick best combo, tune hyperparameters ──────────────────────────────────</span>
+<a id="__codelineno-17-65" name="__codelineno-17-65" href="#__codelineno-17-65"></a><span class="c1"># Assume PPO + composite reward won — tune it</span>
+<a id="__codelineno-17-66" name="__codelineno-17-66" href="#__codelineno-17-66"></a><span class="n">best_env_config</span> <span class="o">=</span> <span class="n">env_configs</span><span class="p">[</span><span class="s2">&quot;composite&quot;</span><span class="p">]</span>
+<a id="__codelineno-17-67" name="__codelineno-17-67" href="#__codelineno-17-67"></a>
+<a id="__codelineno-17-68" name="__codelineno-17-68" href="#__codelineno-17-68"></a><span class="n">optuna_runner</span> <span class="o">=</span> <span class="n">OptunaRunner</span><span class="p">(</span><span class="n">runner</span><span class="o">=</span><span class="n">BacktestRunner</span><span class="p">(</span><span class="n">verbose</span><span class="o">=</span><span class="kc">False</span><span class="p">))</span>
+<a id="__codelineno-17-69" name="__codelineno-17-69" href="#__codelineno-17-69"></a><span class="n">study</span> <span class="o">=</span> <span class="n">optuna_runner</span><span class="o">.</span><span class="n">optimize_hyperparameters</span><span class="p">(</span>
+<a id="__codelineno-17-70" name="__codelineno-17-70" href="#__codelineno-17-70"></a>    <span class="n">algo_class</span><span class="o">=</span><span class="n">PPO</span><span class="p">,</span>
+<a id="__codelineno-17-71" name="__codelineno-17-71" href="#__codelineno-17-71"></a>    <span class="n">env_config</span><span class="o">=</span><span class="n">best_env_config</span><span class="p">,</span>
+<a id="__codelineno-17-72" name="__codelineno-17-72" href="#__codelineno-17-72"></a>    <span class="n">search_space</span><span class="o">=</span><span class="n">create_ppo_search_space</span><span class="p">(),</span>
+<a id="__codelineno-17-73" name="__codelineno-17-73" href="#__codelineno-17-73"></a>    <span class="n">study_name</span><span class="o">=</span><span class="s2">&quot;ppo_aapl_composite_v1&quot;</span><span class="p">,</span>
+<a id="__codelineno-17-74" name="__codelineno-17-74" href="#__codelineno-17-74"></a>    <span class="n">n_trials</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+<a id="__codelineno-17-75" name="__codelineno-17-75" href="#__codelineno-17-75"></a>    <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">100_000</span><span class="p">,</span>
+<a id="__codelineno-17-76" name="__codelineno-17-76" href="#__codelineno-17-76"></a>    <span class="n">optimization_metric</span><span class="o">=</span><span class="s2">&quot;test_avg_sharpe_ratio&quot;</span><span class="p">,</span>
+<a id="__codelineno-17-77" name="__codelineno-17-77" href="#__codelineno-17-77"></a><span class="p">)</span>
+<a id="__codelineno-17-78" name="__codelineno-17-78" href="#__codelineno-17-78"></a>
+<a id="__codelineno-17-79" name="__codelineno-17-79" href="#__codelineno-17-79"></a><span class="c1"># ── 5. Re-train with best hyperparameters ──────────────────────────────────────</span>
+<a id="__codelineno-17-80" name="__codelineno-17-80" href="#__codelineno-17-80"></a><span class="n">final_job</span> <span class="o">=</span> <span class="n">ExperimentJob</span><span class="p">(</span>
+<a id="__codelineno-17-81" name="__codelineno-17-81" href="#__codelineno-17-81"></a>    <span class="n">algorithm_class</span><span class="o">=</span><span class="n">PPO</span><span class="p">,</span>
+<a id="__codelineno-17-82" name="__codelineno-17-82" href="#__codelineno-17-82"></a>    <span class="n">env_config</span><span class="o">=</span><span class="n">best_env_config</span><span class="p">,</span>
+<a id="__codelineno-17-83" name="__codelineno-17-83" href="#__codelineno-17-83"></a>    <span class="n">algorithm_config</span><span class="o">=</span><span class="n">study</span><span class="o">.</span><span class="n">best_params</span><span class="p">,</span>
+<a id="__codelineno-17-84" name="__codelineno-17-84" href="#__codelineno-17-84"></a>    <span class="n">total_timesteps</span><span class="o">=</span><span class="mi">200_000</span><span class="p">,</span>
+<a id="__codelineno-17-85" name="__codelineno-17-85" href="#__codelineno-17-85"></a>    <span class="n">num_eval_episodes</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+<a id="__codelineno-17-86" name="__codelineno-17-86" href="#__codelineno-17-86"></a>    <span class="n">tags</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;phase&quot;</span><span class="p">:</span> <span class="s2">&quot;final&quot;</span><span class="p">,</span> <span class="s2">&quot;tuned&quot;</span><span class="p">:</span> <span class="s2">&quot;true&quot;</span><span class="p">},</span>
+<a id="__codelineno-17-87" name="__codelineno-17-87" href="#__codelineno-17-87"></a><span class="p">)</span>
+<a id="__codelineno-17-88" name="__codelineno-17-88" href="#__codelineno-17-88"></a>
+<a id="__codelineno-17-89" name="__codelineno-17-89" href="#__codelineno-17-89"></a><span class="n">final_result</span> <span class="o">=</span> <span class="n">runner</span><span class="o">.</span><span class="n">run_job</span><span class="p">(</span><span class="n">final_job</span><span class="p">)</span>
+<a id="__codelineno-17-90" name="__codelineno-17-90" href="#__codelineno-17-90"></a><span class="n">BacktestRunner</span><span class="o">.</span><span class="n">inspect_result</span><span class="p">(</span><span class="n">final_result</span><span class="p">)</span>
+<a id="__codelineno-17-91" name="__codelineno-17-91" href="#__codelineno-17-91"></a>
+<a id="__codelineno-17-92" name="__codelineno-17-92" href="#__codelineno-17-92"></a><span class="c1"># ── 6. Save model ─────────────────────────────────────────────────────────────</span>
+<a id="__codelineno-17-93" name="__codelineno-17-93" href="#__codelineno-17-93"></a><span class="n">final_result</span><span class="o">.</span><span class="n">model</span><span class="o">.</span><span class="n">save</span><span class="p">(</span><span class="s2">&quot;models/ppo_aapl_final&quot;</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="integrating-alpha-signals">Integrating Alpha Signals</h2>
+<p>If you have run alpha research (see alpha research docs), you can inject validated signals directly into the environment's data pipeline via the builder:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.experiments.backtesting.builder</span><span class="w"> </span><span class="kn">import</span> <span class="n">BacktestEnvironmentBuilder</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a><span class="c1"># alpha_results: List[AlphaResult] from AlphaRunner</span>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="n">env_config</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">BacktestEnvironmentBuilder</span><span class="p">()</span>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>    <span class="o">.</span><span class="n">with_data</span><span class="p">(</span><span class="n">train_data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">test_data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>    <span class="o">.</span><span class="n">with_strategies</span><span class="p">(</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>        <span class="n">action</span><span class="o">=</span><span class="n">StandardActionStrategy</span><span class="p">(),</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a>        <span class="n">reward</span><span class="o">=</span><span class="n">DifferentialSortinoReward</span><span class="p">(),</span>
+<a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>        <span class="n">observation</span><span class="o">=</span><span class="n">FeatureAwareObservationStrategy</span><span class="p">(),</span>
+<a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>    <span class="p">)</span>
+<a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>    <span class="o">.</span><span class="n">with_alpha_signals</span><span class="p">(</span>
+<a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a>        <span class="n">results</span><span class="o">=</span><span class="n">alpha_results</span><span class="p">,</span>
+<a id="__codelineno-18-14" name="__codelineno-18-14" href="#__codelineno-18-14"></a>        <span class="n">top_n</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>               <span class="c1"># use the 5 best signals by IC</span>
+<a id="__codelineno-18-15" name="__codelineno-18-15" href="#__codelineno-18-15"></a>        <span class="n">metric</span><span class="o">=</span><span class="s2">&quot;ic&quot;</span><span class="p">,</span>           <span class="c1"># rank by information coefficient</span>
+<a id="__codelineno-18-16" name="__codelineno-18-16" href="#__codelineno-18-16"></a>    <span class="p">)</span>
+<a id="__codelineno-18-17" name="__codelineno-18-17" href="#__codelineno-18-17"></a>    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<a id="__codelineno-18-18" name="__codelineno-18-18" href="#__codelineno-18-18"></a><span class="p">)</span>
+</code></pre></div>
+<p>The builder runs the top-N signals through <code>TechnicalIndicatorStep</code> before creating the env factories, so the processed DataFrames already include the alpha features when training begins.</p>
+<p>You can also inject arbitrary pipeline steps for custom transformations:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarketContextStep</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a><span class="n">env_config</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="n">BacktestEnvironmentBuilder</span><span class="p">()</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="o">.</span><span class="n">with_data</span><span class="p">(</span><span class="n">train_data</span><span class="o">=</span><span class="n">train_df</span><span class="p">,</span> <span class="n">test_data</span><span class="o">=</span><span class="n">test_df</span><span class="p">)</span>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>    <span class="o">.</span><span class="n">with_strategies</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="o">.</span><span class="n">add_pipeline_step</span><span class="p">(</span><span class="n">MarketContextStep</span><span class="p">(</span><span class="n">sector_perf_df</span><span class="o">=</span><span class="n">sector_df</span><span class="p">))</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="o">.</span><span class="n">build</span><span class="p">()</span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="p">)</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/whanyu1212/QuantRL-Lab" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.instant", "header.autohide", "toc.integrate", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

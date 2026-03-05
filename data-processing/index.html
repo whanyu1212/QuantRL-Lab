@@ -1,0 +1,2217 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="A modular reinforcement learning framework for quantitative trading">
+      
+      
+        <meta name="author" content="Han Yu Wu">
+      
+      
+        <link rel="canonical" href="https://whanyu1212.github.io/QuantRL-Lab/data-processing/">
+      
+      
+        <link rel="prev" href="../DATA_SOURCES/">
+      
+      
+        <link rel="next" href="../environments/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.1">
+    
+    
+      
+        <title>Data Processing - QuantRL-Lab</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+        
+        <link rel="stylesheet" href="../assets/stylesheets/palette.ab4e12ef.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+      <link rel="stylesheet" href="../stylesheets/extra.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    
+    
+      
+    
+    
+    
+    
+    <body dir="ltr" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#data-processing-pipeline" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+      <div data-md-color-scheme="default" data-md-component="outdated" hidden>
+        
+      </div>
+    
+    
+      
+
+<header class="md-header" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="QuantRL-Lab" class="md-header__button md-logo" aria-label="QuantRL-Lab" data-md-component="logo">
+      
+  <img src="../assets/logo.svg" alt="logo">
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            QuantRL-Lab
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Data Processing
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+      
+        <form class="md-header__option" data-md-component="palette">
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: light)" data-md-color-scheme="default" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to dark mode"  type="radio" name="__palette" id="__palette_0">
+    
+      <label class="md-header__button md-icon" title="Switch to dark mode" for="__palette_1" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a4 4 0 0 0-4 4 4 4 0 0 0 4 4 4 4 0 0 0 4-4 4 4 0 0 0-4-4m0 10a6 6 0 0 1-6-6 6 6 0 0 1 6-6 6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+    
+    
+    
+    <input class="md-option" data-md-color-media="(prefers-color-scheme: dark)" data-md-color-scheme="slate" data-md-color-primary="teal" data-md-color-accent="deep-orange"  aria-label="Switch to light mode"  type="radio" name="__palette" id="__palette_1">
+    
+      <label class="md-header__button md-icon" title="Switch to light mode" for="__palette_0" hidden>
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 18c-.89 0-1.74-.2-2.5-.55C11.56 16.5 13 14.42 13 12s-1.44-4.5-3.5-5.45C10.26 6.2 11.11 6 12 6a6 6 0 0 1 6 6 6 6 0 0 1-6 6m8-9.31V4h-4.69L12 .69 8.69 4H4v4.69L.69 12 4 15.31V20h4.69L12 23.31 15.31 20H20v-4.69L23.31 12z"/></svg>
+      </label>
+    
+  
+</form>
+      
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+        <div class="md-search__suggest" data-md-component="search-suggest"></div>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+      <div class="md-header__source">
+        <a href="https://github.com/whanyu1212/QuantRL-Lab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    whanyu1212/QuantRL-Lab
+  </div>
+</a>
+      </div>
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+            
+<nav class="md-tabs" aria-label="Tabs" data-md-component="tabs">
+  <div class="md-grid">
+    <ul class="md-tabs__list">
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href=".." class="md-tabs__link">
+        
+  
+  
+    
+  
+  Home
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../getting-started/installation/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Getting Started
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../user-guide/overview/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  User Guide
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../ARCHITECTURE/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Architecture
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../DATA_SOURCES/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data Sources
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+    
+  
+  
+    <li class="md-tabs__item md-tabs__item--active">
+      <a href="./" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Data Processing
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../environments/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Environments
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    <li class="md-tabs__item">
+      <a href="../experiments/" class="md-tabs__link">
+        
+  
+  
+    
+  
+  Experiments
+
+      </a>
+    </li>
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../api-reference/environments/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  API Reference
+
+        </a>
+      </li>
+    
+  
+
+      
+        
+  
+  
+  
+  
+    
+    
+      <li class="md-tabs__item">
+        <a href="../examples/basic-backtest/" class="md-tabs__link">
+          
+  
+  
+    
+  
+  Examples
+
+        </a>
+      </li>
+    
+  
+
+      
+    </ul>
+  </div>
+</nav>
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+  
+
+
+  
+
+<nav class="md-nav md-nav--primary md-nav--lifted md-nav--integrated" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="QuantRL-Lab" class="md-nav__button md-logo" aria-label="QuantRL-Lab" data-md-component="logo">
+      
+  <img src="../assets/logo.svg" alt="logo">
+
+    </a>
+    QuantRL-Lab
+  </label>
+  
+    <div class="md-nav__source">
+      <a href="https://github.com/whanyu1212/QuantRL-Lab" title="Go to repository" class="md-source" data-md-component="source">
+  <div class="md-source__icon md-icon">
+    
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+  </div>
+  <div class="md-source__repository">
+    whanyu1212/QuantRL-Lab
+  </div>
+</a>
+    </div>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_2" >
+        
+          
+          <label class="md-nav__link" for="__nav_2" id="__nav_2_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Getting Started
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_2_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_2">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Getting Started
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/installation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Installation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/quickstart/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Quickstart
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../getting-started/configuration/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Configuration
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_3" >
+        
+          
+          <label class="md-nav__link" for="__nav_3" id="__nav_3_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    User Guide
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_3_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_3">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    User Guide
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/overview/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Overview
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/custom-strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Custom Strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/backtesting/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Backtesting
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/reward_shaping/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Reward Shaping
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../user-guide/generalization/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Generalization
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../ARCHITECTURE/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Architecture
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../DATA_SOURCES/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Sources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Processing
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#quick-reference-available-steps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Quick Reference: Available Steps
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#high-level-usage-dataprocessor" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        High-Level Usage: DataProcessor
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="High-Level Usage: DataProcessor">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#minimal-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal example
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-traintest-split-ratio-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With train/test split (ratio-based)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-traintest-split-date-based" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With train/test split (date-based)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-custom-indicator-parameters" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With custom indicator parameters
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-news-sentiment" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With news sentiment
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-analyst-data-from-fmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With analyst data (from FMP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#with-sector-industry-context-from-fmp" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        With sector / industry context (from FMP)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#loading-indicators-from-a-config-file" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Loading indicators from a config file
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#low-level-usage-datapipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Low-Level Usage: DataPipeline
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Low-Level Usage: DataPipeline">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#minimal-pipeline" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Minimal pipeline
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#inspect-the-pipeline-before-running" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspect the pipeline before running
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#step-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Step Reference
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Step Reference">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#technicalindicatorstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TechnicalIndicatorStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#numericconversionstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        NumericConversionStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#columncleanupstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ColumnCleanupStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#sentimentenrichmentstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SentimentEnrichmentStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#analystestimatesstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        AnalystEstimatesStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#marketcontextstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        MarketContextStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#crosssectionalstep" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        CrossSectionalStep
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#full-custom-pipeline-example" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Full Custom Pipeline Example
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#inspecting-processingmetadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Inspecting ProcessingMetadata
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../environments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../experiments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_9" >
+        
+          
+          <label class="md-nav__link" for="__nav_9" id="__nav_9_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    API Reference
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_9_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_9">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    API Reference
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/environments/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Environments
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/data-sources/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Data Sources
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/processing/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Processing
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/strategies/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Strategies
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../api-reference/utils/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Experiments & Utilities
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_10" >
+        
+          
+          <label class="md-nav__link" for="__nav_10" id="__nav_10_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Examples
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_10_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_10">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    Examples
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/basic-backtest/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Basic Backtest
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/feature-engineering/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Feature Engineering
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../examples/hyperparameter-tuning/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Hyperparameter Tuning
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+  
+  
+
+
+<h1 id="data-processing-pipeline">Data Processing Pipeline</h1>
+<p>QuantRL-Lab provides two ways to process raw OHLCV data before feeding it into a trading environment:</p>
+<ul>
+<li><strong><code>DataProcessor.data_processing_pipeline()</code></strong> — high-level, batteries-included method that handles the full sequence automatically</li>
+<li><strong><code>DataPipeline</code> builder</strong> — low-level, step-by-step composition for full control</li>
+</ul>
+<p>Both produce the same output: a cleaned, feature-enriched DataFrame (and optional train/test splits) along with a <code>ProcessingMetadata</code> object tracking every transformation applied.</p>
+<hr />
+<h2 id="quick-reference-available-steps">Quick Reference: Available Steps</h2>
+<table>
+<thead>
+<tr>
+<th>Step Class</th>
+<th>What it does</th>
+<th>Key parameters</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>TechnicalIndicatorStep</code></td>
+<td>Computes and appends technical indicators</td>
+<td><code>indicators</code> (list of str or dict)</td>
+</tr>
+<tr>
+<td><code>NumericConversionStep</code></td>
+<td>Converts object columns to numeric types</td>
+<td><code>columns</code> (auto-detect if <code>None</code>)</td>
+</tr>
+<tr>
+<td><code>ColumnCleanupStep</code></td>
+<td>Drops unwanted columns</td>
+<td><code>columns_to_drop</code>, <code>keep_date</code></td>
+</tr>
+<tr>
+<td><code>SentimentEnrichmentStep</code></td>
+<td>Merges news sentiment scores</td>
+<td><code>news_data</code>, <code>provider</code>, <code>fillna_strategy</code></td>
+</tr>
+<tr>
+<td><code>AnalystEstimatesStep</code></td>
+<td>Merges analyst grades / ratings</td>
+<td><code>grades_df</code>, <code>ratings_df</code></td>
+</tr>
+<tr>
+<td><code>MarketContextStep</code></td>
+<td>Merges sector / industry performance</td>
+<td><code>sector_perf_df</code>, <code>industry_perf_df</code></td>
+</tr>
+<tr>
+<td><code>CrossSectionalStep</code></td>
+<td>Computes cross-sectional features across a basket</td>
+<td><code>columns</code>, <code>methods</code></td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="high-level-usage-dataprocessor">High-Level Usage: <code>DataProcessor</code></h2>
+<p>Use <code>DataProcessor</code> when you want a single call to handle everything — indicators, sentiment, analyst data, numeric conversion, cleanup, and optional splitting.</p>
+<h3 id="minimal-example">Minimal example</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">YFinanceDataLoader</span>
+<a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.processor</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataProcessor</span>
+<a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>
+<a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">loader</span> <span class="o">=</span> <span class="n">YFinanceDataLoader</span><span class="p">()</span>
+<a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="n">raw_df</span> <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">get_historical_ohlcv_data</span><span class="p">(</span>
+<a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    <span class="n">symbols</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;AAPL&quot;</span><span class="p">],</span> <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2022-01-01&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span>
+<a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="p">)</span>
+<a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>
+<a id="__codelineno-0-9" name="__codelineno-0-9" href="#__codelineno-0-9"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DataProcessor</span><span class="p">(</span><span class="n">ohlcv_data</span><span class="o">=</span><span class="n">raw_df</span><span class="p">)</span>
+<a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span>
+<a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>    <span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;SMA&quot;</span><span class="p">,</span> <span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="s2">&quot;MACD&quot;</span><span class="p">]</span>
+<a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a><span class="p">)</span>
+<a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>
+<a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">processed_df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;technical_indicators&quot;</span><span class="p">])</span>
+</code></pre></div>
+<h3 id="with-traintest-split-ratio-based">With train/test split (ratio-based)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="n">processed</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span>
+<a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;SMA&quot;</span><span class="p">,</span> <span class="s2">&quot;EMA&quot;</span><span class="p">,</span> <span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="s2">&quot;BBANDS&quot;</span><span class="p">],</span>
+<a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">split_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="mf">0.7</span><span class="p">,</span> <span class="s2">&quot;val&quot;</span><span class="p">:</span> <span class="mf">0.1</span><span class="p">,</span> <span class="s2">&quot;test&quot;</span><span class="p">:</span> <span class="mf">0.2</span><span class="p">},</span>
+<a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="p">)</span>
+<a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
+<a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">train_df</span> <span class="o">=</span> <span class="n">processed</span><span class="p">[</span><span class="s2">&quot;train&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">val_df</span>   <span class="o">=</span> <span class="n">processed</span><span class="p">[</span><span class="s2">&quot;val&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a><span class="n">test_df</span>  <span class="o">=</span> <span class="n">processed</span><span class="p">[</span><span class="s2">&quot;test&quot;</span><span class="p">]</span>
+<a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>
+<a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;date_ranges&quot;</span><span class="p">])</span>
+<a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a><span class="c1"># {&#39;train&#39;: {&#39;start&#39;: &#39;2022-01-03&#39;, &#39;end&#39;: &#39;2023-03-15&#39;}, ...}</span>
+</code></pre></div>
+<h3 id="with-traintest-split-date-based">With train/test split (date-based)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">processed</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span>
+<a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="s2">&quot;ATR&quot;</span><span class="p">],</span>
+<a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">split_config</span><span class="o">=</span><span class="p">{</span>
+<a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>        <span class="s2">&quot;train&quot;</span><span class="p">:</span> <span class="p">(</span><span class="s2">&quot;2021-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2022-12-31&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>        <span class="s2">&quot;test&quot;</span><span class="p">:</span>  <span class="p">(</span><span class="s2">&quot;2023-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2023-12-31&quot;</span><span class="p">),</span>
+<a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>    <span class="p">},</span>
+<a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="p">)</span>
+</code></pre></div>
+<h3 id="with-custom-indicator-parameters">With custom indicator parameters</h3>
+<p>Indicators can be specified as plain strings (use defaults) or dicts with explicit parameters:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="n">indicators</span> <span class="o">=</span> <span class="p">[</span>
+<a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="s2">&quot;RSI&quot;</span><span class="p">,</span>                             <span class="c1"># default window=14</span>
+<a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="p">{</span><span class="s2">&quot;SMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">}},</span>           <span class="c1"># custom window</span>
+<a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="p">{</span><span class="s2">&quot;EMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}},</span>
+<a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="p">{</span><span class="s2">&quot;BBANDS&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;num_std&quot;</span><span class="p">:</span> <span class="mf">2.5</span><span class="p">}},</span>
+<a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="p">{</span><span class="s2">&quot;MACD&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fast&quot;</span><span class="p">:</span> <span class="mi">8</span><span class="p">,</span> <span class="s2">&quot;slow&quot;</span><span class="p">:</span> <span class="mi">21</span><span class="p">,</span> <span class="s2">&quot;signal&quot;</span><span class="p">:</span> <span class="mi">9</span><span class="p">}},</span>
+<a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="p">]</span>
+<a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
+<a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="n">indicators</span><span class="p">)</span>
+</code></pre></div>
+<h3 id="with-news-sentiment">With news sentiment</h3>
+<p>Requires <code>news_data</code> to be passed to <code>DataProcessor</code>. The default sentiment provider is <code>HuggingFaceProvider</code> (FinBERT).</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlpacaDataLoader</span>
+<a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+<a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">loader</span> <span class="o">=</span> <span class="n">AlpacaDataLoader</span><span class="p">()</span>
+<a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">raw_df</span>   <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">get_historical_ohlcv_data</span><span class="p">([</span><span class="s2">&quot;AAPL&quot;</span><span class="p">],</span> <span class="s2">&quot;2023-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-01-01&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">news_df</span>  <span class="o">=</span> <span class="n">loader</span><span class="o">.</span><span class="n">get_news_data</span><span class="p">(</span><span class="n">symbols</span><span class="o">=</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="s2">&quot;2023-01-01&quot;</span><span class="p">,</span> <span class="n">end</span><span class="o">=</span><span class="s2">&quot;2024-01-01&quot;</span><span class="p">)</span>
+<a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>
+<a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DataProcessor</span><span class="p">(</span><span class="n">ohlcv_data</span><span class="o">=</span><span class="n">raw_df</span><span class="p">,</span> <span class="n">news_data</span><span class="o">=</span><span class="n">news_df</span><span class="p">)</span>
+<a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span>
+<a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="s2">&quot;SMA&quot;</span><span class="p">],</span>
+<a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>    <span class="n">fillna_strategy</span><span class="o">=</span><span class="s2">&quot;fill_forward&quot;</span><span class="p">,</span>   <span class="c1"># or &quot;neutral&quot; (default, fills with 0.0)</span>
+<a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="p">)</span>
+<a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
+<a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;news_sentiment_applied&quot;</span><span class="p">])</span>   <span class="c1"># True</span>
+</code></pre></div>
+<h3 id="with-analyst-data-from-fmp">With analyst data (from FMP)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">FMPDataSource</span>
+<a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+<a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="n">fmp</span> <span class="o">=</span> <span class="n">FMPDataSource</span><span class="p">()</span>
+<a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">grades_df</span>  <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_grades</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">)</span>
+<a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="n">ratings_df</span> <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_rating</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">)</span>
+<a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>
+<a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DataProcessor</span><span class="p">(</span>
+<a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="n">ohlcv_data</span><span class="o">=</span><span class="n">raw_df</span><span class="p">,</span>
+<a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>    <span class="n">analyst_grades</span><span class="o">=</span><span class="n">grades_df</span><span class="p">,</span>
+<a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">analyst_ratings</span><span class="o">=</span><span class="n">ratings_df</span><span class="p">,</span>
+<a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a><span class="p">)</span>
+<a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI&quot;</span><span class="p">])</span>
+<a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>
+<a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="p">[</span><span class="s2">&quot;analyst_data_applied&quot;</span><span class="p">])</span>   <span class="c1"># True</span>
+</code></pre></div>
+<h3 id="with-sector-industry-context-from-fmp">With sector / industry context (from FMP)</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="n">sector_df</span>   <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_sector_performance</span><span class="p">(</span><span class="s2">&quot;Technology&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="n">industry_df</span> <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_industry_performance</span><span class="p">(</span><span class="s2">&quot;Software&quot;</span><span class="p">)</span>
+<a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+<a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">processor</span> <span class="o">=</span> <span class="n">DataProcessor</span><span class="p">(</span>
+<a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">ohlcv_data</span><span class="o">=</span><span class="n">raw_df</span><span class="p">,</span>
+<a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">sector_performance</span><span class="o">=</span><span class="n">sector_df</span><span class="p">,</span>
+<a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="n">industry_performance</span><span class="o">=</span><span class="n">industry_df</span><span class="p">,</span>
+<a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="p">)</span>
+<a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="s2">&quot;SMA&quot;</span><span class="p">])</span>
+<a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
+<a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="c1"># New columns: sector_changesPercentage, industry_changesPercentage, etc.</span>
+</code></pre></div>
+<h3 id="loading-indicators-from-a-config-file">Loading indicators from a config file</h3>
+<p>For reproducible experiments, define indicators in YAML or JSON and load them:</p>
+<div class="tabbed-set tabbed-alternate" data-tabs="1:2"><input checked="checked" id="__tabbed_1_1" name="__tabbed_1" type="radio" /><input id="__tabbed_1_2" name="__tabbed_1" type="radio" /><div class="tabbed-labels"><label for="__tabbed_1_1">YAML</label><label for="__tabbed_1_2">JSON</label></div>
+<div class="tabbed-content">
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="c1"># indicators.yaml</span>
+<a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="nt">indicators</span><span class="p">:</span>
+<a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">SMA</span>
+<a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">RSI</span>
+<a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">EMA</span><span class="p">:</span>
+<a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a><span class="w">      </span><span class="nt">window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">BBANDS</span><span class="p">:</span>
+<a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="w">      </span><span class="nt">window</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">20</span>
+<a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">      </span><span class="nt">num_std</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">2.0</span>
+</code></pre></div>
+</div>
+<div class="tabbed-block">
+<div class="highlight"><pre><span></span><code><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="p">{</span>
+<a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="w">  </span><span class="nt">&quot;indicators&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">[</span>
+<a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="s2">&quot;SMA&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="w">    </span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span>
+<a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;EMA&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;window&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">}},</span>
+<a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="w">    </span><span class="p">{</span><span class="nt">&quot;BBANDS&quot;</span><span class="p">:</span><span class="w"> </span><span class="p">{</span><span class="nt">&quot;window&quot;</span><span class="p">:</span><span class="w"> </span><span class="mi">20</span><span class="p">,</span><span class="w"> </span><span class="nt">&quot;num_std&quot;</span><span class="p">:</span><span class="w"> </span><span class="mf">2.0</span><span class="p">}}</span>
+<a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="w">  </span><span class="p">]</span>
+<a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="p">}</span>
+</code></pre></div>
+</div>
+</div>
+</div>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="n">indicators</span> <span class="o">=</span> <span class="n">DataProcessor</span><span class="o">.</span><span class="n">load_indicators</span><span class="p">(</span><span class="s2">&quot;indicators.yaml&quot;</span><span class="p">)</span>
+<a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="n">indicators</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="low-level-usage-datapipeline">Low-Level Usage: <code>DataPipeline</code></h2>
+<p>Use <code>DataPipeline</code> when you need precise control over the order of steps, want to skip steps, or are building a custom pipeline outside of <code>DataProcessor</code>.</p>
+<h3 id="minimal-pipeline">Minimal pipeline</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataPipeline</span>
+<a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">TechnicalIndicatorStep</span><span class="p">,</span>
+<a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">NumericConversionStep</span><span class="p">,</span>
+<a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">ColumnCleanupStep</span><span class="p">,</span>
+<a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
+<a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a>
+<a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">DataPipeline</span><span class="p">()</span>
+<a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">TechnicalIndicatorStep</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;SMA&quot;</span><span class="p">,</span> <span class="s2">&quot;RSI&quot;</span><span class="p">]))</span>
+<a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">NumericConversionStep</span><span class="p">())</span>
+<a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">ColumnCleanupStep</span><span class="p">())</span>
+<a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="p">)</span>
+<a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>
+<a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">raw_df</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;AAPL&quot;</span><span class="p">)</span>
+<a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="nb">print</span><span class="p">(</span><span class="n">processed_df</span><span class="o">.</span><span class="n">columns</span><span class="o">.</span><span class="n">tolist</span><span class="p">())</span>
+<a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">technical_indicators</span><span class="p">)</span>   <span class="c1"># [&quot;SMA&quot;, &quot;RSI&quot;]</span>
+</code></pre></div>
+<h3 id="inspect-the-pipeline-before-running">Inspect the pipeline before running</h3>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>    <span class="n">DataPipeline</span><span class="p">()</span>
+<a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">TechnicalIndicatorStep</span><span class="p">([</span><span class="s2">&quot;RSI&quot;</span><span class="p">,</span> <span class="s2">&quot;MACD&quot;</span><span class="p">]))</span>
+<a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">ColumnCleanupStep</span><span class="p">(</span><span class="n">columns_to_drop</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Symbol&quot;</span><span class="p">]))</span>
+<a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="p">)</span>
+<a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>
+<a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">pipeline</span><span class="p">)</span>
+<a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="c1"># DataPipeline(2 steps: [&#39;Technical Indicators&#39;, &#39;Column Cleanup&#39;])</span>
+<a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>
+<a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="nb">print</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">pipeline</span><span class="p">))</span>   <span class="c1"># 2</span>
+</code></pre></div>
+<hr />
+<h2 id="step-reference">Step Reference</h2>
+<h3 id="technicalindicatorstep"><code>TechnicalIndicatorStep</code></h3>
+<p>Adds technical indicator columns to the DataFrame. Pass indicator names as strings for default parameters, or dicts for custom ones.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">TechnicalIndicatorStep</span>
+<a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
+<a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="n">step</span> <span class="o">=</span> <span class="n">TechnicalIndicatorStep</span><span class="p">(</span>
+<a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">indicators</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>        <span class="s2">&quot;SMA&quot;</span><span class="p">,</span>                             <span class="c1"># SMA with default window</span>
+<a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>        <span class="s2">&quot;RSI&quot;</span><span class="p">,</span>                             <span class="c1"># RSI with default window=14</span>
+<a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>        <span class="p">{</span><span class="s2">&quot;EMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}},</span>
+<a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="p">{</span><span class="s2">&quot;BBANDS&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">,</span> <span class="s2">&quot;num_std&quot;</span><span class="p">:</span> <span class="mf">2.0</span><span class="p">}},</span>
+<a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="p">{</span><span class="s2">&quot;MACD&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;fast&quot;</span><span class="p">:</span> <span class="mi">12</span><span class="p">,</span> <span class="s2">&quot;slow&quot;</span><span class="p">:</span> <span class="mi">26</span><span class="p">,</span> <span class="s2">&quot;signal&quot;</span><span class="p">:</span> <span class="mi">9</span><span class="p">}},</span>
+<a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>        <span class="s2">&quot;ATR&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a>        <span class="s2">&quot;OBV&quot;</span><span class="p">,</span>
+<a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a>    <span class="p">]</span>
+<a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a><span class="p">)</span>
+</code></pre></div>
+<p>To see all registered indicators:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.indicators.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">IndicatorRegistry</span>
+<a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>
+<a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">IndicatorRegistry</span><span class="o">.</span><span class="n">list_all</span><span class="p">())</span>
+<a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="c1"># [&#39;SMA&#39;, &#39;EMA&#39;, &#39;RSI&#39;, &#39;MACD&#39;, &#39;BBANDS&#39;, &#39;ATR&#39;, &#39;OBV&#39;, ...]</span>
+</code></pre></div>
+<hr />
+<h3 id="numericconversionstep"><code>NumericConversionStep</code></h3>
+<p>Converts <code>object</code>-dtype columns to numeric. Automatically skips date columns. Useful after merging external data (analyst, sentiment) that may come in as strings.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">NumericConversionStep</span>
+<a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a>
+<a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="c1"># Auto-detect all object columns (excluding date columns)</span>
+<a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a><span class="n">step</span> <span class="o">=</span> <span class="n">NumericConversionStep</span><span class="p">()</span>
+<a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>
+<a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a><span class="c1"># Or convert specific columns only</span>
+<a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="n">step</span> <span class="o">=</span> <span class="n">NumericConversionStep</span><span class="p">(</span><span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;analyst_score&quot;</span><span class="p">,</span> <span class="s2">&quot;rating_score&quot;</span><span class="p">])</span>
+</code></pre></div>
+<hr />
+<h3 id="columncleanupstep"><code>ColumnCleanupStep</code></h3>
+<p>Drops columns before the DataFrame is passed to the environment. By default, drops <code>Date</code>, <code>Timestamp</code>, and <code>Symbol</code> — columns the RL agent should not see directly.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">ColumnCleanupStep</span>
+<a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a>
+<a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a><span class="c1"># Default: drop Date, Timestamp, Symbol</span>
+<a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a><span class="n">step</span> <span class="o">=</span> <span class="n">ColumnCleanupStep</span><span class="p">()</span>
+<a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a>
+<a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a><span class="c1"># Custom columns</span>
+<a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="n">step</span> <span class="o">=</span> <span class="n">ColumnCleanupStep</span><span class="p">(</span><span class="n">columns_to_drop</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;Date&quot;</span><span class="p">,</span> <span class="s2">&quot;Symbol&quot;</span><span class="p">,</span> <span class="s2">&quot;vwap&quot;</span><span class="p">])</span>
+<a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>
+<a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a><span class="c1"># Keep date (e.g., if you need to split afterwards)</span>
+<a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a><span class="n">step</span> <span class="o">=</span> <span class="n">ColumnCleanupStep</span><span class="p">(</span><span class="n">keep_date</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h3 id="sentimentenrichmentstep"><code>SentimentEnrichmentStep</code></h3>
+<p>Merges per-day news sentiment scores into the OHLCV DataFrame. Missing days (no news) are filled using the chosen strategy.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">SentimentEnrichmentStep</span>
+<a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.sentiment</span><span class="w"> </span><span class="kn">import</span> <span class="n">HuggingFaceProvider</span><span class="p">,</span> <span class="n">SentimentConfig</span>
+<a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>
+<a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a><span class="n">step</span> <span class="o">=</span> <span class="n">SentimentEnrichmentStep</span><span class="p">(</span>
+<a id="__codelineno-16-5" name="__codelineno-16-5" href="#__codelineno-16-5"></a>    <span class="n">news_data</span><span class="o">=</span><span class="n">news_df</span><span class="p">,</span>
+<a id="__codelineno-16-6" name="__codelineno-16-6" href="#__codelineno-16-6"></a>    <span class="n">provider</span><span class="o">=</span><span class="n">HuggingFaceProvider</span><span class="p">(),</span>     <span class="c1"># default; uses FinBERT</span>
+<a id="__codelineno-16-7" name="__codelineno-16-7" href="#__codelineno-16-7"></a>    <span class="n">config</span><span class="o">=</span><span class="n">SentimentConfig</span><span class="p">(),</span>           <span class="c1"># window size, aggregation, etc.</span>
+<a id="__codelineno-16-8" name="__codelineno-16-8" href="#__codelineno-16-8"></a>    <span class="n">fillna_strategy</span><span class="o">=</span><span class="s2">&quot;neutral&quot;</span><span class="p">,</span>          <span class="c1"># &quot;neutral&quot; → 0.0, &quot;fill_forward&quot; → last known score</span>
+<a id="__codelineno-16-9" name="__codelineno-16-9" href="#__codelineno-16-9"></a><span class="p">)</span>
+</code></pre></div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p><code>SentimentEnrichmentStep</code> requires the <code>ml</code> optional dependency group:
+<div class="highlight"><pre><span></span><code><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a>uv<span class="w"> </span>sync<span class="w"> </span>--extra<span class="w"> </span>ml
+</code></pre></div></p>
+</div>
+<hr />
+<h3 id="analystestimatesstep"><code>AnalystEstimatesStep</code></h3>
+<p>Merges historical analyst grades and ratings into the DataFrame. Analyst updates are sparse (monthly), so values are forward-filled to represent the "current" consensus at each timestep. Matching is done at monthly granularity to handle timing mismatches between analyst reports and trading days.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">AnalystEstimatesStep</span>
+<a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">FMPDataSource</span>
+<a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>
+<a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a><span class="n">fmp</span> <span class="o">=</span> <span class="n">FMPDataSource</span><span class="p">()</span>
+<a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>
+<a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a><span class="n">step</span> <span class="o">=</span> <span class="n">AnalystEstimatesStep</span><span class="p">(</span>
+<a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>    <span class="n">grades_df</span><span class="o">=</span><span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_grades</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">),</span>
+<a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a>    <span class="n">ratings_df</span><span class="o">=</span><span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_rating</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">100</span><span class="p">),</span>
+<a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="p">)</span>
+</code></pre></div>
+<p>Output columns include analyst grade fields and rating scores merged on the closest month. Pass only one of <code>grades_df</code> / <code>ratings_df</code> if you only need one.</p>
+<hr />
+<h3 id="marketcontextstep"><code>MarketContextStep</code></h3>
+<p>Merges sector or industry performance into the DataFrame so the agent can observe broad market conditions alongside individual stock data.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">MarketContextStep</span>
+<a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">FMPDataSource</span>
+<a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+<a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="n">fmp</span> <span class="o">=</span> <span class="n">FMPDataSource</span><span class="p">()</span>
+<a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
+<a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="n">step</span> <span class="o">=</span> <span class="n">MarketContextStep</span><span class="p">(</span>
+<a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="n">sector_perf_df</span><span class="o">=</span><span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_sector_performance</span><span class="p">(</span><span class="s2">&quot;Technology&quot;</span><span class="p">),</span>
+<a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="n">industry_perf_df</span><span class="o">=</span><span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_industry_performance</span><span class="p">(</span><span class="s2">&quot;Software&quot;</span><span class="p">),</span>
+<a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a><span class="p">)</span>
+</code></pre></div>
+<p>Added columns are prefixed with <code>sector_</code> and <code>industry_</code> respectively. Pass only the data you have — both arguments are optional.</p>
+<hr />
+<h3 id="crosssectionalstep"><code>CrossSectionalStep</code></h3>
+<p>Computes cross-sectional features across a <strong>basket of stocks</strong> (panel data). Groups by date and normalises each feature relative to all stocks present on that day. Only meaningful with 2+ symbols; silently bypasses if a single symbol is detected.</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="n">CrossSectionalStep</span>
+<a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>
+<a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a><span class="c1"># Supported methods: &quot;zscore&quot;, &quot;rank&quot;, &quot;mean_centered&quot;</span>
+<a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a><span class="n">step</span> <span class="o">=</span> <span class="n">CrossSectionalStep</span><span class="p">(</span>
+<a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="n">columns</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI_14&quot;</span><span class="p">,</span> <span class="s2">&quot;volume&quot;</span><span class="p">,</span> <span class="s2">&quot;close&quot;</span><span class="p">],</span>
+<a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>    <span class="n">methods</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;zscore&quot;</span><span class="p">,</span> <span class="s2">&quot;rank&quot;</span><span class="p">],</span>
+<a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a><span class="p">)</span>
+<a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a>
+<a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="c1"># Output columns: RSI_14_cs_zscore, RSI_14_cs_rank, volume_cs_zscore, ...</span>
+</code></pre></div>
+<table>
+<thead>
+<tr>
+<th>Method</th>
+<th>Formula</th>
+<th>Use when</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>zscore</code></td>
+<td><code>(x − μ) / σ</code></td>
+<td>You want mean-zero, unit-variance relative signal</td>
+</tr>
+<tr>
+<td><code>rank</code></td>
+<td>Percentile rank [0, 1]</td>
+<td>You want a robust, outlier-resistant rank signal</td>
+</tr>
+<tr>
+<td><code>mean_centered</code></td>
+<td><code>x − μ</code></td>
+<td>You want direction relative to the cross-section mean</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="full-custom-pipeline-example">Full Custom Pipeline Example</h2>
+<p>Combining all steps for a multi-source enrichment pipeline:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.pipeline</span><span class="w"> </span><span class="kn">import</span> <span class="n">DataPipeline</span>
+<a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.processing.steps</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
+<a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    <span class="n">TechnicalIndicatorStep</span><span class="p">,</span>
+<a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    <span class="n">AnalystEstimatesStep</span><span class="p">,</span>
+<a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>    <span class="n">MarketContextStep</span><span class="p">,</span>
+<a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>    <span class="n">SentimentEnrichmentStep</span><span class="p">,</span>
+<a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a>    <span class="n">NumericConversionStep</span><span class="p">,</span>
+<a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a>    <span class="n">ColumnCleanupStep</span><span class="p">,</span>
+<a id="__codelineno-21-9" name="__codelineno-21-9" href="#__codelineno-21-9"></a><span class="p">)</span>
+<a id="__codelineno-21-10" name="__codelineno-21-10" href="#__codelineno-21-10"></a><span class="kn">from</span><span class="w"> </span><span class="nn">quantrl_lab.data.sources</span><span class="w"> </span><span class="kn">import</span> <span class="n">AlpacaDataLoader</span><span class="p">,</span> <span class="n">FMPDataSource</span>
+<a id="__codelineno-21-11" name="__codelineno-21-11" href="#__codelineno-21-11"></a>
+<a id="__codelineno-21-12" name="__codelineno-21-12" href="#__codelineno-21-12"></a><span class="n">alpaca</span> <span class="o">=</span> <span class="n">AlpacaDataLoader</span><span class="p">()</span>
+<a id="__codelineno-21-13" name="__codelineno-21-13" href="#__codelineno-21-13"></a><span class="n">fmp</span>    <span class="o">=</span> <span class="n">FMPDataSource</span><span class="p">()</span>
+<a id="__codelineno-21-14" name="__codelineno-21-14" href="#__codelineno-21-14"></a>
+<a id="__codelineno-21-15" name="__codelineno-21-15" href="#__codelineno-21-15"></a><span class="n">raw_df</span>     <span class="o">=</span> <span class="n">alpaca</span><span class="o">.</span><span class="n">get_historical_ohlcv_data</span><span class="p">([</span><span class="s2">&quot;AAPL&quot;</span><span class="p">],</span> <span class="s2">&quot;2022-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-01-01&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-16" name="__codelineno-21-16" href="#__codelineno-21-16"></a><span class="n">news_df</span>    <span class="o">=</span> <span class="n">alpaca</span><span class="o">.</span><span class="n">get_news_data</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="s2">&quot;2022-01-01&quot;</span><span class="p">,</span> <span class="s2">&quot;2024-01-01&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-17" name="__codelineno-21-17" href="#__codelineno-21-17"></a><span class="n">grades_df</span>  <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_grades</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-18" name="__codelineno-21-18" href="#__codelineno-21-18"></a><span class="n">ratings_df</span> <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_rating</span><span class="p">(</span><span class="s2">&quot;AAPL&quot;</span><span class="p">,</span> <span class="n">limit</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+<a id="__codelineno-21-19" name="__codelineno-21-19" href="#__codelineno-21-19"></a><span class="n">sector_df</span>  <span class="o">=</span> <span class="n">fmp</span><span class="o">.</span><span class="n">get_historical_sector_performance</span><span class="p">(</span><span class="s2">&quot;Technology&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-20" name="__codelineno-21-20" href="#__codelineno-21-20"></a>
+<a id="__codelineno-21-21" name="__codelineno-21-21" href="#__codelineno-21-21"></a><span class="n">pipeline</span> <span class="o">=</span> <span class="p">(</span>
+<a id="__codelineno-21-22" name="__codelineno-21-22" href="#__codelineno-21-22"></a>    <span class="n">DataPipeline</span><span class="p">()</span>
+<a id="__codelineno-21-23" name="__codelineno-21-23" href="#__codelineno-21-23"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">TechnicalIndicatorStep</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="p">[</span>
+<a id="__codelineno-21-24" name="__codelineno-21-24" href="#__codelineno-21-24"></a>        <span class="s2">&quot;RSI&quot;</span><span class="p">,</span>
+<a id="__codelineno-21-25" name="__codelineno-21-25" href="#__codelineno-21-25"></a>        <span class="p">{</span><span class="s2">&quot;SMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">50</span><span class="p">}},</span>
+<a id="__codelineno-21-26" name="__codelineno-21-26" href="#__codelineno-21-26"></a>        <span class="p">{</span><span class="s2">&quot;EMA&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;window&quot;</span><span class="p">:</span> <span class="mi">20</span><span class="p">}},</span>
+<a id="__codelineno-21-27" name="__codelineno-21-27" href="#__codelineno-21-27"></a>        <span class="s2">&quot;ATR&quot;</span><span class="p">,</span>
+<a id="__codelineno-21-28" name="__codelineno-21-28" href="#__codelineno-21-28"></a>        <span class="s2">&quot;OBV&quot;</span><span class="p">,</span>
+<a id="__codelineno-21-29" name="__codelineno-21-29" href="#__codelineno-21-29"></a>    <span class="p">]))</span>
+<a id="__codelineno-21-30" name="__codelineno-21-30" href="#__codelineno-21-30"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">AnalystEstimatesStep</span><span class="p">(</span><span class="n">grades_df</span><span class="o">=</span><span class="n">grades_df</span><span class="p">,</span> <span class="n">ratings_df</span><span class="o">=</span><span class="n">ratings_df</span><span class="p">))</span>
+<a id="__codelineno-21-31" name="__codelineno-21-31" href="#__codelineno-21-31"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">MarketContextStep</span><span class="p">(</span><span class="n">sector_perf_df</span><span class="o">=</span><span class="n">sector_df</span><span class="p">))</span>
+<a id="__codelineno-21-32" name="__codelineno-21-32" href="#__codelineno-21-32"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">SentimentEnrichmentStep</span><span class="p">(</span><span class="n">news_data</span><span class="o">=</span><span class="n">news_df</span><span class="p">,</span> <span class="n">fillna_strategy</span><span class="o">=</span><span class="s2">&quot;fill_forward&quot;</span><span class="p">))</span>
+<a id="__codelineno-21-33" name="__codelineno-21-33" href="#__codelineno-21-33"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">NumericConversionStep</span><span class="p">())</span>
+<a id="__codelineno-21-34" name="__codelineno-21-34" href="#__codelineno-21-34"></a>    <span class="o">.</span><span class="n">add_step</span><span class="p">(</span><span class="n">ColumnCleanupStep</span><span class="p">())</span>
+<a id="__codelineno-21-35" name="__codelineno-21-35" href="#__codelineno-21-35"></a><span class="p">)</span>
+<a id="__codelineno-21-36" name="__codelineno-21-36" href="#__codelineno-21-36"></a>
+<a id="__codelineno-21-37" name="__codelineno-21-37" href="#__codelineno-21-37"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">raw_df</span><span class="p">,</span> <span class="n">symbol</span><span class="o">=</span><span class="s2">&quot;AAPL&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-38" name="__codelineno-21-38" href="#__codelineno-21-38"></a>
+<a id="__codelineno-21-39" name="__codelineno-21-39" href="#__codelineno-21-39"></a><span class="nb">print</span><span class="p">(</span><span class="n">processed_df</span><span class="o">.</span><span class="n">shape</span><span class="p">)</span>
+<a id="__codelineno-21-40" name="__codelineno-21-40" href="#__codelineno-21-40"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Indicators: </span><span class="si">{</span><span class="n">metadata</span><span class="o">.</span><span class="n">technical_indicators</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-41" name="__codelineno-21-41" href="#__codelineno-21-41"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Analyst data: </span><span class="si">{</span><span class="n">metadata</span><span class="o">.</span><span class="n">analyst_data_applied</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-42" name="__codelineno-21-42" href="#__codelineno-21-42"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Sentiment: </span><span class="si">{</span><span class="n">metadata</span><span class="o">.</span><span class="n">news_sentiment_applied</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<a id="__codelineno-21-43" name="__codelineno-21-43" href="#__codelineno-21-43"></a><span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Market context: </span><span class="si">{</span><span class="n">metadata</span><span class="o">.</span><span class="n">market_context_applied</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div>
+<hr />
+<h2 id="inspecting-processingmetadata">Inspecting <code>ProcessingMetadata</code></h2>
+<p>Every pipeline execution returns a <code>ProcessingMetadata</code> object (or its dict form via <code>to_dict()</code>):</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata</span> <span class="o">=</span> <span class="n">pipeline</span><span class="o">.</span><span class="n">execute</span><span class="p">(</span><span class="n">raw_df</span><span class="p">)</span>
+<a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>
+<a id="__codelineno-22-3" name="__codelineno-22-3" href="#__codelineno-22-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">original_shape</span><span class="p">)</span>          <span class="c1"># (504, 7)</span>
+<a id="__codelineno-22-4" name="__codelineno-22-4" href="#__codelineno-22-4"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">final_shapes</span><span class="p">)</span>            <span class="c1"># {&#39;processed&#39;: (480, 23)}</span>
+<a id="__codelineno-22-5" name="__codelineno-22-5" href="#__codelineno-22-5"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">technical_indicators</span><span class="p">)</span>    <span class="c1"># [&#39;RSI&#39;, {&#39;SMA&#39;: {&#39;window&#39;: 50}}, ...]</span>
+<a id="__codelineno-22-6" name="__codelineno-22-6" href="#__codelineno-22-6"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">columns_dropped</span><span class="p">)</span>         <span class="c1"># [&#39;Date&#39;, &#39;Timestamp&#39;, &#39;Symbol&#39;]</span>
+<a id="__codelineno-22-7" name="__codelineno-22-7" href="#__codelineno-22-7"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">news_sentiment_applied</span><span class="p">)</span>  <span class="c1"># True</span>
+<a id="__codelineno-22-8" name="__codelineno-22-8" href="#__codelineno-22-8"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">analyst_data_applied</span><span class="p">)</span>    <span class="c1"># True</span>
+<a id="__codelineno-22-9" name="__codelineno-22-9" href="#__codelineno-22-9"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">market_context_applied</span><span class="p">)</span>  <span class="c1"># True</span>
+<a id="__codelineno-22-10" name="__codelineno-22-10" href="#__codelineno-22-10"></a>
+<a id="__codelineno-22-11" name="__codelineno-22-11" href="#__codelineno-22-11"></a><span class="c1"># Serialize for logging / experiment tracking</span>
+<a id="__codelineno-22-12" name="__codelineno-22-12" href="#__codelineno-22-12"></a><span class="kn">import</span><span class="w"> </span><span class="nn">json</span>
+<a id="__codelineno-22-13" name="__codelineno-22-13" href="#__codelineno-22-13"></a><span class="nb">print</span><span class="p">(</span><span class="n">json</span><span class="o">.</span><span class="n">dumps</span><span class="p">(</span><span class="n">metadata</span><span class="o">.</span><span class="n">to_dict</span><span class="p">(),</span> <span class="n">indent</span><span class="o">=</span><span class="mi">2</span><span class="p">,</span> <span class="n">default</span><span class="o">=</span><span class="nb">str</span><span class="p">))</span>
+</code></pre></div>
+<p>When using <code>DataProcessor.data_processing_pipeline()</code>, the metadata is returned as a plain dict:</p>
+<div class="highlight"><pre><span></span><code><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">processed_df</span><span class="p">,</span> <span class="n">metadata_dict</span> <span class="o">=</span> <span class="n">processor</span><span class="o">.</span><span class="n">data_processing_pipeline</span><span class="p">(</span><span class="n">indicators</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;RSI&quot;</span><span class="p">])</span>
+<a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata_dict</span><span class="p">[</span><span class="s2">&quot;date_ranges&quot;</span><span class="p">])</span>
+<a id="__codelineno-23-3" name="__codelineno-23-3" href="#__codelineno-23-3"></a><span class="nb">print</span><span class="p">(</span><span class="n">metadata_dict</span><span class="p">[</span><span class="s2">&quot;final_shapes&quot;</span><span class="p">])</span>
+</code></pre></div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+  <script>var tabs=__md_get("__tabs");if(Array.isArray(tabs))e:for(var set of document.querySelectorAll(".tabbed-set")){var labels=set.querySelector(".tabbed-labels");for(var tab of tabs)for(var label of labels.getElementsByTagName("label"))if(label.innerText.trim()===tab){var input=document.getElementById(label.htmlFor);input.checked=!0;continue e}}</script>
+
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+          <button type="button" class="md-top md-icon" data-md-component="top" hidden>
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M13 20h-2V8l-5.5 5.5-1.42-1.42L12 4.16l7.92 7.92-1.42 1.42L13 8z"/></svg>
+  Back to top
+</button>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+        
+<div class="md-social">
+  
+    
+    
+    
+    
+      
+      
+    
+    <a href="https://github.com/whanyu1212/QuantRL-Lab" target="_blank" rel="noopener" title="github.com" class="md-social__link">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 7.1.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2025 Fonticons, Inc.--><path d="M173.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6m-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3m44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9M252.8 8C114.1 8 8 113.3 8 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C436.2 457.8 504 362.9 504 252 504 113.3 391.5 8 252.8 8M105.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1m-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7m32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1m-11.4-14.7c-1.6 1-1.6 3.6 0 5.9s4.3 3.3 5.6 2.3c1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2"/></svg>
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": ["navigation.tabs", "navigation.sections", "navigation.expand", "navigation.top", "navigation.tracking", "navigation.indexes", "navigation.instant", "header.autohide", "toc.integrate", "search.suggest", "search.highlight", "content.code.copy", "content.code.annotate", "content.tabs.link"], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": {"provider": "mike"}}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

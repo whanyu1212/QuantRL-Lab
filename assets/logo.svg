@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+
+  <!-- Candlestick 1 (bearish, left) -->
+  <line x1="18" y1="22" x2="18" y2="30" stroke="#80cbc4" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="13" y="30" width="10" height="18" rx="1.5" fill="#80cbc4" opacity="0.5"/>
+  <line x1="18" y1="48" x2="18" y2="56" stroke="#80cbc4" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Candlestick 2 (bearish, mid-left) -->
+  <line x1="36" y1="28" x2="36" y2="36" stroke="#80cbc4" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="31" y="36" width="10" height="14" rx="1.5" fill="#80cbc4" opacity="0.5"/>
+  <line x1="36" y1="50" x2="36" y2="57" stroke="#80cbc4" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Candlestick 3 (bullish, mid-right) -->
+  <line x1="54" y1="26" x2="54" y2="33" stroke="#26a69a" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="49" y="33" width="10" height="20" rx="1.5" fill="#26a69a"/>
+  <line x1="54" y1="53" x2="54" y2="60" stroke="#26a69a" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Candlestick 4 (bullish, right) -->
+  <line x1="72" y1="18" x2="72" y2="26" stroke="#26a69a" stroke-width="1.5" stroke-linecap="round"/>
+  <rect x="67" y="26" width="10" height="22" rx="1.5" fill="#26a69a"/>
+  <line x1="72" y1="48" x2="72" y2="55" stroke="#26a69a" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- RL policy curve: smooth upward arc across the chart -->
+  <path d="M 10 72 C 25 68, 40 62, 55 52 S 75 32, 88 22"
+        fill="none" stroke="#ff7043" stroke-width="2.5"
+        stroke-linecap="round" stroke-linejoin="round"
+        opacity="0.9"/>
+
+  <!-- Arrow head on the curve -->
+  <polygon points="88,22 80,21 83,28" fill="#ff7043" opacity="0.9"/>
+
+  <!-- RL nodes along the curve -->
+  <circle cx="10" cy="72" r="3" fill="#ff7043" opacity="0.85"/>
+  <circle cx="35" cy="62" r="3" fill="#ff7043" opacity="0.85"/>
+  <circle cx="60" cy="47" r="3" fill="#ff7043" opacity="0.85"/>
+  <circle cx="85" cy="25" r="3" fill="#ff7043" opacity="0.85"/>
+
+  <!-- Baseline -->
+  <line x1="8" y1="78" x2="92" y2="78" stroke="#80cbc4" stroke-width="1" opacity="0.4"/>
+
+</svg>
