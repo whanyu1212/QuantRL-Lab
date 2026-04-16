@@ -5,6 +5,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
+from quantrl_lab.data.exceptions import APIConnectionError, InvalidParametersError, RateLimitError
 from quantrl_lab.data.sources.alpha_vantage_loader import AlphaVantageDataLoader
 
 DAILY_RESPONSE = {
@@ -68,60 +69,59 @@ class TestAlphaVantageDataLoaderInit:
 
 
 class TestGetHistoricalOHLCVData:
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_daily_data_returns_dataframe(self, mock_get):
-        mock_get.return_value = _mock_response(DAILY_RESPONSE)
+    def test_daily_data_returns_dataframe(self):
         loader = AlphaVantageDataLoader(api_key="test_key", rate_limit_delay=0)
-        df = loader.get_historical_ohlcv_data("AAPL", timeframe="1d")
+        with patch.object(loader, "_make_api_request", return_value=DAILY_RESPONSE):
+            df = loader.get_historical_ohlcv_data("AAPL", timeframe="1d")
         assert isinstance(df, pd.DataFrame)
         assert not df.empty
         assert "Close" in df.columns
 
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_empty_response_returns_empty_df(self, mock_get):
-        mock_get.return_value = _mock_response({})
+    def test_empty_response_returns_empty_df(self):
         loader = AlphaVantageDataLoader(api_key="test_key", rate_limit_delay=0)
-        df = loader.get_historical_ohlcv_data("AAPL", timeframe="1d")
+        with patch.object(loader, "_make_api_request", return_value={}):
+            df = loader.get_historical_ohlcv_data("AAPL", timeframe="1d")
         assert isinstance(df, pd.DataFrame)
         assert df.empty
 
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_error_message_in_response_returns_empty(self, mock_get):
-        mock_get.return_value = _mock_response({"Error Message": "Invalid API call"})
+    def test_error_message_in_response_raises(self):
         loader = AlphaVantageDataLoader(api_key="bad_key", rate_limit_delay=0)
-        df = loader.get_historical_ohlcv_data("AAPL", timeframe="1d")
-        assert df.empty
+        with patch.object(loader._request_wrapper, "make_request", return_value={"Error Message": "Invalid API call"}):
+            with pytest.raises(InvalidParametersError):
+                loader.get_historical_ohlcv_data("AAPL", timeframe="1d")
 
     def test_invalid_timeframe_raises(self):
         loader = AlphaVantageDataLoader(api_key="key")
         with pytest.raises(Exception):
             loader.get_historical_ohlcv_data("AAPL", timeframe="2w")
 
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_date_filtering_applied(self, mock_get):
-        mock_get.return_value = _mock_response(DAILY_RESPONSE)
+    def test_date_filtering_applied(self):
         loader = AlphaVantageDataLoader(api_key="test_key", rate_limit_delay=0)
-        df = loader.get_historical_ohlcv_data("AAPL", start="2023-01-04", end="2023-12-31", timeframe="1d")
+        with patch.object(loader, "_make_api_request", return_value=DAILY_RESPONSE):
+            df = loader.get_historical_ohlcv_data("AAPL", start="2023-01-04", end="2023-12-31", timeframe="1d")
         assert isinstance(df, pd.DataFrame)
         # Only the 2023-01-04 row should remain
         assert len(df) == 1
 
 
 class TestMakeApiRequest:
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_returns_none_on_failure(self, mock_get):
-        import requests as req
-
-        mock_get.side_effect = req.exceptions.ConnectionError("Network error")
+    def test_raises_connection_error_on_failure(self):
         loader = AlphaVantageDataLoader(api_key="key", max_retries=1, delay=0, rate_limit_delay=0)
-        result = loader._make_api_request("TIME_SERIES_DAILY", symbol="AAPL")
-        assert result is None
+        with patch.object(
+            loader._request_wrapper,
+            "make_request",
+            side_effect=APIConnectionError("Network error"),
+        ):
+            with pytest.raises(APIConnectionError):
+                loader._make_api_request("TIME_SERIES_DAILY", symbol="AAPL")
 
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_rate_limit_note_triggers_retry(self, mock_get):
-        """API Note about rate limit should retry and eventually return
-        None."""
-        mock_get.return_value = _mock_response({"Note": "Thank you for using Alpha Vantage! API call frequency"})
+    def test_rate_limit_note_raises(self):
+        """API Note about rate limit should raise a typed exception."""
         loader = AlphaVantageDataLoader(api_key="key", max_retries=2, delay=0, rate_limit_delay=0)
-        result = loader._make_api_request("TIME_SERIES_DAILY", symbol="AAPL")
-        assert result is None
+        with patch.object(
+            loader._request_wrapper,
+            "make_request",
+            return_value={"Note": "Thank you for using Alpha Vantage! API call frequency"},
+        ):
+            with pytest.raises(RateLimitError):
+                loader._make_api_request("TIME_SERIES_DAILY", symbol="AAPL")

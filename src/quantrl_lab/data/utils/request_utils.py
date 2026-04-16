@@ -13,6 +13,8 @@ from typing import Any, Callable, Dict, List, Optional, Union
 import requests
 from loguru import logger
 
+from quantrl_lab.data.exceptions import APIConnectionError, AuthenticationError, RateLimitError
+
 
 class RetryStrategy(Enum):
     """Retry strategy types."""
@@ -113,6 +115,55 @@ class HTTPRequestWrapper:
 
         return False
 
+    def _is_auth_error(self, response: requests.Response, json_data: Optional[Any] = None) -> bool:
+        """Detect authentication and authorization failures."""
+        if response.status_code in {401, 403}:
+            return True
+
+        if json_data is not None:
+            error_text = str(json_data).lower()
+            auth_indicators = [
+                "unauthorized",
+                "forbidden",
+                "invalid api key",
+                "invalid token",
+                "authentication",
+                "permission",
+                "not authenticated",
+            ]
+            return any(indicator in error_text for indicator in auth_indicators)
+
+        return False
+
+    @staticmethod
+    def _retry_after_seconds(response: requests.Response) -> Optional[int]:
+        """Parse Retry-After header when present."""
+        retry_after = response.headers.get("Retry-After")
+        if retry_after is None:
+            return None
+
+        try:
+            return int(retry_after)
+        except (TypeError, ValueError):
+            return None
+
+    def _build_http_exception(
+        self,
+        response: requests.Response,
+        json_data: Optional[Any] = None,
+    ) -> APIConnectionError:
+        """Map an HTTP response to a domain-specific exception."""
+        status_code = response.status_code
+        message = f"HTTP {status_code} error while requesting {response.url}"
+
+        if self._is_auth_error(response, json_data):
+            return AuthenticationError(message)
+
+        if self._is_rate_limit_error(response, json_data):
+            return RateLimitError(message, retry_after=self._retry_after_seconds(response))
+
+        return APIConnectionError(message)
+
     def make_request(
         self,
         url: str,
@@ -143,7 +194,7 @@ class HTTPRequestWrapper:
             Any: Parsed JSON response
 
         Raises:
-            requests.HTTPError: If raise_on_error=True and request fails
+            APIConnectionError: If raise_on_error=True and request fails
             ValueError: If custom_error_check detects an error
 
         Examples:
@@ -173,27 +224,35 @@ class HTTPRequestWrapper:
                 # Update last request time
                 self._last_request_time = time.time()
 
-                # Check for HTTP errors
-                response.raise_for_status()
-
                 # Parse JSON
                 try:
                     json_data = response.json()
                 except ValueError:
-                    # Not JSON, return text
-                    return response.text
+                    json_data = None
+
+                if response.status_code >= 400:
+                    raise self._build_http_exception(response, json_data)
 
                 # Custom error checking
                 if custom_error_check and custom_error_check(json_data):
                     raise ValueError(f"Custom error check failed for response: {json_data}")
 
                 # Success
+                if json_data is None:
+                    logger.debug(f"Request successful: {len(response.text)} bytes (text)")
+                    return response.text
+
                 logger.debug(f"Request successful: {len(str(json_data))} bytes")
                 return json_data
 
-            except requests.exceptions.HTTPError as e:
-                # Check if rate limit error
-                is_rate_limit = self._is_rate_limit_error(e.response, None)
+            except (AuthenticationError, RateLimitError, APIConnectionError) as e:
+                if isinstance(e, AuthenticationError):
+                    logger.error(f"Authentication failed: {e}")
+                    if raise_on_error:
+                        raise
+                    return None
+
+                is_rate_limit = isinstance(e, RateLimitError)
 
                 if attempt < self.max_retries:
                     delay = self._calculate_retry_delay(attempt)
@@ -201,11 +260,9 @@ class HTTPRequestWrapper:
                     # Extra delay for rate limit errors
                     if is_rate_limit:
                         delay *= rate_limit_retry_multiplier
-                        logger.warning(
-                            f"Rate limit hit (HTTP {e.response.status_code}). " f"Retrying in {delay:.2f}s..."
-                        )
+                        logger.warning(f"Rate limit hit. Retrying in {delay:.2f}s...")
                     else:
-                        logger.warning(f"HTTP error {e.response.status_code}: {e}. " f"Retrying in {delay:.2f}s...")
+                        logger.warning(f"Request failed: {e}. Retrying in {delay:.2f}s...")
 
                     time.sleep(delay)
                     attempt += 1
@@ -224,7 +281,7 @@ class HTTPRequestWrapper:
                 else:
                     logger.error(f"Request failed after {self.max_retries + 1} attempts: {e}")
                     if raise_on_error:
-                        raise
+                        raise APIConnectionError(f"Request failed after {self.max_retries + 1} attempts: {e}") from e
                     return None
 
             except Exception as e:

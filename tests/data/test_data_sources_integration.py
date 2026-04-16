@@ -19,6 +19,8 @@ import pandas as pd
 import pytest
 from dotenv import load_dotenv
 
+from quantrl_lab.data.exceptions import AuthenticationError, RateLimitError
+
 # Load environment variables from .env file
 load_dotenv()
 
@@ -277,7 +279,10 @@ class TestAlphaVantageIntegration:
         from quantrl_lab.data.sources.alpha_vantage_loader import AlphaVantageDataLoader
 
         loader = AlphaVantageDataLoader()
-        result = loader._get_company_overview("IBM")
+        try:
+            result = loader._get_company_overview("IBM")
+        except (AuthenticationError, RateLimitError):
+            pytest.skip("Alpha Vantage provider throttled or rejected the request")
 
         # May be None or rate limited
         if result is not None and not self._is_rate_limited(result):
@@ -289,7 +294,10 @@ class TestAlphaVantageIntegration:
         from quantrl_lab.data.sources.alpha_vantage_loader import AlphaVantageDataLoader
 
         loader = AlphaVantageDataLoader()
-        result = loader._get_real_gdp_data(interval="annual")
+        try:
+            result = loader._get_real_gdp_data(interval="annual")
+        except (AuthenticationError, RateLimitError):
+            pytest.skip("Alpha Vantage provider throttled or rejected the request")
 
         # May be None or rate limited
         if result is not None and not self._is_rate_limited(result):

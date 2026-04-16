@@ -3,14 +3,12 @@
 from typing import TYPE_CHECKING, Optional, Protocol, runtime_checkable
 
 import pandas as pd
-from rich.console import Console
+from loguru import logger
 
 from .config import HuggingFaceConfig, SentimentConfig
 
 if TYPE_CHECKING:
     from transformers import Pipeline
-
-console = Console()
 
 
 @runtime_checkable
@@ -58,6 +56,9 @@ class HuggingFaceProvider:
         """
         self.hf_config = hf_config or HuggingFaceConfig()
         self._pipeline: Optional["Pipeline"] = None
+        # Tracks whether we're running on a hardware accelerator (CUDA/MPS) so
+        # we can safely choose a larger batch size for higher throughput.
+        self._uses_accelerator = False
 
     def _get_pipeline(self) -> "Pipeline":
         """
@@ -80,8 +81,22 @@ class HuggingFaceProvider:
                 ) from e
 
             try:
-                # Use GPU if available and device is set to 0
-                device = 0 if torch.cuda.is_available() and self.hf_config.device == 0 else -1
+                # Prefer hardware acceleration for higher inference throughput:
+                # 1) CUDA on NVIDIA GPUs, 2) MPS on Apple Silicon, 3) CPU fallback.
+                # This specifically speeds up macOS arm64 by using MPS instead of CPU.
+                device: object = -1
+                backend = "cpu"
+                self._uses_accelerator = False
+
+                if self.hf_config.device == 0:
+                    if torch.cuda.is_available():
+                        device = 0
+                        backend = "cuda"
+                        self._uses_accelerator = True
+                    elif hasattr(torch.backends, "mps") and torch.backends.mps.is_available():
+                        device = "mps"
+                        backend = "mps"
+                        self._uses_accelerator = True
 
                 pipeline_kwargs = {
                     "model": self.hf_config.model_name,
@@ -91,13 +106,19 @@ class HuggingFaceProvider:
                     "top_k": self.hf_config.top_k,
                 }
 
+                # FP16 reduces memory bandwidth and typically improves inference latency
+                # on accelerators (CUDA/MPS) while preserving practical sentiment quality.
+                if self._uses_accelerator:
+                    pipeline_kwargs["dtype"] = torch.float16
+
                 if self.hf_config.max_length:
                     pipeline_kwargs["max_length"] = self.hf_config.max_length
 
                 self._pipeline = pipeline("sentiment-analysis", **pipeline_kwargs)
-                console.print(
-                    f"[green]✓ Sentiment analysis pipeline initialized with model: "
-                    f"{self.hf_config.model_name}[/green]"
+                logger.info(
+                    "Sentiment analysis pipeline initialized with model {model} (backend={backend})",
+                    model=self.hf_config.model_name,
+                    backend=backend,
                 )
             except Exception as e:
                 raise RuntimeError(f"Failed to load sentiment model: {e}")
@@ -143,13 +164,13 @@ class HuggingFaceProvider:
 
         # === Process sentiment scores ===
         if config.sentiment_score_column in text_data.columns:
-            console.print("[green]✓ Using pre-existing sentiment scores.[/green]")
+            logger.info("Using pre-existing sentiment scores.")
             # Ensure the sentiment score column is numeric
             text_data[config.sentiment_score_column] = pd.to_numeric(
                 text_data[config.sentiment_score_column], errors="coerce"
             )
         else:
-            console.print("[cyan]Calculating sentiment scores using HuggingFace model...[/cyan]")
+            logger.info("Calculating sentiment scores using HuggingFace model.")
             # === Initialize pipeline ===
             sentiment_pipeline = self._get_pipeline()
 
@@ -159,10 +180,27 @@ class HuggingFaceProvider:
             if not texts_to_analyze:
                 raise ValueError("No valid text data found for sentiment analysis")
 
+            # Use a larger effective batch size on accelerators to improve
+            # throughput. CPU keeps user-configured size to avoid memory spikes.
+            effective_batch_size = self.hf_config.batch_size
+            if self._uses_accelerator:
+                effective_batch_size = max(self.hf_config.batch_size, 32)
+
             # === Run sentiment analysis ===
+            # Prefer a datasets-backed iterator when available; it reduces
+            # Python overhead and can speed up preprocessing for large inputs.
+            inference_input: object = texts_to_analyze
+            try:
+                from datasets import Dataset
+
+                inference_input = Dataset.from_dict({"text": texts_to_analyze})["text"]
+            except Exception:
+                # Fallback to plain Python list when datasets is unavailable.
+                inference_input = texts_to_analyze
+
             sentiments = sentiment_pipeline(
-                texts_to_analyze,
-                batch_size=self.hf_config.batch_size,
+                inference_input,
+                batch_size=effective_batch_size,
                 truncation=self.hf_config.truncation,
             )
 

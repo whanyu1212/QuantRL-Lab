@@ -19,6 +19,8 @@ import pandas as pd
 import pytest
 from aioresponses import aioresponses
 
+from quantrl_lab.data.exceptions import APIConnectionError
+
 # ── YFinanceDataLoader ────────────────────────────────────────────────────────
 
 
@@ -124,14 +126,13 @@ class TestFMPAsyncMethods:
                 assert isinstance(df, pd.DataFrame)
 
     @pytest.mark.asyncio
-    async def test_async_fetch_ohlcv_returns_empty_on_api_failure(self, fmp, base_url):
+    async def test_async_fetch_ohlcv_raises_on_api_failure(self, fmp, base_url):
         with aioresponses() as m:
             for _ in range(4):
                 m.get(re.compile(r".*/historical-price-eod/full.*"), status=500)
             async with aiohttp.ClientSession() as session:
-                sym, df = await fmp.async_fetch_ohlcv(session, "AAPL", start="2023-01-01", end="2023-01-31")
-                assert sym == "AAPL"
-                assert df.empty
+                with pytest.raises(APIConnectionError):
+                    await fmp.async_fetch_ohlcv(session, "AAPL", start="2023-01-01", end="2023-01-31")
 
     @pytest.mark.asyncio
     async def test_async_fetch_ratings_returns_dataframe(self, fmp, base_url):

@@ -3,12 +3,9 @@
 from typing import Dict
 
 import pandas as pd
-from rich.console import Console
 
 from quantrl_lab.data.processing.sentiment.config import SentimentConfig
 from quantrl_lab.data.processing.sentiment.provider import SentimentProvider
-
-console = Console()
 
 
 class SentimentFeatureGenerator:

@@ -11,7 +11,7 @@ from typing import List, Tuple
 import pandas as pd
 from loguru import logger
 
-from quantrl_lab.data.processing.processor import ProcessingMetadata
+from quantrl_lab.data.processing.metadata import ProcessingMetadata
 from quantrl_lab.data.processing.steps.base import ProcessingStep
 
 
@@ -81,6 +81,9 @@ class DataPipeline:
         metadata = ProcessingMetadata(
             symbol=symbol,
             original_shape=df.shape,
+        )
+        metadata.add_required_columns(
+            [col for col in df.columns if col.lower() in {"open", "high", "low", "close", "volume"}]
         )
 
         # Execute steps sequentially

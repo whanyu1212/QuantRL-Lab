@@ -87,6 +87,8 @@ class TestYfinanceProtocols:
 
         assert "historical_bars" in features
         assert "fundamental_data" in features
+        assert "connection_managed" not in features
+        assert "instrument_discovery" not in features
         assert "live_data" not in features
         assert "news" not in features
         assert "streaming" not in features
@@ -302,6 +304,8 @@ class TestAlphaVantageProtocols:
         assert "fundamental_data" in features
         assert "macro_data" in features
         assert "news" in features
+        assert "connection_managed" not in features
+        assert "instrument_discovery" not in features
         assert "live_data" not in features
         assert "streaming" not in features
         assert "analyst_data" not in features
@@ -383,6 +387,8 @@ class TestFMPProtocols:
         assert "analyst_data" in features
         assert "sector_data" in features
         assert "company_profile" in features
+        assert "connection_managed" not in features
+        assert "instrument_discovery" not in features
         assert "live_data" not in features
         assert "news" not in features
         assert "streaming" not in features

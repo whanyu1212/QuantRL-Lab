@@ -1,10 +1,8 @@
 import os
-import time
 from datetime import datetime
 from typing import Any, Dict, List, Optional, Union
 
 import pandas as pd
-import requests
 from loguru import logger
 
 from quantrl_lab.data.config import (
@@ -12,7 +10,7 @@ from quantrl_lab.data.config import (
     FundamentalMetric,
     MacroIndicator,
 )
-from quantrl_lab.data.exceptions import InvalidParametersError
+from quantrl_lab.data.exceptions import APIConnectionError, AuthenticationError, InvalidParametersError, RateLimitError
 from quantrl_lab.data.interface import (
     DataSource,
     FundamentalDataCapable,
@@ -22,10 +20,13 @@ from quantrl_lab.data.interface import (
 )
 from quantrl_lab.data.processing.mappings import ALPHA_VANTAGE_COLUMN_MAPPER
 from quantrl_lab.data.utils import (
+    HTTPRequestWrapper,
+    RetryStrategy,
     convert_columns_to_numeric,
     format_av_datetime,
     log_dataframe_info,
     normalize_date_range,
+    normalize_symbols,
 )
 
 
@@ -37,6 +38,8 @@ class AlphaVantageDataLoader(
     NewsDataCapable,
 ):
     """Alpha Vantage implementation that provides various datasets."""
+
+    SUPPORTED_FEATURES = {"historical_bars", "fundamental_data", "macro_data", "news"}
 
     DEFAULT_MAX_RETRIES = 3
     DEFAULT_RETRY_DELAY = 5
@@ -54,7 +57,13 @@ class AlphaVantageDataLoader(
         self.max_retries = max_retries
         self.delay = delay
         self.rate_limit_delay = rate_limit_delay
-        self._last_request_time: float = 0
+        self._request_wrapper = HTTPRequestWrapper(
+            max_retries=max_retries,
+            retry_strategy=RetryStrategy.EXPONENTIAL,
+            base_delay=float(delay),
+            rate_limit_delay=rate_limit_delay,
+            timeout=30.0,
+        )
 
     @property
     def source_name(self) -> str:
@@ -361,10 +370,8 @@ class AlphaVantageDataLoader(
             end = datetime.now()
         time_to = format_av_datetime(end)
 
-        if isinstance(symbols, str):
-            tickers = symbols
-        else:
-            tickers = ",".join(symbols)
+        symbol_list = normalize_symbols(symbols)
+        tickers = ",".join(symbol_list)
 
         logger.info(f"Fetching news for {tickers} from {time_from} to {time_to}")
 
@@ -390,9 +397,7 @@ class AlphaVantageDataLoader(
         news_df = pd.DataFrame(news_data["feed"]) if news_data and "feed" in news_data else pd.DataFrame()
 
         if news_df.empty:
-            logger.warning(
-                f"No news data retrieved for {tickers}. This may be due to rate limits or no data available."
-            )
+            logger.warning(f"No news data retrieved for {tickers}. This may be due to no data being available.")
             return news_df
 
         if "time_published" in news_df.columns:
@@ -402,45 +407,67 @@ class AlphaVantageDataLoader(
             logger.debug(f"Available columns: {list(news_df.columns)}")
             return pd.DataFrame()
 
-        try:
-            news_df["created_at"] = pd.to_datetime(news_df["created_at"], format="%Y%m%dT%H%M%S")
-            news_df["Date"] = news_df["created_at"].dt.date
-        except Exception as e:
-            logger.error(f"Failed to parse news timestamps for {tickers}: {e}")
-            return pd.DataFrame()
-
-        if "ticker_sentiment" in news_df.columns:
-            try:
-                news_df["sentiment_score"] = (
-                    news_df["ticker_sentiment"].apply(lambda x: self._find_ticker_sentiment(x, tickers)).astype(float)
-                )
-            except Exception as e:
-                logger.warning(f"Failed to extract sentiment scores for {tickers}: {e}")
+        news_df["created_at"] = pd.to_datetime(news_df["created_at"], format="%Y%m%dT%H%M%S")
+        news_df["Date"] = news_df["created_at"].dt.date
+        news_df = self._expand_news_rows(news_df, symbol_list)
 
         logger.success(f"Retrieved {len(news_df)} news items for {tickers}")
 
         return news_df
 
-    def _find_ticker_sentiment(self, sentiment_list: List[Dict], ticker_symbol: str) -> Optional[float]:
-        """
-        Find the sentiment score for a specific ticker in the sentiment
-        list.
+    def _expand_news_rows(self, news_df: pd.DataFrame, requested_symbols: List[str]) -> pd.DataFrame:
+        """Normalize Alpha Vantage news into one row per article-symbol
+        pair."""
+        if "ticker_sentiment" not in news_df.columns:
+            result = news_df.copy()
+            if len(requested_symbols) == 1:
+                result["Symbol"] = requested_symbols[0]
+            return result
 
-        Args:
-            sentiment_list (List[Dict]): A list of dictionaries containing sentiments
-                for different tickers.
-            ticker_symbol (str): The ticker symbol to search for (e.g., 'AAPL').
+        expanded_rows: List[pd.Series] = []
+        for _, row in news_df.iterrows():
+            sentiment_map = self._extract_ticker_sentiments(row.get("ticker_sentiment"), requested_symbols)
+            if sentiment_map:
+                for symbol, score in sentiment_map.items():
+                    row_copy = row.copy()
+                    row_copy["Symbol"] = symbol
+                    row_copy["sentiment_score"] = score
+                    expanded_rows.append(row_copy)
+            elif len(requested_symbols) == 1:
+                row_copy = row.copy()
+                row_copy["Symbol"] = requested_symbols[0]
+                row_copy["sentiment_score"] = None
+                expanded_rows.append(row_copy)
 
-        Returns:
-            Optional[float]: The sentiment score for the specified ticker, or None if not found.
-        """
+        if not expanded_rows:
+            return pd.DataFrame(columns=list(news_df.columns) + ["Symbol", "sentiment_score"])
+
+        return pd.DataFrame(expanded_rows).reset_index(drop=True)
+
+    @staticmethod
+    def _extract_ticker_sentiments(
+        sentiment_list: List[Dict[str, Any]],
+        requested_symbols: List[str],
+    ) -> Dict[str, Optional[float]]:
+        """Extract per-symbol sentiment scores for the requested
+        tickers."""
         if not isinstance(sentiment_list, list):
-            return None
+            return {}
 
+        requested = set(requested_symbols)
+        matches: Dict[str, Optional[float]] = {}
         for item in sentiment_list:
-            if item.get("ticker") == ticker_symbol:
-                return item["ticker_sentiment_score"]
-        return None
+            ticker = item.get("ticker")
+            if ticker not in requested:
+                continue
+
+            score = item.get("ticker_sentiment_score")
+            try:
+                matches[ticker] = float(score) if score is not None else None
+            except (TypeError, ValueError):
+                matches[ticker] = None
+
+        return matches
 
     def get_macro_data(
         self,
@@ -646,10 +673,8 @@ class AlphaVantageDataLoader(
         Returns:
             Optional[Dict[str, Any]]: Parsed JSON response, or None if all retries are exhausted.
         """
-        elapsed = time.time() - self._last_request_time
-        if elapsed < self.rate_limit_delay:
-            sleep_time = self.rate_limit_delay - elapsed
-            time.sleep(sleep_time)
+        if not self.api_key:
+            raise AuthenticationError("Alpha Vantage API key not provided")
 
         url_params = {
             "function": function,
@@ -660,76 +685,50 @@ class AlphaVantageDataLoader(
         if symbol:
             url_params["symbol"] = symbol
 
-        for attempt in range(self.max_retries):
-            try:
-                self._last_request_time = time.time()
-                response = requests.get(ALPHA_VANTAGE_API_BASE, params=url_params, timeout=30)
+        data = self._request_wrapper.make_request(
+            ALPHA_VANTAGE_API_BASE,
+            params=url_params,
+            raise_on_error=True,
+        )
 
-                if response.status_code == 200:
-                    data = response.json()
+        if not isinstance(data, dict):
+            raise APIConnectionError(f"Unexpected response while fetching {function} data")
 
-                    if "Error Message" in data:
-                        error_msg = f"API Error: {data['Error Message']}"
-                        if symbol:
-                            error_msg += f" for {symbol}"
-                        logger.error(error_msg)
-                        return None
+        if "Error Message" in data:
+            error_msg = f"API Error: {data['Error Message']}"
+            if symbol:
+                error_msg += f" for {symbol}"
+            raise InvalidParametersError(error_msg)
 
-                    if "Information" in data:
-                        logger.warning(f"API Information message: {data['Information']}")
-                        return data
+        if "Note" in data and "api call frequency" in data.get("Note", "").lower():
+            error_msg = data["Note"]
+            if symbol:
+                error_msg = f"{error_msg} for {symbol}"
+            raise RateLimitError(error_msg)
 
-                    if "Note" in data and "API call frequency" in data.get("Note", ""):
-                        warning_msg = "Rate limit hit"
-                        if symbol:
-                            warning_msg += f" for {symbol}"
-                        logger.warning(f"{warning_msg}, retrying...")
+        if "Information" in data:
+            info_message = data["Information"]
+            lowered = info_message.lower()
+            if any(
+                indicator in lowered
+                for indicator in [
+                    "request per second",
+                    "requests per day",
+                    "rate limit",
+                    "api call frequency",
+                    "thank you for using alpha vantage",
+                ]
+            ):
+                raise RateLimitError(info_message)
+            if "api key" in lowered or "unauthorized" in lowered:
+                raise AuthenticationError(info_message)
+            raise APIConnectionError(info_message)
 
-                        if attempt < self.max_retries - 1:
-                            wait_time = self.delay * (2**attempt)
-                            time.sleep(wait_time)
-                            continue
-                        return None
-
-                    success_msg = f"Successfully fetched {function} data"
-                    if symbol:
-                        success_msg += f" for {symbol}"
-                    logger.info(success_msg)
-                    return data
-
-                elif response.status_code == 429:
-                    if attempt < self.max_retries - 1:
-                        wait_time = self.delay * (2**attempt)
-                        logger.warning(f"Rate limited, waiting {wait_time}s before retry...")
-                        time.sleep(wait_time)
-                        continue
-
-                response.raise_for_status()
-
-            except requests.exceptions.Timeout:
-                timeout_msg = f"Timeout (attempt {attempt + 1})"
-                if symbol:
-                    timeout_msg = f"Timeout for {symbol} (attempt {attempt + 1})"
-                logger.warning(timeout_msg)
-            except requests.exceptions.ConnectionError:
-                conn_msg = f"Connection error (attempt {attempt + 1})"
-                if symbol:
-                    conn_msg = f"Connection error for {symbol} (attempt {attempt + 1})"
-                logger.warning(conn_msg)
-            except requests.exceptions.RequestException as e:
-                req_msg = f"Request error: {e} (attempt {attempt + 1})"
-                if symbol:
-                    req_msg = f"Request error for {symbol}: {e} (attempt {attempt + 1})"
-                logger.warning(req_msg)
-
-            if attempt < self.max_retries - 1:
-                time.sleep(self.delay * (attempt + 1))
-
-        error_msg = f"Failed to fetch {function} data after {self.max_retries} attempts"
+        success_msg = f"Successfully fetched {function} data"
         if symbol:
-            error_msg = f"Failed to fetch {function} data for {symbol} after {self.max_retries} attempts"
-        logger.error(error_msg)
-        return None
+            success_msg += f" for {symbol}"
+        logger.info(success_msg)
+        return data
 
     def _get_company_overview(self, symbol: str) -> Optional[Dict[str, Any]]:
         """

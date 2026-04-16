@@ -1,5 +1,6 @@
 """Ratio-based data splitter for time series data."""
 
+import math
 from typing import Dict
 
 import pandas as pd
@@ -25,21 +26,21 @@ class RatioSplitter:
 
         Args:
             ratios (Dict[str, float]): Dictionary mapping split names to ratios.
-                Ratios must sum to <= 1.0. Example: {"train": 0.7, "test": 0.3}
+                Ratios must sum to 1.0. Example: {"train": 0.7, "test": 0.3}
 
         Raises:
-            ValueError: If ratios sum to > 1.0 or any ratio is invalid.
+            ValueError: If ratios do not sum to 1.0 or any ratio is invalid.
         """
         if not ratios:
             raise ValueError("Ratios dictionary cannot be empty")
 
-        total_ratio = sum(ratios.values())
-        if total_ratio > 1.0:
-            raise ValueError(f"Ratios sum to {total_ratio:.2f}, which exceeds 1.0")
-
         for name, ratio in ratios.items():
             if ratio <= 0 or ratio > 1:
                 raise ValueError(f"Invalid ratio for '{name}': {ratio}. Must be in range (0, 1]")
+
+        total_ratio = sum(ratios.values())
+        if not math.isclose(total_ratio, 1.0, rel_tol=1e-9, abs_tol=1e-9):
+            raise ValueError(f"Ratios must sum to 1.0, got {total_ratio:.6f}")
 
         self.ratios = ratios
 
@@ -74,8 +75,12 @@ class RatioSplitter:
         metadata_ranges = {}
         metadata_shapes = {}
 
-        for name, ratio in self.ratios.items():
-            end_idx = start_idx + int(total_len * ratio)
+        ratio_items = list(self.ratios.items())
+        for idx, (name, ratio) in enumerate(ratio_items):
+            if idx == len(ratio_items) - 1:
+                end_idx = total_len
+            else:
+                end_idx = start_idx + int(total_len * ratio)
             subset = df.iloc[start_idx:end_idx].copy()
             split_data[name] = subset
 

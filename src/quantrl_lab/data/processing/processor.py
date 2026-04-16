@@ -1,11 +1,10 @@
 import json
 import os
-from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import pandas as pd
 import yaml
-from rich.console import Console
+from loguru import logger
 
 # Import centralized configuration
 from quantrl_lab.data.config import config
@@ -15,89 +14,16 @@ from quantrl_lab.data.processing.features.sentiment import SentimentFeatureGener
 # Import new feature generators
 from quantrl_lab.data.processing.features.technical import TechnicalFeatureGenerator
 
+# D-5: ProcessingMetadata moved to its own module to break the circular import
+# chain where all pipeline step files imported from processor.py.
+# Re-exported here for backward compatibility with existing user code.
+from quantrl_lab.data.processing.metadata import ProcessingMetadata  # noqa: F401
+
 # Import sentiment modules
 from quantrl_lab.data.processing.sentiment import (
     HuggingFaceProvider,
     SentimentConfig,
 )
-
-console: Console = Console()
-
-
-@dataclass
-class ProcessingMetadata:
-    """
-    Metadata collected during data processing pipeline.
-
-    This dataclass tracks all transformations and operations applied during
-    the data processing pipeline, providing transparency and reproducibility.
-
-    Attributes:
-        symbol (Optional[Union[str, List[str]]]): Stock symbol(s) being processed.
-            Single symbol as string, multiple as list.
-        date_ranges (Dict[str, Dict[str, str]]): Date ranges for each data split.
-            Format: {"split_name": {"start": "YYYY-MM-DD", "end": "YYYY-MM-DD"}}
-        fillna_strategy (str): Strategy used for filling missing sentiment scores.
-            Options: "neutral" (fill with 0.0) or "fill_forward" (forward fill)
-        technical_indicators (List[Union[str, Dict]]): List of technical indicators applied.
-            Can contain strings ("SMA") or dicts ({"SMA": {"window": 20}})
-        news_sentiment_applied (bool): Whether news sentiment analysis was performed.
-        columns_dropped (List[str]): List of columns dropped during processing.
-        original_shape (Tuple[int, int]): Shape of input data before processing (rows, cols).
-        final_shapes (Dict[str, Tuple[int, int]]): Shapes of output data after processing.
-            Format: {"split_name": (rows, cols)} or {"full_data": (rows, cols)}
-
-    Examples:
-        >>> metadata = ProcessingMetadata(
-        ...     symbol="AAPL",
-        ...     fillna_strategy="neutral",
-        ...     original_shape=(1000, 7)
-        ... )
-        >>> metadata.technical_indicators = ["SMA", "RSI"]
-        >>> metadata.to_dict()
-    """
-
-    symbol: Optional[Union[str, List[str]]] = None
-    date_ranges: Dict[str, Dict[str, str]] = field(default_factory=dict)
-    fillna_strategy: str = "neutral"
-    technical_indicators: List[Union[str, Dict]] = field(default_factory=list)
-    cross_sectional_features: List[str] = field(default_factory=list)
-    news_sentiment_applied: bool = False
-    analyst_data_applied: bool = False
-    market_context_applied: bool = False
-    alpha_selection_config: Optional[Dict] = None
-    columns_dropped: List[str] = field(default_factory=list)
-    original_shape: Tuple[int, int] = (0, 0)
-    final_shapes: Dict[str, Tuple[int, int]] = field(default_factory=dict)
-
-    def to_dict(self) -> Dict:
-        """
-        Convert metadata to dictionary format for backward
-        compatibility.
-
-        Returns:
-            Dict: Dictionary representation of metadata with all fields
-
-        Examples:
-            >>> metadata = ProcessingMetadata(symbol="AAPL", original_shape=(100, 5))
-            >>> result = metadata.to_dict()
-            >>> assert result["symbol"] == "AAPL"
-            >>> assert result["original_shape"] == (100, 5)
-        """
-        return {
-            "symbol": self.symbol,
-            "date_ranges": self.date_ranges,
-            "fillna_strategy": self.fillna_strategy,
-            "technical_indicators": self.technical_indicators,
-            "cross_sectional_features": self.cross_sectional_features,
-            "news_sentiment_applied": self.news_sentiment_applied,
-            "analyst_data_applied": self.analyst_data_applied,
-            "market_context_applied": self.market_context_applied,
-            "alpha_selection_config": self.alpha_selection_config,
-            "columns_dropped": self.columns_dropped,
-            "original_shape": self.original_shape,
-            "final_shapes": self.final_shapes,
-        }
 
 
 class DataProcessor:
@@ -141,27 +67,41 @@ class DataProcessor:
         except Exception as e:
             raise ValueError(f"Failed to load indicator config from {file_path}: {e}")
 
-    def __init__(self, ohlcv_data: pd.DataFrame, **kwargs):
+    def __init__(
+        self,
+        ohlcv_data: pd.DataFrame,
+        *,
+        news_data: Optional[pd.DataFrame] = None,
+        analyst_grades: Optional[pd.DataFrame] = None,
+        analyst_ratings: Optional[pd.DataFrame] = None,
+        sector_performance: Optional[pd.DataFrame] = None,
+        industry_performance: Optional[pd.DataFrame] = None,
+        fundamental_data: Optional[pd.DataFrame] = None,
+        macro_data: Optional[pd.DataFrame] = None,
+        calendar_event_data: Optional[pd.DataFrame] = None,
+        sentiment_config: Optional[SentimentConfig] = None,
+        sentiment_provider: Optional[object] = None,
+    ):
         if ohlcv_data is None:
             raise ValueError("Required parameter 'ohlcv_data' is missing.")
 
-        self.ohlcv_data = ohlcv_data  # minimal required data
+        self.ohlcv_data = ohlcv_data
 
-        # === Optional data sources ===
-        self.news_data = kwargs.get("news_data", None)
-        self.fundamental_data = kwargs.get("fundamental_data", None)
-        self.macro_data = kwargs.get("macro_data", None)
-        self.calendar_event_data = kwargs.get("calendar_event_data", None)
+        # Optional enrichment data
+        self.news_data = news_data
+        self.fundamental_data = fundamental_data
+        self.macro_data = macro_data
+        self.calendar_event_data = calendar_event_data
 
-        # === Analyst & Context Data ===
-        self.analyst_grades = kwargs.get("analyst_grades", None)
-        self.analyst_ratings = kwargs.get("analyst_ratings", None)
-        self.sector_performance = kwargs.get("sector_performance", None)
-        self.industry_performance = kwargs.get("industry_performance", None)
+        # Analyst & market-context data
+        self.analyst_grades = analyst_grades
+        self.analyst_ratings = analyst_ratings
+        self.sector_performance = sector_performance
+        self.industry_performance = industry_performance
 
-        # === Sentiment configuration and provider ===
-        self.sentiment_config = kwargs.get("sentiment_config", SentimentConfig())
-        self.sentiment_provider = kwargs.get("sentiment_provider")
+        # Sentiment configuration and provider
+        self.sentiment_config = sentiment_config if sentiment_config is not None else SentimentConfig()
+        self.sentiment_provider = sentiment_provider
 
         if self.sentiment_provider is None and self.news_data is not None:
             # Default to HuggingFaceProvider if news data is present but no provider given
@@ -191,15 +131,8 @@ class DataProcessor:
         if not indicators:
             return df.copy()
 
-        try:
-            generator = TechnicalFeatureGenerator(indicators)
-            return generator.generate(df, **kwargs)
-        except ValueError as e:
-            # Re-raise with same message or log
-            raise e
-        except Exception as e:
-            console.print(f"[red]❌ Failed to append technical indicators: {e}[/red]")
-            return df.copy()
+        generator = TechnicalFeatureGenerator(indicators)
+        return generator.generate(df, **kwargs)
 
     def append_news_sentiment_data(self, df: pd.DataFrame, fillna_strategy="neutral") -> pd.DataFrame:
         """
@@ -216,19 +149,13 @@ class DataProcessor:
             pd.DataFrame: DataFrame with appended news sentiment data.
         """
         if self.news_data is None or self.news_data.empty:
-            console.print("[yellow]⚠️  No news data provided. Skipping sentiment analysis.[/yellow]")
+            logger.debug("No news data provided. Skipping sentiment analysis.")
             return df
 
-        try:
-            generator = SentimentFeatureGenerator(
-                self.sentiment_provider, self.sentiment_config, self.news_data, fillna_strategy
-            )
-            return generator.generate(df)
-        except ValueError as e:
-            raise e
-        except Exception as e:
-            console.print(f"[red]❌ Failed to append sentiment data: {e}[/red]")
-            return df
+        generator = SentimentFeatureGenerator(
+            self.sentiment_provider, self.sentiment_config, self.news_data, fillna_strategy
+        )
+        return generator.generate(df)
 
     def drop_unwanted_columns(
         self, df: pd.DataFrame, columns_to_drop: Optional[List[str]] = None, keep_date: bool = False
@@ -244,17 +171,9 @@ class DataProcessor:
         Returns:
             pd.DataFrame: DataFrame with specified columns dropped.
         """
-        if columns_to_drop is None:
-            columns_to_drop = [config.DEFAULT_DATE_COLUMN, "Timestamp", "Symbol"]
-        elif not isinstance(columns_to_drop, list):
-            raise ValueError(
-                f"Invalid type for 'columns_to_drop': expected list, got {type(columns_to_drop).__name__}."
-            )
+        from quantrl_lab.data.processing.steps import ColumnCleanupStep
 
-        if keep_date:
-            columns_to_drop = [col for col in columns_to_drop if col not in config.DATE_COLUMNS]
-
-        return df.drop(columns=columns_to_drop, errors="ignore")
+        return ColumnCleanupStep(columns_to_drop=columns_to_drop, keep_date=keep_date).process(df, ProcessingMetadata())
 
     def convert_columns_to_numeric(self, df: pd.DataFrame, columns: Optional[List[str]] = None) -> pd.DataFrame:
         """
@@ -268,32 +187,9 @@ class DataProcessor:
         Returns:
             pd.DataFrame: DataFrame with numeric conversions applied
         """
-        if columns is None:
-            # Only convert object columns that are not date-like
-            columns = []
-            for col in df.columns:
-                if df[col].dtype == "object":
-                    # Skip columns that look like dates
-                    if col in config.DATE_COLUMNS or col.lower() in [c.lower() for c in config.DATE_COLUMNS]:
-                        continue
-                    # Check if it's actually a date column by looking at the data
-                    sample_val = df[col].dropna().iloc[0] if not df[col].dropna().empty else None
-                    if sample_val is not None:
-                        try:
-                            pd.to_datetime(sample_val)
-                            # If conversion succeeds, it's probably a date column - skip it
-                            continue
-                        except (ValueError, TypeError):
-                            # Not a date, safe to convert to numeric
-                            columns.append(col)
-        elif not isinstance(columns, list):
-            raise ValueError(f"Invalid type for 'columns': expected list, got {type(columns).__name__}.")
+        from quantrl_lab.data.processing.steps import NumericConversionStep
 
-        for col in columns:
-            if col in df.columns and df[col].dtype == "object":
-                df[col] = pd.to_numeric(df[col], errors="coerce")
-
-        return df
+        return NumericConversionStep(columns=columns).process(df, ProcessingMetadata())
 
     def data_processing_pipeline(
         self,
@@ -347,10 +243,22 @@ class DataProcessor:
             TechnicalIndicatorStep,
         )
 
+        # Resolve indicators — auto-select via AlphaSelector when requested
+        if alpha_selection_config is not None and indicators is None:
+            from quantrl_lab.alpha_research.selector import AlphaSelector
+
+            selector = AlphaSelector(self.ohlcv_data, verbose=kwargs.get("verbose", False))
+            indicators = selector.suggest_indicators(
+                candidates=alpha_selection_config.get("candidates"),
+                metric=alpha_selection_config.get("metric", "ic"),
+                threshold=alpha_selection_config.get("threshold", 0.0),
+                top_k=alpha_selection_config.get("top_k", 5),
+            )
+
         # Build pipeline
         pipeline = DataPipeline()
 
-        # 1. Technical Indicators (Manual)
+        # 1. Technical Indicators
         pipeline.add_step(TechnicalIndicatorStep(indicators=indicators))
 
         # 2. Analyst Estimates
@@ -405,6 +313,8 @@ class DataProcessor:
             metadata_obj.analyst_data_applied = True
         if self.sector_performance is not None or self.industry_performance is not None:
             metadata_obj.market_context_applied = True
+        if alpha_selection_config is not None:
+            metadata_obj.alpha_selection_config = alpha_selection_config
 
         # Handle Data Splitting (Post-Processing)
         # Debug: Check for columns with all NaN values before dropna
@@ -413,28 +323,28 @@ class DataProcessor:
             null_counts = processed_data.isnull().sum()
             all_null_cols = null_counts[null_counts == len(processed_data)]
             if not all_null_cols.empty:
-                console.print(f"[yellow]⚠️  Warning: Columns with all NaN values: {list(all_null_cols.index)}[/yellow]")
+                logger.warning("Columns with all NaN values: {columns}", columns=list(all_null_cols.index))
 
-            console.print(f"[cyan]Before dropna: {len(processed_data)} rows[/cyan]")
-            console.print(f"[cyan]Columns in DataFrame: {list(processed_data.columns)}[/cyan]")
+            logger.info("Before dropna: {rows} rows", rows=len(processed_data))
+            logger.info("Columns in DataFrame: {columns}", columns=list(processed_data.columns))
 
-        # Drop rows with any NaN values
-        # This handles:
-        # 1. Indicator warm-up periods (e.g., SMA(200) creates 200 leading NaNs)
-        # 2. Missing price data
-        # 3. Any other features that couldn't be computed/filled
+        required_columns = [col for col in metadata_obj.required_non_null_columns if col in processed_data.columns]
         initial_len = len(processed_data)
-        processed_data = processed_data.dropna().reset_index(drop=True)
+        processed_data = processed_data.dropna(subset=required_columns or None)
         dropped_count = initial_len - len(processed_data)
 
         if verbose:
             if dropped_count > 0:
-                console.print(f"[yellow]Dropped {dropped_count} rows containing NaNs (indicator warm-up, etc)[/yellow]")
+                logger.info(
+                    "Dropped {count} rows containing NaNs in required columns: {columns}",
+                    count=dropped_count,
+                    columns=required_columns,
+                )
             else:
-                console.print("[green]No rows dropped (data is clean)[/green]")
+                logger.info("No rows dropped (data is clean)")
 
         if verbose:
-            console.print(f"[cyan]After dropna: {len(processed_data)} rows[/cyan]")
+            logger.info("After dropna: {rows} rows", rows=len(processed_data))
 
         if split_config:
             split_data, split_metadata = self._split_data(processed_data, split_config)
@@ -489,20 +399,32 @@ class DataProcessor:
         Returns:
             Tuple[Dict[str, pd.DataFrame], Dict]: datasets in dict and metadata
         """
+        # If the DataFrame has a DatetimeIndex, promote it to a column so
+        # RatioSplitter / DateRangeSplitter can sort by it without ambiguity.
+        original_index_name = df.index.name
+        index_name = original_index_name or "Date"
+        has_datetime_index = hasattr(df.index, "dtype") and pd.api.types.is_datetime64_any_dtype(df.index)
+        if has_datetime_index:
+            df = df.reset_index()
+            if df.columns[0] != index_name:
+                df = df.rename(columns={df.columns[0]: index_name})
+
         # Determine split type based on config values
         is_date_based = any(isinstance(v, (tuple, list)) for v in split_config.values())
 
         if is_date_based:
-            # Use DateRangeSplitter
             splitter = DateRangeSplitter(split_config)
         else:
-            # Use RatioSplitter
             splitter = RatioSplitter(split_config)
 
-        # Perform split
         split_data = splitter.split(df)
-
-        # Get metadata from splitter
         metadata = splitter.get_metadata()
+
+        # Restore the DatetimeIndex on each split and drop the temporary column
+        if has_datetime_index:
+            for key in split_data:
+                if index_name in split_data[key].columns:
+                    split_data[key] = split_data[key].set_index(index_name)
+                    split_data[key].index.name = original_index_name
 
         return split_data, metadata
