@@ -3,12 +3,10 @@
 from typing import Dict, List, Optional, Union
 
 import pandas as pd
-from rich.console import Console
+from loguru import logger
 
 from quantrl_lab.data.processing.features.technical import TechnicalFeatureGenerator
-from quantrl_lab.data.processing.processor import ProcessingMetadata
-
-console = Console()
+from quantrl_lab.data.processing.metadata import ProcessingMetadata
 
 
 class TechnicalIndicatorStep:
@@ -51,19 +49,14 @@ class TechnicalIndicatorStep:
         if not self.indicators:
             return data.copy()
 
-        try:
-            generator = TechnicalFeatureGenerator(self.indicators)
-            result = generator.generate(data)
+        generator = TechnicalFeatureGenerator(self.indicators)
+        result = generator.generate(data)
 
-            # Update metadata
-            metadata.technical_indicators = self.indicators
+        metadata.technical_indicators = self.indicators
+        metadata.add_required_columns([col for col in result.columns if col not in data.columns])
+        logger.debug("Applied technical indicators: {indicators}", indicators=self.indicators)
 
-            return result
-        except ValueError as e:
-            raise e
-        except Exception as e:
-            console.print(f"[red]❌ Failed to apply technical indicators: {e}[/red]")
-            return data.copy()
+        return result
 
     def get_step_name(self) -> str:
         """Return step name."""

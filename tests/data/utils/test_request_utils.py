@@ -4,8 +4,8 @@ import time
 from unittest.mock import MagicMock, patch
 
 import pytest
-import requests
 
+from quantrl_lab.data.exceptions import APIConnectionError, AuthenticationError, RateLimitError
 from quantrl_lab.data.utils.request_utils import (
     HTTPRequestWrapper,
     RetryStrategy,
@@ -50,14 +50,14 @@ class TestHTTPRequestWrapper:
             # First call fails, second succeeds
             mock_fail = MagicMock()
             mock_fail.status_code = 500
-            # Need to set response attribute for error detection
-            mock_fail.response = mock_fail
-            http_error = requests.HTTPError()
-            http_error.response = mock_fail
-            mock_fail.raise_for_status.side_effect = http_error
+            mock_fail.url = "https://api.example.com/data"
+            mock_fail.headers = {}
+            mock_fail.json.return_value = {"error": "server error"}
 
             mock_success = MagicMock()
             mock_success.status_code = 200
+            mock_success.url = "https://api.example.com/data"
+            mock_success.headers = {}
             mock_success.json.return_value = {"data": "success"}
 
             mock_request.side_effect = [mock_fail, mock_success]
@@ -74,13 +74,12 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 500
-            mock_response.response = mock_response
-            http_error = requests.HTTPError()
-            http_error.response = mock_response
-            mock_response.raise_for_status.side_effect = http_error
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
+            mock_response.json.return_value = {"error": "server error"}
             mock_request.return_value = mock_response
 
-            with pytest.raises(requests.HTTPError):
+            with pytest.raises(APIConnectionError):
                 wrapper.make_request("https://api.example.com/data", raise_on_error=True)
 
             # Should be called max_retries + 1 times (initial + retries)
@@ -176,6 +175,8 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 200
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
             mock_response.json.return_value = {"success": True}
             mock_request.return_value = mock_response
 
@@ -194,6 +195,8 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 200
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
             mock_response.json.return_value = {"data": "test"}
             mock_request.return_value = mock_response
 
@@ -210,6 +213,8 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 200
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
             mock_response.json.return_value = {"data": "test"}
             mock_request.return_value = mock_response
 
@@ -226,6 +231,8 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 200
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
             mock_response.json.return_value = {"data": "test"}
             mock_request.return_value = mock_response
 
@@ -244,6 +251,8 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 200
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
             mock_response.json.return_value = {"status": "error", "message": "test"}
             mock_request.return_value = mock_response
 
@@ -257,6 +266,8 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 200
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
             mock_response.json.side_effect = ValueError("Not JSON")
             mock_response.text = "Plain text response"
             mock_request.return_value = mock_response
@@ -273,10 +284,9 @@ class TestHTTPRequestWrapper:
         with patch("requests.request") as mock_request:
             mock_response = MagicMock()
             mock_response.status_code = 500
-            mock_response.response = mock_response
-            http_error = requests.HTTPError()
-            http_error.response = mock_response
-            mock_response.raise_for_status.side_effect = http_error
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
+            mock_response.json.return_value = {"error": "server error"}
             mock_request.return_value = mock_response
 
             result = wrapper.make_request("https://api.example.com/data", raise_on_error=False)
@@ -291,14 +301,15 @@ class TestHTTPRequestWrapper:
             # First request gets rate limited
             mock_rate_limit = MagicMock()
             mock_rate_limit.status_code = 429
-            http_error = requests.HTTPError()
-            http_error.response = mock_rate_limit
-            mock_rate_limit.raise_for_status.side_effect = http_error
-            mock_rate_limit.response = mock_rate_limit
+            mock_rate_limit.url = "https://api.example.com/data"
+            mock_rate_limit.headers = {}
+            mock_rate_limit.json.return_value = {"error": "rate limit exceeded"}
 
             # Second request succeeds
             mock_success = MagicMock()
             mock_success.status_code = 200
+            mock_success.url = "https://api.example.com/data"
+            mock_success.headers = {}
             mock_success.json.return_value = {"data": "test"}
 
             mock_request.side_effect = [mock_rate_limit, mock_success]
@@ -311,6 +322,41 @@ class TestHTTPRequestWrapper:
             assert result == {"data": "test"}
             # Should have delayed by base_delay * multiplier = 0.05 * 2 = 0.1
             assert elapsed >= 0.1
+
+    def test_authentication_error_does_not_retry(self):
+        """Test that auth failures raise immediately."""
+        wrapper = HTTPRequestWrapper(max_retries=3, base_delay=0.01)
+
+        with patch("requests.request") as mock_request:
+            mock_response = MagicMock()
+            mock_response.status_code = 401
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {}
+            mock_response.json.return_value = {"error": "unauthorized"}
+            mock_request.return_value = mock_response
+
+            with pytest.raises(AuthenticationError):
+                wrapper.make_request("https://api.example.com/data")
+
+            mock_request.assert_called_once()
+
+    def test_rate_limit_error_exposes_retry_after(self):
+        """Test Retry-After header propagation on rate limit
+        failures."""
+        wrapper = HTTPRequestWrapper(max_retries=0)
+
+        with patch("requests.request") as mock_request:
+            mock_response = MagicMock()
+            mock_response.status_code = 429
+            mock_response.url = "https://api.example.com/data"
+            mock_response.headers = {"Retry-After": "7"}
+            mock_response.json.return_value = {"error": "rate limit exceeded"}
+            mock_request.return_value = mock_response
+
+            with pytest.raises(RateLimitError) as exc_info:
+                wrapper.make_request("https://api.example.com/data")
+
+            assert exc_info.value.retry_after == 7
 
 
 class TestCreateDefaultWrapper:

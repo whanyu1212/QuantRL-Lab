@@ -11,7 +11,7 @@ from quantrl_lab.data.config import (
     YFinanceInterval,
     financial_columns,
 )
-from quantrl_lab.data.exceptions import InvalidParametersError
+from quantrl_lab.data.exceptions import APIConnectionError, InvalidParametersError
 from quantrl_lab.data.interface import (
     DataSource,
     FundamentalDataCapable,
@@ -23,6 +23,8 @@ from quantrl_lab.data.utils import log_dataframe_info, normalize_date_range, nor
 class YFinanceDataLoader(DataSource, FundamentalDataCapable, HistoricalDataCapable):
     """Yahoo Finance implementation that provides market data and
     fundamental data."""
+
+    SUPPORTED_FEATURES = {"historical_bars", "fundamental_data"}
 
     def __init__(
         self,
@@ -55,8 +57,8 @@ class YFinanceDataLoader(DataSource, FundamentalDataCapable, HistoricalDataCapab
         market: Optional[str] = None,
         **kwargs,
     ) -> List[str]:
-        # TODO
-        pass
+        logger.warning("Yahoo Finance does not support listing available instruments.")
+        return []
 
     def get_fundamental_data(
         self,
@@ -193,24 +195,30 @@ class YFinanceDataLoader(DataSource, FundamentalDataCapable, HistoricalDataCapab
             logger.warning("Neither 'start' nor 'period' provided. Defaulting to period='1mo'")
             period = "1mo"
 
+        last_error: Optional[Exception] = None
         for attempt in range(self.max_retries):
             try:
-                result = pd.DataFrame()
-                for symbol in symbol_list:
-                    ticker = yf.Ticker(symbol)
-                    if start_dt is not None:
-                        data = ticker.history(start=start_dt, end=end_dt, interval=timeframe, **kwargs).assign(
-                            Symbol=symbol
-                        )
-                    else:
-                        data = ticker.history(period=period, interval=timeframe, **kwargs).assign(Symbol=symbol)
-                    result = pd.concat([result, data])
+                download_kwargs = {
+                    "interval": timeframe,
+                    "group_by": "column",
+                    "auto_adjust": False,
+                    "progress": False,
+                    "threads": len(symbol_list) > 1,
+                    **kwargs,
+                }
+                if start_dt is not None:
+                    download_kwargs["start"] = start_dt
+                    download_kwargs["end"] = end_dt
+                else:
+                    download_kwargs["period"] = period
 
-                df_result = result.reset_index()
+                result = yf.download(symbol_list, **download_kwargs)
+                df_result = self._normalize_download_result(result, symbol_list)
                 log_dataframe_info(df_result, f"Fetched OHLCV data for {len(symbol_list)} symbol(s)")
                 return df_result
 
             except Exception as e:
+                last_error = e
                 if attempt < self.max_retries - 1:
                     logger.warning(
                         "Failed to fetch data for {symbols} (attempt {attempt}/{max_retries}): {error}",
@@ -227,7 +235,66 @@ class YFinanceDataLoader(DataSource, FundamentalDataCapable, HistoricalDataCapab
                         max_retries=self.max_retries,
                         error=str(e),
                     )
-                    return pd.DataFrame()
+                    raise APIConnectionError(
+                        f"Failed to fetch data for {symbol_list} after {self.max_retries} retries"
+                    ) from e
+
+        if last_error is not None:
+            raise APIConnectionError(f"Failed to fetch data for {symbol_list}") from last_error
+
+        return pd.DataFrame()
+
+    def _normalize_download_result(self, data: pd.DataFrame, symbol_list: List[str]) -> pd.DataFrame:
+        """Normalize `yf.download` output into the library's row-wise
+        format."""
+        if data is None or data.empty:
+            return pd.DataFrame()
+
+        if isinstance(data.columns, pd.MultiIndex):
+            symbol_level = self._detect_symbol_level(data.columns, symbol_list)
+            frames = []
+            for symbol in symbol_list:
+                if symbol not in data.columns.get_level_values(symbol_level):
+                    continue
+                symbol_frame = data.xs(symbol, axis=1, level=symbol_level, drop_level=True).copy()
+                normalized = self._normalize_single_result(symbol_frame.reset_index(), symbol)
+                if not normalized.empty:
+                    frames.append(normalized)
+
+            if not frames:
+                return pd.DataFrame()
+
+            return pd.concat(frames, ignore_index=True)
+
+        return self._normalize_single_result(data.reset_index(), symbol_list[0])
+
+    @staticmethod
+    def _detect_symbol_level(columns: pd.MultiIndex, symbol_list: List[str]) -> int:
+        """Detect which MultiIndex level corresponds to ticker
+        symbols."""
+        symbol_candidates = set(symbol_list)
+        for level in range(columns.nlevels):
+            if symbol_candidates.issubset(set(columns.get_level_values(level))):
+                return level
+        raise APIConnectionError("Unexpected yfinance column structure for multi-symbol download")
+
+    @staticmethod
+    def _normalize_single_result(df: pd.DataFrame, symbol: str) -> pd.DataFrame:
+        """Normalize a single-symbol history DataFrame."""
+        if df.empty:
+            return df
+
+        result = df.copy()
+        if "Datetime" in result.columns and "Date" not in result.columns:
+            result = result.rename(columns={"Datetime": "Date"})
+        elif "index" in result.columns and "Date" not in result.columns:
+            result = result.rename(columns={"index": "Date"})
+
+        result["Symbol"] = symbol
+        if "Date" in result.columns:
+            result = result.sort_values("Date").reset_index(drop=True)
+
+        return result
 
     def _fetch_single_symbol(
         self,

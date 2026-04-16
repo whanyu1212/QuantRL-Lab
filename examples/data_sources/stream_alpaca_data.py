@@ -9,8 +9,12 @@ This script demonstrates how to:
 Requirements:
 - Set ALPACA_API_KEY and ALPACA_SECRET_KEY in your .env file
 - Install requirements (including 'alpaca-py')
+
+Optional:
+- Pass --duration-seconds N to stop automatically after N seconds
 """
 
+import argparse
 import asyncio
 import sys
 
@@ -23,7 +27,7 @@ from quantrl_lab.data.sources import AlpacaDataLoader
 load_dotenv()
 
 
-async def main():
+async def main(duration_seconds: float = None):
     # Configure logger to show DEBUG messages (where the data is logged by default handlers)
     logger.remove()
     logger.add(sys.stderr, level="DEBUG")
@@ -54,18 +58,33 @@ async def main():
 
     logger.info("Starting stream. Press Ctrl+C to stop.")
 
+    stream_task = asyncio.create_task(loader.start_streaming())
+
     try:
-        # This will run forever until interrupted
-        await loader.start_streaming()
+        if duration_seconds is None:
+            await stream_task
+        else:
+            logger.info("Running stream for {duration:.1f}s", duration=duration_seconds)
+            await asyncio.sleep(duration_seconds)
     except KeyboardInterrupt:
         logger.info("Interrupted by user")
     finally:
         await loader.stop_streaming()
+        await stream_task
         logger.success("Stream closed")
 
 
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="Stream real-time Alpaca data.")
+    parser.add_argument(
+        "--duration-seconds",
+        type=float,
+        default=None,
+        help="Optional duration for smoke-testing the stream before stopping automatically.",
+    )
+    args = parser.parse_args()
+
     try:
-        asyncio.run(main())
+        asyncio.run(main(duration_seconds=args.duration_seconds))
     except KeyboardInterrupt:
         pass

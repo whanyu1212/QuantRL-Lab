@@ -6,7 +6,6 @@ if TYPE_CHECKING:
     import aiohttp
 
 import pandas as pd
-import requests
 from alpaca.data import StockHistoricalDataClient
 from alpaca.data.live import StockDataStream
 from alpaca.data.models import Trade
@@ -17,7 +16,7 @@ from alpaca.data.requests import (
 )
 from loguru import logger
 
-from quantrl_lab.data.exceptions import AuthenticationError, InvalidParametersError
+from quantrl_lab.data.exceptions import AuthenticationError, DataSourceError, InvalidParametersError
 from quantrl_lab.data.interface import (
     ConnectionManaged,
     DataSource,
@@ -28,6 +27,8 @@ from quantrl_lab.data.interface import (
 )
 from quantrl_lab.data.processing.mappings import ALPACA_MAPPINGS
 from quantrl_lab.data.utils import (
+    HTTPRequestWrapper,
+    RetryStrategy,
     add_date_column_from_timestamp,
     format_date_to_string,
     log_dataframe_info,
@@ -47,6 +48,14 @@ class AlpacaDataLoader(
 ):
     """Alpaca implementation that provides market data from Alpaca
     APIs."""
+
+    SUPPORTED_FEATURES = {
+        "historical_bars",
+        "live_data",
+        "streaming",
+        "news",
+        "connection_managed",
+    }
 
     NEWS_API_BASE_URL = "https://data.alpaca.markets/v1beta1/news"
     DEFAULT_NEWS_SORT = "desc"
@@ -73,6 +82,12 @@ class AlpacaDataLoader(
         if AlpacaDataLoader._stock_stream_client_instance is None:
             AlpacaDataLoader._stock_stream_client_instance = StockDataStream(self.api_key, self.secret_key)
         self.stock_stream_client = AlpacaDataLoader._stock_stream_client_instance
+        self._news_request_wrapper = HTTPRequestWrapper(
+            max_retries=3,
+            retry_strategy=RetryStrategy.EXPONENTIAL,
+            base_delay=1.0,
+            timeout=30.0,
+        )
 
         self.subscribers = {"quotes": [], "trades": [], "bars": []}
         self._subscribed_symbols = set()
@@ -120,8 +135,8 @@ class AlpacaDataLoader(
         market: Optional[str] = None,
         **kwargs,
     ) -> List[str]:
-        # TODO
-        pass
+        logger.warning("AlpacaDataLoader does not currently implement instrument discovery.")
+        return []
 
     def get_historical_ohlcv_data(
         self,
@@ -334,10 +349,12 @@ class AlpacaDataLoader(
                 params["page_token"] = page_token
 
             try:
-                response = requests.get(self.NEWS_API_BASE_URL, headers=headers, params=params)
-                response.raise_for_status()
-
-                data = response.json()
+                data = self._news_request_wrapper.make_request(
+                    self.NEWS_API_BASE_URL,
+                    headers=headers,
+                    params=params,
+                    raise_on_error=True,
+                )
                 news_items = data.get("news", [])
 
                 if not news_items:
@@ -357,12 +374,11 @@ class AlpacaDataLoader(
                 if not page_token:
                     break
 
-            except requests.exceptions.RequestException as e:
+            except DataSourceError as e:
                 if silent_errors:
                     logger.debug("Silent failure fetching news: {e}", e=e)
-                else:
-                    logger.error("Error fetching news: {e}", e=e)
-                break
+                    return pd.DataFrame()
+                raise
 
         if verbose:
             logger.success("Total news items fetched: {n}", n=len(all_news))

@@ -19,10 +19,10 @@ class TestRatioSplitterInit:
         splitter = RatioSplitter({"train": 0.6, "val": 0.2, "test": 0.2})
         assert sum(splitter.ratios.values()) == 1.0
 
-    def test_ratios_sum_less_than_one(self):
-        """Test that ratios summing to < 1.0 are valid."""
-        splitter = RatioSplitter({"train": 0.7, "test": 0.2})
-        assert abs(sum(splitter.ratios.values()) - 0.9) < 1e-10  # Handle floating point precision
+    def test_ratios_sum_less_than_one_raises_error(self):
+        """Test that ratios summing to < 1.0 are rejected."""
+        with pytest.raises(ValueError, match="must sum to 1.0"):
+            RatioSplitter({"train": 0.7, "test": 0.2})
 
     def test_empty_ratios_raises_error(self):
         """Test that empty ratios dict raises ValueError."""
@@ -31,7 +31,7 @@ class TestRatioSplitterInit:
 
     def test_ratios_exceed_one_raises_error(self):
         """Test that ratios > 1.0 raise ValueError."""
-        with pytest.raises(ValueError, match="exceeds 1.0"):
+        with pytest.raises(ValueError, match="must sum to 1.0"):
             RatioSplitter({"train": 0.8, "test": 0.5})
 
     def test_negative_ratio_raises_error(self):
@@ -46,7 +46,7 @@ class TestRatioSplitterInit:
 
     def test_ratio_exceeds_one_individually_raises_error(self):
         """Test that individual ratio > 1.0 raises ValueError."""
-        with pytest.raises(ValueError, match="exceeds 1.0"):
+        with pytest.raises(ValueError, match="Invalid ratio"):
             RatioSplitter({"train": 1.5})
 
 
@@ -107,6 +107,17 @@ class TestRatioSplitterSplit:
 
         combined_len = sum(len(df) for df in splits.values())
         assert combined_len == len(sample_data)
+
+    def test_split_assigns_rounding_remainder_to_last_split(self):
+        """Test that rounding leftovers are preserved in the final
+        split."""
+        df = pd.DataFrame({"value": range(365)})
+        splitter = RatioSplitter({"train": 0.7, "test": 0.3})
+        splits = splitter.split(df)
+
+        assert len(splits["train"]) == 255
+        assert len(splits["test"]) == 110
+        assert sum(len(part) for part in splits.values()) == 365
 
     def test_split_empty_dataframe_raises_error(self):
         """Test that splitting empty DataFrame raises ValueError."""

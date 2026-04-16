@@ -7,6 +7,7 @@ from .dataframe_normalization import (
     standardize_ohlcv_columns,
     standardize_ohlcv_dataframe,
 )
+from .date_alignment import merge_asof_features, to_naive_datetime
 from .date_parsing import (
     format_av_datetime,
     format_date_to_string,
@@ -42,6 +43,8 @@ __all__ = [
     "standardize_ohlcv_dataframe",
     # Request utilities
     "AsyncHTTPRequestWrapper",
+    "merge_asof_features",
+    "to_naive_datetime",
     "HTTPRequestWrapper",
     "RetryStrategy",
     "create_default_wrapper",

@@ -1,12 +1,14 @@
 from abc import ABC, abstractmethod
 from datetime import datetime
-from typing import Any, List, Optional, Protocol, Union, runtime_checkable
+from typing import Any, ClassVar, List, Optional, Protocol, Set, Union, runtime_checkable
 
 import pandas as pd
 
 
 class DataSource(ABC):
     """Base class for all data sources."""
+
+    SUPPORTED_FEATURES: ClassVar[Set[str]] = set()
 
     @property
     @abstractmethod
@@ -73,37 +75,7 @@ class DataSource(ABC):
     @property
     def supported_features(self) -> List[str]:
         """Return a list of supported features."""
-        features = []
-
-        if isinstance(self, HistoricalDataCapable):
-            features.append("historical_bars")
-        if isinstance(self, NewsDataCapable):
-            features.append("news")
-        if isinstance(self, LiveDataCapable):
-            features.append("live_data")
-        if isinstance(self, StreamingCapable):
-            features.append("streaming")
-        if isinstance(self, ConnectionManaged):
-            features.append("connection_managed")
-        if isinstance(self, FundamentalDataCapable):
-            features.append("fundamental_data")
-        if isinstance(self, MacroDataCapable):
-            features.append("macro_data")
-        if isinstance(self, AnalystDataCapable):
-            features.append("analyst_data")
-        if isinstance(self, SectorDataCapable):
-            features.append("sector_data")
-        if isinstance(self, CompanyProfileCapable):
-            features.append("company_profile")
-
-        # Check if instrument discovery is implemented (method is overridden)
-        if (
-            hasattr(self.__class__, "list_available_instruments")
-            and self.__class__.list_available_instruments is not DataSource.list_available_instruments
-        ):
-            features.append("instrument_discovery")
-
-        return features
+        return sorted(self.SUPPORTED_FEATURES)
 
     def supports_feature(self, feature_name: str) -> bool:
         """Check if the data source supports a specific feature."""
@@ -116,7 +88,7 @@ class DataSource(ABC):
         Returns:
             str: A string representation of the data source.
         """
-        return f"<{self.__class__.__name__}(name='{self.source_name}', connected={self.is_connected})>"
+        return f"<{self.__class__.__name__}(name='{self.source_name}', connected={self.is_connected()})>"
 
 
 @runtime_checkable

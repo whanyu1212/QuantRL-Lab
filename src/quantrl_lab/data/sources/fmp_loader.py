@@ -53,6 +53,8 @@ class FMPDataSource(
     - CompanyProfileCapable: Company profile and metadata
     """
 
+    SUPPORTED_FEATURES = {"historical_bars", "analyst_data", "sector_data", "company_profile"}
+
     BASE_URL = "https://financialmodelingprep.com/stable"
     RATE_LIMIT_SLEEP = 1  # seconds
     INTRADAY_TIMEFRAMES = {"5min", "15min", "30min", "1hour", "4hour"}

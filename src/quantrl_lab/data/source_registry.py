@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Any, Callable, Dict, List, Optional, Union
+from typing import Any, Callable, Dict, List, Optional, Set, Union
 
 import pandas as pd
 
@@ -59,6 +59,7 @@ class DataSourceRegistry:
         """
         # Internal storage
         self._factories: Dict[str, Callable] = {}  # name -> factory function
+        self._capabilities: Dict[str, Set[str]] = {}  # name -> declared capability set
         self._sources: Dict[str, Any] = {}  # name -> instantiated source (lazy)
 
         # Register default sources
@@ -68,18 +69,32 @@ class DataSourceRegistry:
         if sources:
             for name, source_class in sources.items():
                 if source_class is not None:
-                    self.register_source(name, self._make_factory(source_class), override=True)
+                    self.register_source(
+                        name,
+                        self._make_factory(source_class),
+                        override=True,
+                        capabilities=getattr(source_class, "SUPPORTED_FEATURES", set()),
+                    )
 
         # Override with kwargs (backward compatibility)
         for name, source_class in kwargs.items():
             if source_class is not None:
-                self.register_source(name, self._make_factory(source_class), override=True)
+                self.register_source(
+                    name,
+                    self._make_factory(source_class),
+                    override=True,
+                    capabilities=getattr(source_class, "SUPPORTED_FEATURES", set()),
+                )
 
     def _register_defaults(self) -> None:
         """Register default data sources."""
         for name, source_class in self.DEFAULT_SOURCES.items():
             if source_class is not None:
-                self.register_source(name, self._make_factory(source_class))
+                self.register_source(
+                    name,
+                    self._make_factory(source_class),
+                    capabilities=getattr(source_class, "SUPPORTED_FEATURES", set()),
+                )
 
     @staticmethod
     def _make_factory(source_class: type) -> Callable:
@@ -96,9 +111,17 @@ class DataSourceRegistry:
         def factory(**init_kwargs):
             return source_class(**init_kwargs)
 
+        factory.source_class = source_class
+        factory.supported_features = set(getattr(source_class, "SUPPORTED_FEATURES", set()))
         return factory
 
-    def register_source(self, name: str, factory: Callable, override: bool = False) -> None:
+    def register_source(
+        self,
+        name: str,
+        factory: Callable,
+        override: bool = False,
+        capabilities: Optional[Set[str]] = None,
+    ) -> None:
         """
         Register a data source factory.
 
@@ -106,6 +129,7 @@ class DataSourceRegistry:
             name: Unique name for this source (e.g., "alpaca_primary", "yfinance_backup")
             factory: Callable that returns a data source instance
             override: If True, replace existing registration
+            capabilities: Explicit capability set used for source discovery
 
         Raises:
             ValueError: If source already registered and override=False
@@ -117,6 +141,33 @@ class DataSourceRegistry:
         if name in self._factories and not override:
             raise ValueError(f"Source '{name}' already registered. Use override=True to replace.")
         self._factories[name] = factory
+        self._capabilities[name] = self._resolve_capabilities(factory, capabilities)
+
+    @staticmethod
+    def _resolve_capabilities(factory: Callable, capabilities: Optional[Set[str]]) -> Set[str]:
+        """Resolve capability metadata without forcing callers to
+        provide it explicitly."""
+        if capabilities is not None:
+            return set(capabilities)
+
+        factory_features = getattr(factory, "supported_features", None)
+        if factory_features is not None:
+            return set(factory_features)
+
+        source_class = getattr(factory, "source_class", None)
+        if source_class is not None:
+            return set(getattr(source_class, "SUPPORTED_FEATURES", set()))
+
+        try:
+            instance = factory()
+        except Exception:
+            return set()
+
+        instance_features = getattr(instance, "supported_features", None)
+        if instance_features is not None:
+            return set(instance_features)
+
+        return set(getattr(instance.__class__, "SUPPORTED_FEATURES", set()))
 
     def get_source(self, name: str, **init_kwargs: Any) -> Any:
         """
@@ -157,16 +208,7 @@ class DataSourceRegistry:
             >>> sources = registry.list_sources_by_capability("historical_bars")
             >>> print(sources)  # ["primary_source", "backup_source"]
         """
-        results = []
-        for name in self._factories:
-            try:
-                source = self.get_source(name)
-                if source.supports_feature(capability):
-                    results.append(name)
-            except Exception:
-                # Skip sources that fail to instantiate
-                continue
-        return results
+        return [name for name, features in self._capabilities.items() if capability in features]
 
     def list_all_sources(self) -> List[str]:
         """

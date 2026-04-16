@@ -6,6 +6,7 @@ import re
 import pytest
 from aioresponses import aioresponses
 
+from quantrl_lab.data.exceptions import APIConnectionError, RateLimitError
 from quantrl_lab.data.utils.async_request_utils import AsyncHTTPRequestWrapper
 
 
@@ -90,7 +91,7 @@ class TestAsyncHTTPRequestWrapperMakeRequest:
         assert result == {"symbol": "AAPL", "price": 150.0}
 
     @pytest.mark.asyncio
-    async def test_returns_none_after_all_retries_exhausted(self):
+    async def test_raises_connection_error_after_all_retries_exhausted(self):
         wrapper = AsyncHTTPRequestWrapper(max_retries=2, base_delay=0.01)
         url = "https://api.example.com/data"
 
@@ -101,9 +102,8 @@ class TestAsyncHTTPRequestWrapperMakeRequest:
             import aiohttp
 
             async with aiohttp.ClientSession() as session:
-                result = await wrapper.make_request(session, url)
-
-        assert result is None
+                with pytest.raises(APIConnectionError):
+                    await wrapper.make_request(session, url)
 
     @pytest.mark.asyncio
     async def test_retries_on_server_error_then_succeeds(self):
@@ -134,6 +134,20 @@ class TestAsyncHTTPRequestWrapperMakeRequest:
                 result = await wrapper.make_request(session, url)
 
         assert result == {"data": "ok"}
+
+    @pytest.mark.asyncio
+    async def test_raises_rate_limit_error_when_exhausted(self):
+        wrapper = AsyncHTTPRequestWrapper(max_retries=1, base_delay=0.01)
+        url = "https://api.example.com/data"
+
+        with aioresponses() as m:
+            m.get(url, status=429, payload={"message": "rate limit"})
+            m.get(url, status=429, payload={"message": "rate limit"})
+            import aiohttp
+
+            async with aiohttp.ClientSession() as session:
+                with pytest.raises(RateLimitError):
+                    await wrapper.make_request(session, url)
 
     @pytest.mark.asyncio
     async def test_passes_params_in_request(self):

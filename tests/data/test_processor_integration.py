@@ -39,7 +39,7 @@ class TestDataProcessorSplitting:
 
         # Check sizes
         assert len(result["train"]) == 255  # 70% of 365
-        assert len(result["test"]) == 109  # 30% of 365
+        assert len(result["test"]) == 110  # Remainder is kept in the last split
 
         # Check metadata
         assert metadata["date_ranges"]["train"]["start"] == "2020-01-01"
@@ -85,7 +85,7 @@ class TestDataProcessorSplitting:
 
         # Verify total equals original (after dropna)
         total_len = sum(len(df) for df in result.values())
-        assert total_len <= len(sample_ohlcv_data)  # May be less due to dropna
+        assert total_len == len(sample_ohlcv_data)
 
     def test_no_split_returns_single_dataframe(self, sample_ohlcv_data):
         """Test that not providing split_config returns single
@@ -215,10 +215,9 @@ class TestDataProcessorDirectSplitterUsage:
 class TestDataProcessorCleanup:
     """Test data cleanup and dropna logic."""
 
-    def test_dropna_removes_any_nan(self):
-        """Test that rows with ANY NaN values (like indicator warm-up)
-        are dropped."""
-        # Create data where a feature has NaNs at the start
+    def test_indicator_warmup_rows_are_dropped(self):
+        """Test that generated technical indicators still trim warm-up
+        rows."""
         dates = pd.date_range("2020-01-01", periods=10, freq="D")
         df = pd.DataFrame(
             {
@@ -228,17 +227,41 @@ class TestDataProcessorCleanup:
                 "Low": [100] * 10,
                 "Close": [100] * 10,
                 "Volume": [100] * 10,
-                # Feature with 3 leading NaNs
-                "SMA_3": [None, None, None] + [100.0] * 7,
             }
         )
 
         processor = DataProcessor(df)
-        # Run pipeline (no new indicators, just cleanup)
-        result, _ = processor.data_processing_pipeline()
+        result, _ = processor.data_processing_pipeline(indicators=[{"SMA": {"window": 3}}])
 
-        # Should drop first 3 rows
-        assert len(result) == 7
-        # Check first row is the 4th original row (index 3, Open=3)
-        # We can't check Date as it's dropped by default cleanup
-        assert result.iloc[0]["Open"] == 3
+        assert len(result) == 8
+        assert result.iloc[0]["Open"] == 2
+
+    def test_optional_sparse_enrichment_does_not_drop_rows(self):
+        """Test sparse optional enrichment no longer deletes valid OHLCV
+        rows."""
+        dates = pd.date_range("2020-01-01", periods=10, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Open": range(10),
+                "High": [100] * 10,
+                "Low": [100] * 10,
+                "Close": [100] * 10,
+                "Volume": [100] * 10,
+            }
+        )
+        analyst_grades = pd.DataFrame(
+            {
+                "date": [pd.Timestamp("2020-01-05")],
+                "analystRatingsStrongBuy": [7.0],
+                "symbol": ["AAPL"],
+            }
+        )
+
+        processor = DataProcessor(df, analyst_grades=analyst_grades)
+        result, metadata = processor.data_processing_pipeline()
+
+        assert len(result) == 10
+        assert "analystRatingsStrongBuy" in result.columns
+        assert result.loc[result["Open"] == 0, "analystRatingsStrongBuy"].isna().all()
+        assert "analystRatingsStrongBuy" in metadata["optional_feature_columns"]

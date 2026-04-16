@@ -3,11 +3,9 @@
 from typing import List, Optional
 
 import pandas as pd
-from rich.console import Console
+from loguru import logger
 
-from quantrl_lab.data.processing.processor import ProcessingMetadata
-
-console = Console()
+from quantrl_lab.data.processing.metadata import ProcessingMetadata
 
 
 class CrossSectionalStep:
@@ -61,11 +59,11 @@ class CrossSectionalStep:
             return data
 
         if "Symbol" not in data.columns:
-            console.print("[yellow]⚠️ CrossSectionalStep requires a 'Symbol' column. Skipping.[/yellow]")
+            logger.warning("CrossSectionalStep requires a 'Symbol' column. Skipping.")
             return data
 
         if data["Symbol"].nunique() < 2:
-            console.print("[dim]CrossSectionalStep bypassed: Only 1 symbol present in data.[/dim]")
+            logger.debug("CrossSectionalStep bypassed because only one symbol is present.")
             return data
 
         result = data.copy()
@@ -76,7 +74,7 @@ class CrossSectionalStep:
 
         for col in self.columns:
             if col not in result.columns:
-                console.print(f"[yellow]⚠️ Column '{col}' not found for cross-sectional processing.[/yellow]")
+                logger.warning("Column '{column}' not found for cross-sectional processing.", column=col)
                 continue
 
             for method in self.methods:
@@ -93,7 +91,13 @@ class CrossSectionalStep:
                     result[new_col_name] = grouped[col].transform(lambda x: x - x.mean())
 
         # Update metadata to track these new features
-        metadata.cross_sectional_features.extend([f"{c}_cs_{m}" for c in self.columns for m in self.methods])
+        generated_columns = [
+            f"{c}_cs_{m}" for c in self.columns for m in self.methods if f"{c}_cs_{m}" in result.columns
+        ]
+        metadata.cross_sectional_features.extend(
+            [column for column in generated_columns if column not in metadata.cross_sectional_features]
+        )
+        metadata.add_required_columns(generated_columns)
 
         return result
 

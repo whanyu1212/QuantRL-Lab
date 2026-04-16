@@ -57,6 +57,13 @@ class TechnicalFeatureGenerator:
                 continue
 
             if indicator_name not in available_indicators:
+                import warnings
+
+                warnings.warn(
+                    f"Unknown indicator '{indicator_name}' — not registered in IndicatorRegistry. Skipping.",
+                    UserWarning,
+                    stacklevel=2,
+                )
                 continue
 
             try:
@@ -78,7 +85,14 @@ class TechnicalFeatureGenerator:
                     result = self.registry.apply(indicator_name, result, **custom_params)
                 else:
                     result = self.registry.apply(indicator_name, result)
-            except Exception:
+            except Exception as e:
+                import warnings
+
+                warnings.warn(
+                    f"Failed to apply indicator '{indicator_name}': {e}",
+                    UserWarning,
+                    stacklevel=2,
+                )
                 continue
 
         return result

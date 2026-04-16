@@ -10,7 +10,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from quantrl_lab.data.exceptions import AuthenticationError, InvalidParametersError
+from quantrl_lab.data.exceptions import AuthenticationError, DataSourceError, InvalidParametersError, RateLimitError
 from quantrl_lab.data.interface import (
     FundamentalDataCapable,
     HistoricalDataCapable,
@@ -104,11 +104,10 @@ class TestYFinanceDataLoader:
                 end="2023-01-01",
             )
 
-    @patch("quantrl_lab.data.sources.yfinance_loader.yf.Ticker")
-    def test_get_historical_ohlcv_data_returns_dataframe(self, mock_ticker):
+    @patch("quantrl_lab.data.sources.yfinance_loader.yf.download")
+    def test_get_historical_ohlcv_data_returns_dataframe(self, mock_download):
         """Test that get_historical_ohlcv_data returns a DataFrame."""
-        # Setup mock
-        mock_history = pd.DataFrame(
+        mock_download.return_value = pd.DataFrame(
             {
                 "Open": [150.0, 151.0],
                 "High": [152.0, 153.0],
@@ -119,10 +118,6 @@ class TestYFinanceDataLoader:
             index=pd.date_range("2023-01-01", periods=2),
         )
 
-        mock_ticker_instance = MagicMock()
-        mock_ticker_instance.history.return_value = mock_history
-        mock_ticker.return_value = mock_ticker_instance
-
         loader = YFinanceDataLoader()
         result = loader.get_historical_ohlcv_data(
             symbols="AAPL",
@@ -132,6 +127,33 @@ class TestYFinanceDataLoader:
 
         assert isinstance(result, pd.DataFrame)
         assert "Symbol" in result.columns
+
+    @patch("quantrl_lab.data.sources.yfinance_loader.yf.download")
+    def test_get_historical_ohlcv_data_normalizes_multi_symbol_download(self, mock_download):
+        """Test multi-symbol download normalization preserves every
+        requested symbol."""
+        columns = pd.MultiIndex.from_product(
+            [["Open", "High", "Low", "Close", "Volume"], ["AAPL", "MSFT"]],
+        )
+        mock_download.return_value = pd.DataFrame(
+            [
+                [150.0, 300.0, 152.0, 302.0, 149.0, 299.0, 151.0, 301.0, 1000000, 2000000],
+                [151.0, 301.0, 153.0, 303.0, 150.0, 300.0, 152.0, 302.0, 1100000, 2100000],
+            ],
+            index=pd.date_range("2023-01-01", periods=2),
+            columns=columns,
+        )
+
+        loader = YFinanceDataLoader()
+        result = loader.get_historical_ohlcv_data(
+            symbols=["AAPL", "MSFT"],
+            start="2023-01-01",
+            end="2023-01-31",
+        )
+
+        assert isinstance(result, pd.DataFrame)
+        assert set(result["Symbol"]) == {"AAPL", "MSFT"}
+        assert len(result) == 4
 
     @patch("quantrl_lab.data.sources.yfinance_loader.yf.Ticker")
     def test_get_fundamental_data_returns_dataframe(self, mock_ticker):
@@ -256,15 +278,11 @@ class TestAlpacaDataLoader:
     @patch.dict("os.environ", {"ALPACA_API_KEY": "test_key", "ALPACA_SECRET_KEY": "test_secret"})
     @patch("quantrl_lab.data.sources.alpaca_loader.StockHistoricalDataClient")
     @patch("quantrl_lab.data.sources.alpaca_loader.StockDataStream")
-    @patch("quantrl_lab.data.sources.alpaca_loader.requests.get")
-    def test_get_news_data_returns_dataframe(self, mock_requests, mock_stream, mock_client):
+    def test_get_news_data_returns_dataframe(self, mock_stream, mock_client):
         """Test that get_news_data returns a DataFrame."""
         AlpacaDataLoader._stock_stream_client_instance = None
 
-        # Setup mock response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_payload = {
             "news": [
                 {
                     "headline": "Test headline",
@@ -274,53 +292,43 @@ class TestAlpacaDataLoader:
             ],
             "next_page_token": None,
         }
-        mock_requests.return_value = mock_response
 
         loader = AlpacaDataLoader()
-        result = loader.get_news_data(
-            symbols="AAPL",
-            start="2023-01-01",
-            end="2023-01-31",
-        )
+        with patch.object(loader._news_request_wrapper, "make_request", return_value=mock_payload):
+            result = loader.get_news_data(
+                symbols="AAPL",
+                start="2023-01-01",
+                end="2023-01-31",
+            )
 
         assert isinstance(result, pd.DataFrame)
         assert len(result) == 1
         assert result.iloc[0]["headline"] == "Test headline"
 
     @patch.dict("os.environ", {"ALPACA_API_KEY": "test_key", "ALPACA_SECRET_KEY": "test_secret"})
-    @patch("quantrl_lab.data.sources.alpaca_loader.requests.get")
-    def test_get_news_data_silent_errors(self, mock_requests):
+    def test_get_news_data_silent_errors(self):
         """Test that silent_errors=True suppresses exceptions."""
-        import requests
-
-        # Simulate connection error
-        mock_requests.side_effect = requests.exceptions.RequestException("Connection failed")
-
         loader = AlpacaDataLoader()
 
-        # Should not raise exception, returns empty DataFrame
-        result = loader.get_news_data(symbols="AAPL", start="2023-01-01", silent_errors=True)
+        with patch.object(
+            loader._news_request_wrapper, "make_request", side_effect=DataSourceError("Connection failed")
+        ):
+            result = loader.get_news_data(symbols="AAPL", start="2023-01-01", silent_errors=True)
 
         assert isinstance(result, pd.DataFrame)
         assert result.empty
 
     @patch.dict("os.environ", {"ALPACA_API_KEY": "test_key", "ALPACA_SECRET_KEY": "test_secret"})
-    @patch("quantrl_lab.data.sources.alpaca_loader.requests.get")
-    def test_get_news_data_raises_without_silent_errors(self, mock_requests):
-        """Test that silent_errors=False (default) logs error but
-        doesn't crash loop, returns empty if all fail."""
-        import requests
-
-        mock_requests.side_effect = requests.exceptions.RequestException("Connection failed")
-
+    def test_get_news_data_raises_without_silent_errors(self):
+        """Test that silent_errors=False propagates provider
+        failures."""
         loader = AlpacaDataLoader()
 
-        # The current implementation catches Exception and logs ERROR, then breaks.
-        # It returns an empty DataFrame if no news collected.
-        result = loader.get_news_data(symbols="AAPL", start="2023-01-01", silent_errors=False)
-
-        assert isinstance(result, pd.DataFrame)
-        assert result.empty
+        with patch.object(
+            loader._news_request_wrapper, "make_request", side_effect=DataSourceError("Connection failed")
+        ):
+            with pytest.raises(DataSourceError, match="Connection failed"):
+                loader.get_news_data(symbols="AAPL", start="2023-01-01", silent_errors=False)
 
 
 class TestAlphaVantageDataLoader:
@@ -373,13 +381,9 @@ class TestAlphaVantageDataLoader:
             )
 
     @patch.dict("os.environ", {"ALPHA_VANTAGE_API_KEY": "test_key"})
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_get_historical_ohlcv_data_daily(self, mock_requests):
+    def test_get_historical_ohlcv_data_daily(self):
         """Test get_historical_ohlcv_data with daily timeframe."""
-        # Setup mock response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_response = {
             "Time Series (Daily)": {
                 "2023-01-15": {
                     "1. open": "150.0",
@@ -390,26 +394,22 @@ class TestAlphaVantageDataLoader:
                 },
             },
         }
-        mock_requests.return_value = mock_response
 
         loader = AlphaVantageDataLoader()
-        result = loader.get_historical_ohlcv_data(
-            symbols="AAPL",
-            start="2023-01-01",
-            end="2023-01-31",
-            timeframe="1d",
-        )
+        with patch.object(loader, "_make_api_request", return_value=mock_response):
+            result = loader.get_historical_ohlcv_data(
+                symbols="AAPL",
+                start="2023-01-01",
+                end="2023-01-31",
+                timeframe="1d",
+            )
 
         assert isinstance(result, pd.DataFrame)
 
     @patch.dict("os.environ", {"ALPHA_VANTAGE_API_KEY": "test_key"})
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_get_historical_ohlcv_data_intraday(self, mock_requests):
+    def test_get_historical_ohlcv_data_intraday(self):
         """Test get_historical_ohlcv_data with intraday timeframe."""
-        # Setup mock response
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
+        mock_response = {
             "Time Series (5min)": {
                 "2023-01-15 10:00:00": {
                     "1. open": "150.0",
@@ -420,15 +420,15 @@ class TestAlphaVantageDataLoader:
                 },
             },
         }
-        mock_requests.return_value = mock_response
 
         loader = AlphaVantageDataLoader()
-        result = loader.get_historical_ohlcv_data(
-            symbols="AAPL",
-            start="2023-01-01",
-            end="2023-01-31",
-            timeframe="5min",
-        )
+        with patch.object(loader, "_make_api_request", return_value=mock_response):
+            result = loader.get_historical_ohlcv_data(
+                symbols="AAPL",
+                start="2023-01-01",
+                end="2023-01-31",
+                timeframe="5min",
+            )
 
         assert isinstance(result, pd.DataFrame)
 
@@ -476,43 +476,53 @@ class TestAlphaVantageDataLoader:
             loader._get_federal_funds_rate_data(interval="invalid")
 
     @patch.dict("os.environ", {"ALPHA_VANTAGE_API_KEY": "test_key"})
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_make_api_request_handles_rate_limit(self, mock_requests):
-        """Test that _make_api_request handles rate limit responses."""
-        # First call returns rate limit note, second succeeds
-        rate_limit_response = MagicMock()
-        rate_limit_response.status_code = 200
-        rate_limit_response.json.return_value = {
-            "Note": "API call frequency is 5 calls per minute",
-        }
-
-        success_response = MagicMock()
-        success_response.status_code = 200
-        success_response.json.return_value = {"data": "test"}
-
-        mock_requests.side_effect = [rate_limit_response, success_response]
-
-        loader = AlphaVantageDataLoader(delay=0)  # Set delay to 0 for faster tests
-        result = loader._make_api_request("TEST_FUNCTION", "AAPL")
-
-        assert result == {"data": "test"}
+    def test_make_api_request_handles_rate_limit(self):
+        """Test that _make_api_request raises typed rate limit
+        errors."""
+        loader = AlphaVantageDataLoader(delay=0)
+        with patch.object(
+            loader._request_wrapper,
+            "make_request",
+            return_value={"Note": "API call frequency is 5 calls per minute"},
+        ):
+            with pytest.raises(RateLimitError):
+                loader._make_api_request("TEST_FUNCTION", "AAPL")
 
     @patch.dict("os.environ", {"ALPHA_VANTAGE_API_KEY": "test_key"})
-    @patch("quantrl_lab.data.sources.alpha_vantage_loader.requests.get")
-    def test_make_api_request_handles_error_message(self, mock_requests):
-        """Test that _make_api_request handles error message
-        responses."""
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_response.json.return_value = {
-            "Error Message": "Invalid API call",
-        }
-        mock_requests.return_value = mock_response
-
+    def test_make_api_request_handles_error_message(self):
+        """Test that _make_api_request raises invalid parameter
+        errors."""
         loader = AlphaVantageDataLoader()
-        result = loader._make_api_request("TEST_FUNCTION", "INVALID")
+        with patch.object(loader._request_wrapper, "make_request", return_value={"Error Message": "Invalid API call"}):
+            with pytest.raises(InvalidParametersError, match="Invalid API call"):
+                loader._make_api_request("TEST_FUNCTION", "INVALID")
 
-        assert result is None
+    @patch.dict("os.environ", {"ALPHA_VANTAGE_API_KEY": "test_key"})
+    def test_get_news_data_expands_multi_symbol_sentiment(self):
+        """Test news normalization emits one row per matched article-
+        symbol pair."""
+        loader = AlphaVantageDataLoader()
+        with patch.object(
+            loader,
+            "_make_api_request",
+            return_value={
+                "feed": [
+                    {
+                        "title": "Chip demand improves",
+                        "time_published": "20230115T100000",
+                        "ticker_sentiment": [
+                            {"ticker": "AAPL", "ticker_sentiment_score": "0.30"},
+                            {"ticker": "MSFT", "ticker_sentiment_score": "0.70"},
+                        ],
+                    }
+                ]
+            },
+        ):
+            result = loader.get_news_data(["AAPL", "MSFT"], start="2023-01-01", end="2023-01-31")
+
+        assert len(result) == 2
+        assert set(result["Symbol"]) == {"AAPL", "MSFT"}
+        assert set(result["sentiment_score"]) == {0.3, 0.7}
 
 
 class TestDataSourceRegistry:
@@ -530,6 +540,8 @@ class TestDataSourceRegistry:
 
         assert hasattr(registry, "primary_source")
         assert hasattr(registry, "news_source")
+        assert "primary_source" in registry.list_sources_by_capability("historical_bars")
+        assert "news_source" in registry.list_sources_by_capability("news")
 
     @patch.dict("os.environ", {"ALPACA_API_KEY": "test_key", "ALPACA_SECRET_KEY": "test_secret"})
     @patch("quantrl_lab.data.sources.alpaca_loader.StockHistoricalDataClient")
@@ -568,6 +580,17 @@ class TestDataSourceRegistry:
         )
 
         assert isinstance(result, pd.DataFrame)
+
+    def test_register_source_infers_capabilities_from_factory_instance(self):
+        """Test custom zero-arg factories remain discoverable by
+        capability."""
+        from quantrl_lab.data.source_registry import DataSourceRegistry
+
+        registry = DataSourceRegistry(sources={})
+        registry.register_source("custom", lambda: YFinanceDataLoader())
+
+        assert "custom" in registry.list_sources_by_capability("historical_bars")
+        assert "custom" in registry.list_sources_by_capability("fundamental_data")
 
 
 class TestFMPDataSource:

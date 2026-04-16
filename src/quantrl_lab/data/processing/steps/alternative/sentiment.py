@@ -1,13 +1,11 @@
 """Sentiment enrichment processing step."""
 
 import pandas as pd
-from rich.console import Console
+from loguru import logger
 
 from quantrl_lab.data.processing.features.sentiment import SentimentFeatureGenerator
-from quantrl_lab.data.processing.processor import ProcessingMetadata
+from quantrl_lab.data.processing.metadata import ProcessingMetadata
 from quantrl_lab.data.processing.sentiment import SentimentConfig, SentimentProvider
-
-console = Console()
 
 
 class SentimentEnrichmentStep:
@@ -62,39 +60,34 @@ class SentimentEnrichmentStep:
             ValueError: If news_data is empty or invalid
         """
         if self.news_data is None or self.news_data.empty:
-            console.print("[yellow]⚠️  No news data provided. Skipping sentiment analysis.[/yellow]")
+            logger.debug("No news data provided. Skipping sentiment analysis.")
             return data
 
-        try:
-            # SentimentFeatureGenerator expects 'Date' as a column.
-            # If Date is the index, temporarily move it to a column.
-            restored_index = False
-            df = data
-            if "Date" not in df.columns and df.index.name == "Date":
-                df = df.reset_index()
-                restored_index = True
+        restored_index = False
+        df = data
+        if "Date" not in df.columns and df.index.name == "Date":
+            df = df.reset_index()
+            restored_index = True
 
-            generator = SentimentFeatureGenerator(
-                self.provider,
-                self.config,
-                self.news_data,
-                self.fillna_strategy,
-            )
-            result = generator.generate(df)
+        generator = SentimentFeatureGenerator(
+            self.provider,
+            self.config,
+            self.news_data,
+            self.fillna_strategy,
+        )
+        result = generator.generate(df)
 
-            if restored_index and "Date" in result.columns:
-                result = result.set_index("Date")
+        if restored_index and "Date" in result.columns:
+            result = result.set_index("Date")
 
-            # Update metadata
-            metadata.news_sentiment_applied = True
-            metadata.fillna_strategy = self.fillna_strategy
+        metadata.news_sentiment_applied = True
+        metadata.fillna_strategy = self.fillna_strategy
+        required_columns = [col for col in result.columns if col not in data.columns]
+        if "sentiment_score" in result.columns:
+            required_columns.append("sentiment_score")
+        metadata.add_required_columns(required_columns)
 
-            return result
-        except ValueError as e:
-            raise e
-        except Exception as e:
-            console.print(f"[red]❌ Failed to add sentiment data: {e}[/red]")
-            return data
+        return result
 
     def get_step_name(self) -> str:
         """Return step name."""

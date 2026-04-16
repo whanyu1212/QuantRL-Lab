@@ -10,6 +10,8 @@ from typing import Any, Dict, List, Optional, Union
 
 from loguru import logger
 
+from quantrl_lab.data.exceptions import APIConnectionError, AuthenticationError, RateLimitError
+
 try:
     import aiohttp
 except ImportError as e:
@@ -62,6 +64,23 @@ class AsyncHTTPRequestWrapper:
             return any(indicator in body_text for indicator in RATE_LIMIT_INDICATORS)
         return False
 
+    def _is_auth_error(self, status: int, json_data: Optional[Any]) -> bool:
+        """Detect auth failures from HTTP status or response body."""
+        if status in {401, 403}:
+            return True
+        if json_data is None:
+            return False
+        body_text = str(json_data).lower()
+        auth_indicators = [
+            "unauthorized",
+            "forbidden",
+            "invalid api key",
+            "invalid token",
+            "authentication",
+            "permission",
+        ]
+        return any(indicator in body_text for indicator in auth_indicators)
+
     def _backoff_delay(self, attempt: int, rate_limited: bool = False) -> float:
         """Exponential backoff; doubles for rate limit errors."""
         delay = self.base_delay * (2**attempt)
@@ -113,6 +132,9 @@ class AsyncHTTPRequestWrapper:
                             logger.debug("Async request successful: {url}", url=url)
                             return json_data
 
+                        if self._is_auth_error(response.status, json_data):
+                            raise AuthenticationError(f"Authentication failed for {url}")
+
                         if attempt < self.max_retries:
                             delay = self._backoff_delay(attempt, rate_limited=is_rate_limit)
                             if is_rate_limit:
@@ -136,7 +158,11 @@ class AsyncHTTPRequestWrapper:
                                 url=url,
                                 status=response.status,
                             )
-                            return None
+                            if is_rate_limit:
+                                raise RateLimitError(f"Rate limit hit for {url}")
+                            raise APIConnectionError(
+                                f"Async request failed after {self.max_retries + 1} attempts: {url}"
+                            )
 
                 except asyncio.TimeoutError:
                     if attempt < self.max_retries:
@@ -147,7 +173,12 @@ class AsyncHTTPRequestWrapper:
                         logger.error(
                             "Async request timed out after {n} attempts: {url}", n=self.max_retries + 1, url=url
                         )
-                        return None
+                        raise APIConnectionError(
+                            f"Async request timed out after {self.max_retries + 1} attempts: {url}"
+                        )
+
+                except AuthenticationError:
+                    raise
 
                 except Exception as e:
                     if attempt < self.max_retries:
@@ -160,6 +191,10 @@ class AsyncHTTPRequestWrapper:
                         logger.error(
                             "Async request failed after {n} attempts: {url} — {e}", n=self.max_retries + 1, url=url, e=e
                         )
-                        return None
+                        if isinstance(e, RateLimitError):
+                            raise
+                        raise APIConnectionError(
+                            f"Async request failed after {self.max_retries + 1} attempts: {url}"
+                        ) from e
 
         return None

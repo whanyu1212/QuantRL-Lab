@@ -52,6 +52,7 @@ def test_with_sector_data_adds_prefixed_columns(base_df, metadata, sector_df):
     step = MarketContextStep(sector_perf_df=sector_df)
     result = step.process(base_df, metadata)
     assert "sector_tech_return" in result.columns
+    assert "sector_tech_return" in metadata.optional_feature_columns
 
 
 def test_with_industry_data_adds_prefixed_columns(base_df, metadata, industry_df):
@@ -104,3 +105,18 @@ def test_non_datetime_index_with_date_column(metadata, sector_df):
     result = step.process(df, metadata)
     # Should still run without error
     assert len(result) == 5
+
+
+def test_sparse_context_uses_latest_known_values(base_df, metadata):
+    sector_df = pd.DataFrame(
+        {
+            "date": [pd.Timestamp("2023-01-02"), pd.Timestamp("2023-01-04")],
+            "tech_return": [0.02, 0.04],
+        }
+    )
+    step = MarketContextStep(sector_perf_df=sector_df)
+    result = step.process(base_df, metadata)
+
+    assert pd.isna(result.loc[pd.Timestamp("2023-01-01"), "sector_tech_return"])
+    assert result.loc[pd.Timestamp("2023-01-03"), "sector_tech_return"] == pytest.approx(0.02)
+    assert result.loc[pd.Timestamp("2023-01-05"), "sector_tech_return"] == pytest.approx(0.04)
