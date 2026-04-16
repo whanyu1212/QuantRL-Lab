@@ -6,17 +6,30 @@ import pytest
 
 from quantrl_lab.data.indicators.registry import IndicatorRegistry
 from quantrl_lab.data.indicators.technical import (
+    accumulation_distribution_line,
     adx,
+    aroon,
     atr,
     bollinger_bands,
     cci,
+    chaikin_money_flow,
+    chaikin_oscillator,
+    donchian_channels,
     ema,
+    keltner_channels,
     macd,
     mfi,
+    natr,
     on_balance_volume,
+    ppo,
+    rate_of_change,
     rsi,
     sma,
     stochastic,
+    supertrend,
+    trix,
+    tsi,
+    vortex,
     williams_r,
 )
 
@@ -69,6 +82,42 @@ def multi_symbol_df(sample_ohlcv_df: pd.DataFrame) -> pd.DataFrame:
     return pd.concat([df1, df2], ignore_index=True)
 
 
+def assert_grouped_matches_single_symbol(
+    indicator_func,
+    multi_symbol_df: pd.DataFrame,
+    output_columns: list[str],
+    **kwargs,
+) -> pd.DataFrame:
+    """
+    Assert grouped calculations match running the indicator on each
+    symbol independently.
+
+    Args:
+        indicator_func: Indicator function under test.
+        multi_symbol_df (pd.DataFrame): Input dataframe containing a Symbol column.
+        output_columns (list[str]): Indicator columns expected in the result.
+        **kwargs: Indicator arguments.
+
+    Returns:
+        pd.DataFrame: The grouped indicator result for additional assertions.
+    """
+    grouped_result = indicator_func(multi_symbol_df, **kwargs)
+
+    for symbol in multi_symbol_df["Symbol"].unique():
+        symbol_result = grouped_result[grouped_result["Symbol"] == symbol].reset_index(drop=True)
+        symbol_input = (
+            multi_symbol_df[multi_symbol_df["Symbol"] == symbol].drop(columns="Symbol").reset_index(drop=True)
+        )
+        expected_result = indicator_func(symbol_input, **kwargs).reset_index(drop=True)
+
+        for output_column in output_columns:
+            pd.testing.assert_series_equal(
+                symbol_result[output_column], expected_result[output_column], check_names=False
+            )
+
+    return grouped_result
+
+
 class TestIndicatorRegistry:
     """Tests for the IndicatorRegistry class."""
 
@@ -90,6 +139,19 @@ class TestIndicatorRegistry:
         assert "CCI" in indicators
         assert "MFI" in indicators
         assert "ADX" in indicators
+        assert "ROC" in indicators
+        assert "PPO" in indicators
+        assert "TRIX" in indicators
+        assert "TSI" in indicators
+        assert "AROON" in indicators
+        assert "VORTEX" in indicators
+        assert "DONCHIAN" in indicators
+        assert "KELTNER" in indicators
+        assert "NATR" in indicators
+        assert "CMF" in indicators
+        assert "ADL" in indicators
+        assert "CHO" in indicators
+        assert "SUPERTREND" in indicators
 
     def test_get_returns_callable(self):
         """Test that get returns a callable function."""
@@ -509,3 +571,255 @@ class TestADX:
         assert "ADX_14" in result.columns
         assert "ADX_pos_14" in result.columns
         assert "ADX_neg_14" in result.columns
+
+
+class TestROC:
+    """Tests for Rate of Change indicator."""
+
+    def test_roc_matches_shifted_return_formula(self, sample_ohlcv_df: pd.DataFrame):
+        """Test ROC against the standard shifted-return formula."""
+        result = rate_of_change(sample_ohlcv_df, window=12)
+        expected = ((sample_ohlcv_df["Close"] / sample_ohlcv_df["Close"].shift(12)) - 1.0) * 100.0
+
+        pd.testing.assert_series_equal(result["ROC_12"], expected, check_names=False)
+
+    def test_roc_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test ROC respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(rate_of_change, multi_symbol_df, ["ROC_12"], window=12)
+
+
+class TestPPO:
+    """Tests for Percentage Price Oscillator."""
+
+    def test_ppo_matches_percentage_ema_spread(self, sample_ohlcv_df: pd.DataFrame):
+        """Test PPO line against the percentage EMA spread formula."""
+        result = ppo(sample_ohlcv_df, fast=12, slow=26, signal=9)
+        fast_ema = sample_ohlcv_df["Close"].ewm(span=12, adjust=False).mean()
+        slow_ema = sample_ohlcv_df["Close"].ewm(span=26, adjust=False).mean()
+        expected = 100.0 * (fast_ema - slow_ema) / slow_ema
+
+        np.testing.assert_allclose(result["PPO_line_12_26"], expected, rtol=1e-10, atol=1e-10, equal_nan=True)
+
+    def test_ppo_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test PPO respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            ppo,
+            multi_symbol_df,
+            ["PPO_line_12_26", "PPO_signal_12_26_9", "PPO_hist_12_26_9"],
+            fast=12,
+            slow=26,
+            signal=9,
+        )
+
+
+class TestTRIX:
+    """Tests for TRIX."""
+
+    def test_trix_adds_expected_columns(self, sample_ohlcv_df: pd.DataFrame):
+        """Test TRIX output columns."""
+        result = trix(sample_ohlcv_df, window=15, signal=9)
+
+        assert "TRIX_15" in result.columns
+        assert "TRIX_signal_15_9" in result.columns
+
+    def test_trix_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test TRIX respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            trix,
+            multi_symbol_df,
+            ["TRIX_15", "TRIX_signal_15_9"],
+            window=15,
+            signal=9,
+        )
+
+
+class TestTSI:
+    """Tests for True Strength Index."""
+
+    def test_tsi_values_stay_in_expected_range(self, sample_ohlcv_df: pd.DataFrame):
+        """Test TSI remains in the standard [-100, 100] range."""
+        result = tsi(sample_ohlcv_df, slow=25, fast=13, signal=13)
+        valid_tsi = result["TSI_25_13"].dropna()
+
+        assert (valid_tsi >= -100).all()
+        assert (valid_tsi <= 100).all()
+
+    def test_tsi_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test TSI respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            tsi,
+            multi_symbol_df,
+            ["TSI_25_13", "TSI_signal_25_13_13"],
+            slow=25,
+            fast=13,
+            signal=13,
+        )
+
+
+class TestAroon:
+    """Tests for the Aroon indicator."""
+
+    def test_aroon_values_are_bounded(self, sample_ohlcv_df: pd.DataFrame):
+        """Test Aroon up/down values stay within [0, 100]."""
+        result = aroon(sample_ohlcv_df, window=25)
+        valid_up = result["AROON_up_25"].dropna()
+        valid_down = result["AROON_down_25"].dropna()
+
+        assert (valid_up >= 0).all() and (valid_up <= 100).all()
+        assert (valid_down >= 0).all() and (valid_down <= 100).all()
+
+    def test_aroon_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test Aroon respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            aroon,
+            multi_symbol_df,
+            ["AROON_up_25", "AROON_down_25", "AROON_osc_25"],
+            window=25,
+        )
+
+
+class TestVortex:
+    """Tests for the Vortex indicator."""
+
+    def test_vortex_adds_expected_columns(self, sample_ohlcv_df: pd.DataFrame):
+        """Test Vortex output columns."""
+        result = vortex(sample_ohlcv_df, window=14)
+
+        assert "VORTEX_pos_14" in result.columns
+        assert "VORTEX_neg_14" in result.columns
+
+    def test_vortex_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test Vortex respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(vortex, multi_symbol_df, ["VORTEX_pos_14", "VORTEX_neg_14"], window=14)
+
+
+class TestDonchianChannels:
+    """Tests for Donchian channels."""
+
+    def test_donchian_channel_ordering(self, sample_ohlcv_df: pd.DataFrame):
+        """Test Donchian upper band stays above the lower band."""
+        result = donchian_channels(sample_ohlcv_df, window=20)
+        valid_idx = result["DONCHIAN_upper_20"].notna()
+
+        assert (result.loc[valid_idx, "DONCHIAN_upper_20"] >= result.loc[valid_idx, "DONCHIAN_lower_20"]).all()
+
+    def test_donchian_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test Donchian channels respect Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            donchian_channels,
+            multi_symbol_df,
+            ["DONCHIAN_upper_20", "DONCHIAN_lower_20", "DONCHIAN_mid_20"],
+            window=20,
+        )
+
+
+class TestKeltnerChannels:
+    """Tests for Keltner channels."""
+
+    def test_keltner_channel_ordering(self, sample_ohlcv_df: pd.DataFrame):
+        """Test Keltner upper band stays above the lower band."""
+        result = keltner_channels(sample_ohlcv_df, window=20, atr_mult=2.0)
+        valid_idx = result["KC_upper_20_2.0"].notna()
+
+        assert (result.loc[valid_idx, "KC_upper_20_2.0"] >= result.loc[valid_idx, "KC_lower_20_2.0"]).all()
+
+    def test_keltner_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test Keltner channels respect Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            keltner_channels,
+            multi_symbol_df,
+            ["KC_middle_20", "KC_upper_20_2.0", "KC_lower_20_2.0"],
+            window=20,
+            atr_mult=2.0,
+        )
+
+
+class TestNATR:
+    """Tests for Normalized ATR."""
+
+    def test_natr_values_are_positive(self, sample_ohlcv_df: pd.DataFrame):
+        """Test NATR is non-negative."""
+        result = natr(sample_ohlcv_df, window=14)
+        valid_natr = result["NATR_14"].dropna()
+
+        assert (valid_natr >= 0).all()
+
+    def test_natr_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test NATR respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(natr, multi_symbol_df, ["NATR_14"], window=14)
+
+
+class TestCMF:
+    """Tests for Chaikin Money Flow."""
+
+    def test_cmf_values_are_bounded(self, sample_ohlcv_df: pd.DataFrame):
+        """Test CMF remains within the standard [-1, 1] range."""
+        result = chaikin_money_flow(sample_ohlcv_df, window=20)
+        valid_cmf = result["CMF_20"].dropna()
+
+        assert (valid_cmf >= -1).all()
+        assert (valid_cmf <= 1).all()
+
+    def test_cmf_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test CMF respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(chaikin_money_flow, multi_symbol_df, ["CMF_20"], window=20)
+
+
+class TestADL:
+    """Tests for Accumulation/Distribution Line."""
+
+    def test_adl_adds_expected_column(self, sample_ohlcv_df: pd.DataFrame):
+        """Test ADL output column."""
+        result = accumulation_distribution_line(sample_ohlcv_df)
+
+        assert "ADL" in result.columns
+
+    def test_adl_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test ADL respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(accumulation_distribution_line, multi_symbol_df, ["ADL"])
+
+
+class TestChaikinOscillator:
+    """Tests for the Chaikin Oscillator."""
+
+    def test_chaikin_oscillator_matches_adl_ema_spread(self, sample_ohlcv_df: pd.DataFrame):
+        """Test Chaikin Oscillator against the EMA spread of ADL."""
+        adl_result = accumulation_distribution_line(sample_ohlcv_df)
+        result = chaikin_oscillator(sample_ohlcv_df, fast=3, slow=10)
+        expected = (
+            adl_result["ADL"].ewm(span=3, adjust=False).mean() - adl_result["ADL"].ewm(span=10, adjust=False).mean()
+        )
+
+        np.testing.assert_allclose(result["CHO_3_10"], expected, rtol=1e-10, atol=1e-10, equal_nan=True)
+
+    def test_chaikin_oscillator_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test Chaikin Oscillator respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(chaikin_oscillator, multi_symbol_df, ["CHO_3_10"], fast=3, slow=10)
+
+
+class TestSuperTrend:
+    """Tests for SuperTrend."""
+
+    def test_supertrend_adds_expected_columns(self, sample_ohlcv_df: pd.DataFrame):
+        """Test SuperTrend output columns."""
+        result = supertrend(sample_ohlcv_df, window=10, multiplier=3.0)
+
+        assert "SUPERTREND_10_3.0" in result.columns
+        assert "SUPERTREND_dir_10_3.0" in result.columns
+
+    def test_supertrend_direction_values_are_valid(self, sample_ohlcv_df: pd.DataFrame):
+        """Test SuperTrend direction only emits valid regime states."""
+        result = supertrend(sample_ohlcv_df, window=10, multiplier=3.0)
+        valid_direction = result["SUPERTREND_dir_10_3.0"].dropna()
+
+        assert set(valid_direction.unique()).issubset({-1.0, 1.0})
+
+    def test_supertrend_with_multiple_symbols(self, multi_symbol_df: pd.DataFrame):
+        """Test SuperTrend respects Symbol boundaries."""
+        assert_grouped_matches_single_symbol(
+            supertrend,
+            multi_symbol_df,
+            ["SUPERTREND_10_3.0", "SUPERTREND_dir_10_3.0"],
+            window=10,
+            multiplier=3.0,
+        )

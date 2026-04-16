@@ -14,54 +14,44 @@ In Financial Reinforcement Learning, the **Markov Property** implies that the cu
 
 ## Available Indicators
 
-### 1. Trend Indicators
-*Helping the agent identify the direction and strength of the market.*
+### 1. Trend & Regime
+*Helping the agent identify direction, persistence, channels, and structural regime.*
 
-*   **SMA (Simple Moving Average)** & **EMA (Exponential Moving Average)**
-    *   **What**: Average price over a window. EMA weights recent prices more heavily.
-    *   **RL Value**: Provides a baseline to measure price deviation. The relationship between Price, SMA, and EMA (e.g., crossovers) signals trend direction.
-*   **MACD (Moving Average Convergence Divergence)**
-    *   **What**: The difference between two EMAs (fast and slow), plus a signal line.
-    *   **RL Value**: A powerful momentum and trend-follower. It helps the agent anticipate trend reversals and accelerations.
-*   **ADX (Average Directional Index)**
-    *   **What**: Measures the **strength** of a trend, regardless of direction.
-    *   **RL Value**: Critical for "meta-decisions". A high ADX (>25) signals a strong trend (good for trend-following policies), while a low ADX suggests a ranging market (good for mean-reversion).
-*   **CCI (Commodity Channel Index)**
-    *   **What**: Measures the difference between the current price and its historical average deviation.
-    *   **RL Value**: Identifies cyclical trends. High values indicate the price is statistically far above the mean, potentially signaling a reversion or a strong breakout.
+- **SMA**, **EMA**, **MACD**: baseline moving-average trend features and crossover dynamics.
+- **ADX**: trend-strength measure independent of direction.
+- **CCI**: price deviation from recent typical-price mean.
+- **AROON**: how recently highs and lows occurred inside the rolling window.
+- **VORTEX**: competing upward vs downward trend pressure.
+- **SUPERTREND**: ATR-based trailing trend line with bullish / bearish regime state.
+- **DONCHIAN**: breakout channels based on recent highs and lows.
+- **KELTNER**: EMA centerline with ATR-based envelopes.
 
 ### 2. Momentum & Oscillators
-*Helping the agent identify overbought or oversold conditions.*
+*Helping the agent identify acceleration, exhaustion, and mean-reversion setups.*
 
-*   **RSI (Relative Strength Index)**
-    *   **What**: Measures the speed and change of price movements on a scale of 0-100.
-    *   **RL Value**: The classic mean-reversion feature. Low values (<30) suggest potential buy opportunities (oversold), while high values (>70) suggest selling pressure.
-*   **Stochastic Oscillator (STOCH)**
-    *   **What**: Compares a closing price to its price range over a given period.
-    *   **RL Value**: Very sensitive to short-term momentum shifts. Useful for timing precise entries within a larger trend.
-*   **Williams %R (WILLR)**
-    *   **What**: Similar to Stochastic but on a scale of -100 to 0.
-    *   **RL Value**: effectively highlights extreme market conditions. Often used to spot entry points during pullbacks in a strong trend.
+- **RSI**: bounded momentum oscillator on a 0-100 scale.
+- **STOCH**: close position inside the recent trading range.
+- **WILLR**: Williams %R on a -100 to 0 scale.
+- **ROC**: percentage price momentum over a configurable lookback.
+- **PPO**: percentage spread between fast and slow EMAs.
+- **TRIX**: triple-smoothed rate-of-change oscillator.
+- **TSI**: double-smoothed momentum strength oscillator.
 
-### 3. Volatility Indicators
-*Helping the agent understand risk and market activity levels.*
+### 3. Volatility & Range
+*Helping the agent estimate activity level, stop distance, and breakout context.*
 
-*   **ATR (Average True Range)**
-    *   **What**: Decomposed measure of market volatility (absolute movement).
-    *   **RL Value**: Essential for risk management. Agents can learn to adjust position sizes inversely to ATR (lower size in high volatility) or set dynamic stop-loss targets.
-*   **Bollinger Bands (BB)**
-    *   **What**: A set of lines plotted two standard deviations (positively and negatively) away from an SMA.
-    *   **RL Value**: Measures "relative" volatility. Price touching the bands can signal a continuation (walking the band) or a reversal (rejection), depending on the regime. Bandwidth (width of bands) signals an impending breakout (squeeze).
+- **ATR**: absolute volatility via true range smoothing.
+- **BB**: Bollinger Bands for relative volatility and squeeze / expansion behavior.
+- **NATR**: ATR normalized as a percentage of closing price.
 
-### 4. Volume Indicators
-*Helping the agent confirm price moves with liquidity.*
+### 4. Volume & Money Flow
+*Helping the agent confirm moves with participation and accumulation pressure.*
 
-*   **OBV (On-Balance Volume)**
-    *   **What**: Cumulative total of volume added on up days and subtracted on down days.
-    *   **RL Value**: "Smart money" tracking. Divergence between Price and OBV (e.g., price rising but OBV flat) often precedes a reversal, giving the agent a leading signal.
-*   **MFI (Money Flow Index)**
-    *   **What**: A volume-weighted RSI.
-    *   **RL Value**: Combines price and volume to identify overbought/oversold conditions more reliably than price alone.
+- **OBV**: cumulative up-volume vs down-volume pressure.
+- **MFI**: volume-weighted RSI.
+- **CMF**: rolling Chaikin money flow over the chosen window.
+- **ADL**: cumulative accumulation / distribution line.
+- **CHO**: Chaikin oscillator from the fast / slow EMA spread of ADL.
 
 ---
 
@@ -75,7 +65,8 @@ from quantrl_lab.data.indicators import IndicatorRegistry
 # Apply specific indicators
 df = IndicatorRegistry.apply("SMA", df, window=20)
 df = IndicatorRegistry.apply("RSI", df, window=14)
-df = IndicatorRegistry.apply("ADX", df, window=14)
+df = IndicatorRegistry.apply("CMF", df, window=20)
+df = IndicatorRegistry.apply("SUPERTREND", df, window=10, multiplier=3.0)
 
 # Or use within a VectorizedStrategy
 ```
