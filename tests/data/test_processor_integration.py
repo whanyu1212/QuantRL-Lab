@@ -265,3 +265,38 @@ class TestDataProcessorCleanup:
         assert "analystRatingsStrongBuy" in result.columns
         assert result.loc[result["Open"] == 0, "analystRatingsStrongBuy"].isna().all()
         assert "analystRatingsStrongBuy" in metadata["optional_feature_columns"]
+
+    def test_new_registry_indicators_flow_through_data_processor(self):
+        """Test newly added indicators work through the main processing
+        pipeline."""
+        dates = pd.date_range("2020-01-01", periods=60, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Open": range(60),
+                "High": [x + 5 for x in range(60)],
+                "Low": [x for x in range(60)],
+                "Close": [x + 2 for x in range(60)],
+                "Volume": [1000 + x for x in range(60)],
+                "Symbol": ["AAPL"] * 60,
+            }
+        )
+
+        processor = DataProcessor(df)
+        result, metadata = processor.data_processing_pipeline(
+            indicators=[
+                {"ROC": {"window": 5}},
+                {"CMF": {"window": 10}},
+                {"SUPERTREND": {"window": 10, "multiplier": 3.0}},
+            ]
+        )
+
+        assert "ROC_5" in result.columns
+        assert "CMF_10" in result.columns
+        assert "SUPERTREND_10_3.0" in result.columns
+        assert "SUPERTREND_dir_10_3.0" in result.columns
+        assert metadata["technical_indicators"] == [
+            {"ROC": {"window": 5}},
+            {"CMF": {"window": 10}},
+            {"SUPERTREND": {"window": 10, "multiplier": 3.0}},
+        ]

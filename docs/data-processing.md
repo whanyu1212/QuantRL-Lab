@@ -40,7 +40,7 @@ raw_df = loader.get_historical_ohlcv_data(
 
 processor = DataProcessor(ohlcv_data=raw_df)
 processed_df, metadata = processor.data_processing_pipeline(
-    indicators=["SMA", "RSI", "MACD"]
+    indicators=["SMA", "RSI", "MACD", "CMF"]
 )
 
 print(processed_df.shape)
@@ -51,7 +51,7 @@ print(metadata["technical_indicators"])
 
 ```python
 processed, metadata = processor.data_processing_pipeline(
-    indicators=["SMA", "EMA", "RSI", "BBANDS"],
+    indicators=["SMA", "EMA", "RSI", "BB"],
     split_config={"train": 0.7, "val": 0.1, "test": 0.2},
 )
 
@@ -84,8 +84,9 @@ indicators = [
     "RSI",                             # default window=14
     {"SMA": {"window": 50}},           # custom window
     {"EMA": {"window": 20}},
-    {"BBANDS": {"window": 20, "num_std": 2.5}},
+    {"BB": {"window": 20, "num_std": 2.5}},
     {"MACD": {"fast": 8, "slow": 21, "signal": 9}},
+    {"SUPERTREND": {"window": 10, "multiplier": 3.0}},
 ]
 
 processed_df, metadata = processor.data_processing_pipeline(indicators=indicators)
@@ -159,9 +160,11 @@ For reproducible experiments, define indicators in YAML or JSON and load them:
       - RSI
       - EMA:
           window: 20
-      - BBANDS:
+      - BB:
           window: 20
           num_std: 2.0
+      - ROC:
+          window: 12
     ```
 
 === "JSON"
@@ -172,7 +175,8 @@ For reproducible experiments, define indicators in YAML or JSON and load them:
         "SMA",
         "RSI",
         {"EMA": {"window": 20}},
-        {"BBANDS": {"window": 20, "num_std": 2.0}}
+        {"BB": {"window": 20, "num_std": 2.0}},
+        {"ROC": {"window": 12}}
       ]
     }
     ```
@@ -241,8 +245,10 @@ step = TechnicalIndicatorStep(
         "SMA",                             # SMA with default window
         "RSI",                             # RSI with default window=14
         {"EMA": {"window": 20}},
-        {"BBANDS": {"window": 20, "num_std": 2.0}},
+        {"BB": {"window": 20, "num_std": 2.0}},
         {"MACD": {"fast": 12, "slow": 26, "signal": 9}},
+        {"CMF": {"window": 20}},
+        {"SUPERTREND": {"window": 10, "multiplier": 3.0}},
         "ATR",
         "OBV",
     ]
@@ -255,7 +261,7 @@ To see all registered indicators:
 from quantrl_lab.data.indicators.registry import IndicatorRegistry
 
 print(IndicatorRegistry.list_all())
-# ['SMA', 'EMA', 'RSI', 'MACD', 'BBANDS', 'ATR', 'OBV', ...]
+# ['SMA', 'EMA', 'RSI', 'MACD', 'ATR', 'BB', 'ROC', 'PPO', 'CMF', 'SUPERTREND', ...]
 ```
 
 ---
