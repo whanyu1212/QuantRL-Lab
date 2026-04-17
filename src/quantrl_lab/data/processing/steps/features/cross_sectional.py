@@ -5,6 +5,7 @@ from typing import List, Optional
 import pandas as pd
 from loguru import logger
 
+from quantrl_lab.data.config import config
 from quantrl_lab.data.processing.metadata import ProcessingMetadata
 
 
@@ -26,7 +27,7 @@ class CrossSectionalStep:
         >>> result = step.process(df, metadata)
     """
 
-    def __init__(self, columns: List[str], methods: Optional[List[str]] = None):
+    def __init__(self, columns: List[str], methods: Optional[List[str]] = None, date_column: Optional[str] = None):
         """
         Initialize cross-sectional step.
 
@@ -34,15 +35,40 @@ class CrossSectionalStep:
             columns: List of feature column names to process (e.g., ["RSI_14", "Volume"]).
             methods: List of cross-sectional methods to apply.
                      Supported: "zscore", "rank", "mean_centered".
+            date_column: Optional explicit date column to group by. If not
+                provided, the step uses the first known date column or a
+                ``DatetimeIndex``.
         """
         self.columns = columns
         self.methods = methods if methods is not None else ["zscore"]
+        self.date_column = date_column
         self.supported_methods = {"zscore", "rank", "mean_centered"}
 
         # Validate methods
         for m in self.methods:
             if m not in self.supported_methods:
                 raise ValueError(f"Unsupported cross-sectional method: {m}. Use one of {self.supported_methods}")
+
+    def _resolve_grouping_key(self, data: pd.DataFrame) -> Optional[pd.Series]:
+        """Resolve the date-like grouping key for cross-sectional
+        transforms."""
+        if self.date_column is not None:
+            if self.date_column not in data.columns:
+                logger.warning(
+                    "CrossSectionalStep date_column '{column}' not found. Skipping.", column=self.date_column
+                )
+                return None
+            return pd.Series(pd.to_datetime(data[self.date_column], errors="coerce"), index=data.index)
+
+        for candidate in config.DATE_COLUMNS + ["Timestamp"]:
+            if candidate in data.columns:
+                return pd.Series(pd.to_datetime(data[candidate], errors="coerce"), index=data.index)
+
+        if pd.api.types.is_datetime64_any_dtype(data.index):
+            return pd.Series(pd.to_datetime(data.index), index=data.index)
+
+        logger.warning("CrossSectionalStep requires a date column or DatetimeIndex. Skipping.")
+        return None
 
     def process(self, data: pd.DataFrame, metadata: ProcessingMetadata) -> pd.DataFrame:
         """
@@ -68,9 +94,11 @@ class CrossSectionalStep:
 
         result = data.copy()
 
-        # We group by the index (which is assumed to be Date/Timestamp)
-        # to calculate cross-sectional stats across all symbols on that day.
-        grouped = result.groupby(level=0)
+        grouping_key = self._resolve_grouping_key(result)
+        if grouping_key is None:
+            return data
+
+        grouped = result.groupby(grouping_key)
 
         for col in self.columns:
             if col not in result.columns:

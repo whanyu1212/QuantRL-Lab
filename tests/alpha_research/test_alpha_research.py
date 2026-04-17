@@ -25,6 +25,10 @@ from quantrl_lab.alpha_research.alpha_strategies import (
 from quantrl_lab.alpha_research.analysis import RobustnessTester
 from quantrl_lab.alpha_research.base import SignalType
 from quantrl_lab.alpha_research.ensemble import AlphaEnsemble
+from quantrl_lab.alpha_research.indicator_research import (
+    FEATURE_SELECTION_MODE,
+    INDICATOR_RESEARCH_METADATA,
+)
 from quantrl_lab.alpha_research.models import AlphaJob, AlphaResult
 from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
 from quantrl_lab.alpha_research.runner import AlphaRunner
@@ -396,6 +400,29 @@ class TestAlphaRunner:
         assert result.job == sample_alpha_job
         # Result should be either completed or failed
         assert result.status in ["completed", "failed"]
+
+    def test_run_feature_mode_job_returns_scores(self, sample_alpha_job):
+        """Feature mode should return score-based metrics without an
+        equity curve."""
+        runner = AlphaRunner(verbose=False)
+        feature_job = AlphaJob(
+            data=sample_alpha_job.data,
+            indicator_name=sample_alpha_job.indicator_name,
+            strategy_name=sample_alpha_job.strategy_name,
+            indicator_params=sample_alpha_job.indicator_params,
+            strategy_params=sample_alpha_job.strategy_params,
+            evaluation_mode=FEATURE_SELECTION_MODE,
+        )
+
+        result = runner.run_job(feature_job)
+
+        assert result.status == "completed"
+        assert result.equity_curve is None
+        assert result.signals is None
+        assert result.scores is not None
+        assert "feature_ic" in result.metrics
+        assert "ic" in result.metrics
+        assert "sharpe_ratio" not in result.metrics
 
     def test_run_batch(self, sample_data_with_indicators):
         """Test running a batch of jobs."""
@@ -982,20 +1009,33 @@ class TestColumnCaseNormalisation:
     AlphaRunner."""
 
     def test_lowercase_columns_auto_renamed(self, sample_ohlcv_data):
-        """Lowercase OHLCV columns are silently renamed to title-
-        case."""
+        """
+        Lowercase OHLCV columns are silently renamed to title-case.
+
+        _validate_data returns a renamed copy instead of mutating the
+        input in-place (fix for A-3), so we check the return value and
+        also verify the original DataFrame is NOT mutated.
+        """
         df = sample_ohlcv_data.rename(columns=str.lower)
+        original_cols = list(df.columns)
         runner = AlphaRunner(verbose=False)
-        runner._validate_data(df)  # should not raise
-        assert "Close" in df.columns
-        assert "close" not in df.columns
+        result = runner._validate_data(df)
+        # Returned DataFrame has normalised column names
+        assert "Close" in result.columns
+        assert "close" not in result.columns
+        # Original DataFrame is NOT mutated
+        assert list(df.columns) == original_cols
 
     def test_mixed_case_columns_auto_renamed(self, sample_ohlcv_data):
-        """Mixed-case columns (e.g., 'CLOSE') are also handled."""
+        """
+        Mixed-case columns (e.g., 'CLOSE') are also handled.
+
+        Checks the returned copy, not the original (fix for A-3).
+        """
         df = sample_ohlcv_data.rename(columns=lambda c: c.upper())
         runner = AlphaRunner(verbose=False)
-        runner._validate_data(df)
-        assert "Close" in df.columns
+        result = runner._validate_data(df)
+        assert "Close" in result.columns
 
     def test_truly_missing_column_raises(self, sample_ohlcv_data):
         """Columns that don't exist at all (even case-insensitively)
@@ -1084,6 +1124,35 @@ class TestConverterDeduplication:
         # Best overall is RSI w=14 (ic=0.08)
         assert {"RSI": {"window": 14}} in cfg
 
+    def test_p_value_metric_sorts_ascending(self, sample_ohlcv_data):
+        """P-value metrics should rank lower values first."""
+        from quantrl_lab.alpha_research.converters import results_to_pipeline_config
+
+        equity = pd.Series(np.ones(10), index=pd.date_range("2023-01-01", periods=10))
+        high_p = AlphaResult(
+            job=AlphaJob(
+                data=sample_ohlcv_data,
+                indicator_name="SMA",
+                strategy_name="trend_following",
+                indicator_params={"window": 20},
+            ),
+            metrics={"ic_p_value": 0.20},
+            equity_curve=equity,
+        )
+        low_p = AlphaResult(
+            job=AlphaJob(
+                data=sample_ohlcv_data,
+                indicator_name="EMA",
+                strategy_name="trend_following",
+                indicator_params={"window": 12},
+            ),
+            metrics={"ic_p_value": 0.01},
+            equity_curve=equity,
+        )
+
+        cfg = results_to_pipeline_config([high_p, low_p], top_n=1, metric="ic_p_value", deduplicate=False)
+        assert cfg == [{"EMA": {"window": 12}}]
+
 
 class TestParameterSensitivityRouting:
     """Tests for the explicit indicator_param_grid / strategy_param_grid
@@ -1152,24 +1221,17 @@ class TestParameterSensitivityRouting:
 class TestAlphaSelectorDefaults:
     """Tests for AlphaSelector default candidate coverage."""
 
-    def test_default_candidates_cover_all_strategies(self, sample_ohlcv_data):
-        """Every registered strategy should have at least one default
-        candidate."""
-        from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
+    def test_default_candidates_cover_all_research_supported_indicators(self, sample_ohlcv_data):
+        """Every research-supported indicator should appear in the
+        default feature sweep."""
         from quantrl_lab.alpha_research.selector import AlphaSelector
 
         sel = AlphaSelector(data=sample_ohlcv_data, verbose=False)
-        candidates = sel._get_default_candidates()
+        candidates = sel._get_default_candidates(selection_mode="feature")
+        candidate_names = {c["name"] for c in candidates}
 
-        # Every registered strategy should be reachable via some indicator
-        registered = set(VectorizedStrategyRegistry.list_strategies())
-        for strategy_name in registered:
-            mapped = any(
-                sel._map_indicator_to_strategy(c) is not None
-                and sel._map_indicator_to_strategy(c)["name"] == strategy_name
-                for c in candidates
-            )
-            assert mapped, f"No default candidate maps to strategy '{strategy_name}'"
+        for indicator_name in INDICATOR_RESEARCH_METADATA:
+            assert indicator_name in candidate_names
 
     def test_ema_is_in_default_candidates(self, sample_ohlcv_data):
         """EMA was missing before the fix — verify it is now
@@ -1177,7 +1239,7 @@ class TestAlphaSelectorDefaults:
         from quantrl_lab.alpha_research.selector import AlphaSelector
 
         sel = AlphaSelector(data=sample_ohlcv_data, verbose=False)
-        candidates = sel._get_default_candidates()
+        candidates = sel._get_default_candidates(selection_mode="feature")
         names = {c["name"] for c in candidates}
         assert "EMA" in names
 
@@ -1186,9 +1248,47 @@ class TestAlphaSelectorDefaults:
         from quantrl_lab.alpha_research.selector import AlphaSelector
 
         sel = AlphaSelector(data=sample_ohlcv_data, verbose=False)
-        result = sel._map_indicator_to_strategy({"name": "EMA"})
+        result = sel._get_strategy_config({"name": "EMA"}, selection_mode="feature")
         assert result is not None
         assert result["name"] == "trend_following"
+
+    def test_feature_mode_rejects_strategy_only_metric(self, sample_ohlcv_data):
+        """Feature-mode selector should reject backtest-only metrics
+        such as Sharpe."""
+        from quantrl_lab.alpha_research.selector import AlphaSelector
+
+        sel = AlphaSelector(data=sample_ohlcv_data, verbose=False)
+        with pytest.raises(ValueError, match="selection_mode='feature'"):
+            sel.suggest_indicators(metric="sharpe_ratio", top_k=1, selection_mode="feature")
+
+    def test_p_value_metric_uses_max_threshold_and_ascending_rank(self, monkeypatch, sample_ohlcv_data):
+        """Selector should treat p-values as lower-is-better metrics."""
+        from quantrl_lab.alpha_research.selector import AlphaSelector
+
+        sel = AlphaSelector(data=sample_ohlcv_data, verbose=False)
+
+        def fake_run_batch(jobs, n_jobs=1):
+            metric_values = {"SMA": 0.20, "EMA": 0.01, "RSI": 0.03}
+            return [
+                AlphaResult(job=job, metrics={"ic_p_value": metric_values[job.indicator_name]}, status="completed")
+                for job in jobs
+            ]
+
+        monkeypatch.setattr(sel.runner, "run_batch", fake_run_batch)
+
+        selected = sel.suggest_indicators(
+            candidates=[
+                {"name": "SMA", "params": {"window": 20}},
+                {"name": "EMA", "params": {"window": 12}},
+                {"name": "RSI", "params": {"window": 14}},
+            ],
+            metric="ic_p_value",
+            threshold=0.05,
+            top_k=2,
+            selection_mode="feature",
+        )
+
+        assert selected == [{"EMA": {"window": 12}}, {"RSI": {"window": 14}}]
 
 
 # ===========================================================================
@@ -1357,3 +1457,261 @@ class TestMACDCrossoverStrategySignals:
         strategy = MACDCrossoverStrategy(fast_col="EMA_12", slow_col="EMA_26")
         signals = strategy.generate_signals(df)
         assert (signals == SignalType.HOLD.value).all()
+
+
+class TestRegistryDedupGuard:
+    """A-5: re-registering a strategy name warns instead of silently overwriting."""
+
+    def test_reregister_warns(self):
+        import warnings
+
+        from quantrl_lab.alpha_research.base import VectorizedTradingStrategy
+        from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
+
+        # Register a dummy strategy
+        @VectorizedStrategyRegistry.register("_test_dedup_strategy")
+        class _DummyA(VectorizedTradingStrategy):
+            def generate_signals(self, data):
+                return pd.Series(0, index=data.index)
+
+            def get_required_columns(self):
+                return []
+
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+
+            @VectorizedStrategyRegistry.register("_test_dedup_strategy")
+            class _DummyB(VectorizedTradingStrategy):
+                def generate_signals(self, data):
+                    return pd.Series(0, index=data.index)
+
+                def get_required_columns(self):
+                    return []
+
+            assert len(w) == 1
+            assert "_test_dedup_strategy" in str(w[0].message)
+
+        # Cleanup
+        del VectorizedStrategyRegistry._strategies["_test_dedup_strategy"]
+
+
+class TestAlphaJobValidation:
+    """A-6: AlphaJob validates non-empty indicator_name and strategy_name."""
+
+    def test_empty_indicator_name_raises(self, sample_ohlcv_data):
+        with pytest.raises(ValueError, match="indicator_name"):
+            AlphaJob(data=sample_ohlcv_data, indicator_name="", strategy_name="mean_reversion")
+
+    def test_empty_strategy_name_raises(self, sample_ohlcv_data):
+        with pytest.raises(ValueError, match="strategy_name"):
+            AlphaJob(data=sample_ohlcv_data, indicator_name="RSI", strategy_name="")
+
+    def test_whitespace_indicator_name_raises(self, sample_ohlcv_data):
+        with pytest.raises(ValueError, match="indicator_name"):
+            AlphaJob(data=sample_ohlcv_data, indicator_name="  ", strategy_name="mean_reversion")
+
+
+class TestICConstantColumns:
+    """A-8: IC returns 0 for constant signal or returns instead of NaN."""
+
+    def test_constant_signal_returns_zero(self):
+        from quantrl_lab.alpha_research.metrics import calculate_pearson_ic, calculate_rank_ic
+
+        sig = pd.Series([1.0] * 10)  # constant
+        ret = pd.Series(np.random.randn(10))
+        ic, p = calculate_pearson_ic(sig, ret)
+        assert ic == 0.0
+        assert p == 1.0
+        ric, rp = calculate_rank_ic(sig, ret)
+        assert ric == 0.0
+
+    def test_constant_returns_returns_zero(self):
+        from quantrl_lab.alpha_research.metrics import calculate_pearson_ic
+
+        sig = pd.Series(np.random.randn(10))
+        ret = pd.Series([0.01] * 10)  # constant
+        ic, p = calculate_pearson_ic(sig, ret)
+        assert ic == 0.0
+
+
+class TestUnknownIndicatorWarning:
+    """D-8: TechnicalFeatureGenerator warns on unknown indicators."""
+
+    def test_unknown_indicator_warns(self, sample_ohlcv_data):
+        import warnings
+
+        from quantrl_lab.data.processing.features.technical import TechnicalFeatureGenerator
+
+        gen = TechnicalFeatureGenerator(["NONEXISTENT_XYZ"])
+        with warnings.catch_warnings(record=True) as w:
+            warnings.simplefilter("always")
+            result = gen.generate(sample_ohlcv_data)
+            assert any("NONEXISTENT_XYZ" in str(warning.message) for warning in w)
+        # Data should be returned unchanged (no crash)
+        assert list(result.columns) == list(sample_ohlcv_data.columns)
+
+
+class TestProcessingModuleExports:
+    """D-12: processing __init__ exports DataPipeline and ProcessingMetadata."""
+
+    def test_data_pipeline_importable(self):
+        from quantrl_lab.data.processing import DataPipeline
+
+        assert DataPipeline is not None
+
+    def test_processing_metadata_importable(self):
+        from quantrl_lab.data.processing import ProcessingMetadata
+
+        assert ProcessingMetadata is not None
+
+
+class TestStrategyMetadata:
+    """A-7: StrategyMetadata and VectorizedStrategyRegistry.get_metadata()."""
+
+    def test_get_metadata_returns_strategy_metadata(self):
+        """get_metadata() returns a StrategyMetadata object with correct
+        fields."""
+        from quantrl_lab.alpha_research.registry import StrategyMetadata, VectorizedStrategyRegistry
+
+        meta = VectorizedStrategyRegistry.get_metadata("mean_reversion")
+        assert isinstance(meta, StrategyMetadata)
+        assert meta.name == "mean_reversion"
+        assert meta.strategy_class is not None
+        assert isinstance(meta.description, str)
+        assert len(meta.description) > 0
+
+    def test_get_metadata_unknown_strategy_raises(self):
+        """get_metadata() raises ValueError for an unknown strategy
+        name."""
+        from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
+
+        with pytest.raises(ValueError, match="Unknown strategy"):
+            VectorizedStrategyRegistry.get_metadata("nonexistent_xyz")
+
+    def test_all_registered_strategies_have_descriptions(self):
+        """Every registered strategy should have a non-empty
+        description."""
+        from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
+
+        for name in VectorizedStrategyRegistry.list_strategies():
+            meta = VectorizedStrategyRegistry.get_metadata(name)
+            assert meta.description, f"Strategy '{name}' is missing a description"
+
+    def test_metadata_strategy_class_is_instantiable(self):
+        """strategy_class stored in metadata can be used to create an
+        instance."""
+        from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
+
+        meta = VectorizedStrategyRegistry.get_metadata("trend_following")
+        strategy = meta.strategy_class(indicator_col="SMA_20")
+        assert strategy is not None
+
+
+class TestValidateColumns:
+    """A-2: VectorizedTradingStrategy.validate_columns() catches broken column wiring."""
+
+    def test_validate_columns_returns_empty_when_all_present(self):
+        """validate_columns returns [] when all required columns
+        exist."""
+        from quantrl_lab.alpha_research.alpha_strategies import TrendFollowingStrategy
+
+        strategy = TrendFollowingStrategy(indicator_col="SMA_20")
+        dates = pd.date_range("2023-01-01", periods=3, freq="B")
+        df = pd.DataFrame({"Close": [100, 101, 102], "SMA_20": [98, 99, 100]}, index=dates)
+        assert strategy.validate_columns(df) == []
+
+    def test_validate_columns_returns_missing_names(self):
+        """validate_columns returns the names of columns not in the
+        DataFrame."""
+        from quantrl_lab.alpha_research.alpha_strategies import TrendFollowingStrategy
+
+        strategy = TrendFollowingStrategy(indicator_col="SMA_20")
+        dates = pd.date_range("2023-01-01", periods=3, freq="B")
+        df = pd.DataFrame({"Close": [100, 101, 102]}, index=dates)  # SMA_20 missing
+        missing = strategy.validate_columns(df)
+        assert "SMA_20" in missing
+
+    def test_validate_columns_multi_col_strategy(self):
+        """MACDCrossoverStrategy.validate_columns catches missing
+        fast/slow cols."""
+        from quantrl_lab.alpha_research.alpha_strategies import MACDCrossoverStrategy
+
+        strategy = MACDCrossoverStrategy(fast_col="MACD_line_12_26", slow_col="MACD_signal_9")
+        dates = pd.date_range("2023-01-01", periods=3, freq="B")
+        df = pd.DataFrame({"Close": [100, 101, 102]}, index=dates)
+        missing = strategy.validate_columns(df)
+        assert "MACD_line_12_26" in missing
+        assert "MACD_signal_9" in missing
+
+    def test_runner_warns_on_missing_columns(self, sample_ohlcv_data):
+        """AlphaRunner.run_job warns (via console) when resolved columns
+        are absent."""
+        # Use ADX with a deliberately wrong strategy that has no auto-wiring
+        # so the resolved indicator_col will be None-free but still missing.
+        # Easiest: provide a strategy_params with a column that won't be created.
+        job = AlphaJob(
+            data=sample_ohlcv_data,
+            indicator_name="SMA",
+            strategy_name="trend_following",
+            strategy_params={"indicator_col": "NONEXISTENT_COL"},
+        )
+        runner = AlphaRunner(verbose=False)
+        result = runner.run_job(job)
+        # Job still completes (defaults to HOLD signals) but result is "completed"
+        assert result.status == "completed"
+
+
+class TestIndicatorStrategyMap:
+    """D-1: INDICATOR_STRATEGY_MAP lives in alpha_strategies, not IndicatorMetadata."""
+
+    def test_map_is_importable_from_alpha_strategies(self):
+        """INDICATOR_STRATEGY_MAP should be importable directly."""
+        from quantrl_lab.alpha_research.alpha_strategies import INDICATOR_STRATEGY_MAP
+
+        assert isinstance(INDICATOR_STRATEGY_MAP, dict)
+        assert len(INDICATOR_STRATEGY_MAP) > 0
+        assert set(INDICATOR_STRATEGY_MAP) == set(INDICATOR_RESEARCH_METADATA)
+
+    def test_all_map_entries_have_name_and_params(self):
+        """Every entry in INDICATOR_STRATEGY_MAP has 'name' and 'params'
+        keys."""
+        from quantrl_lab.alpha_research.alpha_strategies import INDICATOR_STRATEGY_MAP
+
+        for indicator, config in INDICATOR_STRATEGY_MAP.items():
+            assert "name" in config, f"{indicator} entry missing 'name'"
+            assert "params" in config, f"{indicator} entry missing 'params'"
+
+    def test_all_map_strategy_names_are_registered(self):
+        """Every strategy name in INDICATOR_STRATEGY_MAP must be
+        registered."""
+        from quantrl_lab.alpha_research.alpha_strategies import INDICATOR_STRATEGY_MAP
+        from quantrl_lab.alpha_research.registry import VectorizedStrategyRegistry
+
+        registered = set(VectorizedStrategyRegistry.list_strategies())
+        for indicator, config in INDICATOR_STRATEGY_MAP.items():
+            strategy_name = config["name"]
+            assert (
+                strategy_name in registered
+            ), f"INDICATOR_STRATEGY_MAP['{indicator}'] points to unregistered strategy '{strategy_name}'"
+
+    def test_indicator_metadata_has_no_strategy_fields(self):
+        """D-1: IndicatorMetadata must NOT have strategy_name or strategy_params fields."""
+        from quantrl_lab.data.indicators.registry import IndicatorMetadata
+
+        meta = IndicatorMetadata.__dataclass_fields__
+        assert "strategy_name" not in meta, "strategy_name should have been removed from IndicatorMetadata (D-1)"
+        assert "strategy_params" not in meta, "strategy_params should have been removed from IndicatorMetadata (D-1)"
+
+    def test_adx_maps_to_adx_trend_strategy(self):
+        """ADX indicator should map to the adx_trend strategy (A-1
+        fix)."""
+        from quantrl_lab.alpha_research.alpha_strategies import INDICATOR_STRATEGY_MAP
+
+        assert INDICATOR_STRATEGY_MAP["ADX"]["name"] == "adx_trend"
+
+    def test_all_registered_indicators_have_research_metadata(self):
+        """The research registry should stay in lockstep with
+        IndicatorRegistry."""
+        from quantrl_lab.data.indicators import IndicatorRegistry
+
+        assert set(IndicatorRegistry.list_all()) == set(INDICATOR_RESEARCH_METADATA)

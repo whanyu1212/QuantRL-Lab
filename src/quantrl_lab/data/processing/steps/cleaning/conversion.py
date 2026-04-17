@@ -5,7 +5,7 @@ from typing import List, Optional
 import pandas as pd
 
 from quantrl_lab.data.config import config
-from quantrl_lab.data.processing.processor import ProcessingMetadata
+from quantrl_lab.data.processing.metadata import ProcessingMetadata
 
 
 class NumericConversionStep:
@@ -52,6 +52,8 @@ class NumericConversionStep:
             columns_to_convert = []
             for col in df.columns:
                 if df[col].dtype == "object":
+                    if col == "Symbol":
+                        continue
                     if col in config.DATE_COLUMNS or col.lower() in [c.lower() for c in config.DATE_COLUMNS]:
                         continue
 

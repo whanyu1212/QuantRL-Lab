@@ -12,7 +12,7 @@ The dependency graph is now:
 """
 
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 @dataclass
@@ -52,6 +52,11 @@ class ProcessingMetadata:
     date_ranges: Dict[str, Dict[str, str]] = field(default_factory=dict)
     fillna_strategy: str = "neutral"
     technical_indicators: List[Union[str, Dict]] = field(default_factory=list)
+    requested_technical_indicators: List[Union[str, Dict]] = field(default_factory=list)
+    applied_technical_indicators: List[Union[str, Dict]] = field(default_factory=list)
+    skipped_technical_indicators: List[Dict[str, Any]] = field(default_factory=list)
+    failed_technical_indicators: List[Dict[str, Any]] = field(default_factory=list)
+    strict_indicators: bool = False
     cross_sectional_features: List[str] = field(default_factory=list)
     news_sentiment_applied: bool = False
     analyst_data_applied: bool = False
@@ -97,6 +102,11 @@ class ProcessingMetadata:
             "date_ranges": self.date_ranges,
             "fillna_strategy": self.fillna_strategy,
             "technical_indicators": self.technical_indicators,
+            "requested_technical_indicators": self.requested_technical_indicators,
+            "applied_technical_indicators": self.applied_technical_indicators,
+            "skipped_technical_indicators": self.skipped_technical_indicators,
+            "failed_technical_indicators": self.failed_technical_indicators,
+            "strict_indicators": self.strict_indicators,
             "cross_sectional_features": self.cross_sectional_features,
             "news_sentiment_applied": self.news_sentiment_applied,
             "analyst_data_applied": self.analyst_data_applied,

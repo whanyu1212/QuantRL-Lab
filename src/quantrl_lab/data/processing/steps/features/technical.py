@@ -22,15 +22,17 @@ class TechnicalIndicatorStep:
         >>> result = step.process(df, metadata)
     """
 
-    def __init__(self, indicators: Optional[List[Union[str, Dict]]] = None):
+    def __init__(self, indicators: Optional[List[Union[str, Dict]]] = None, strict: bool = False):
         """
         Initialize technical indicator step.
 
         Args:
             indicators: List of indicators to apply. Can be strings ("SMA")
                 or dicts ({"SMA": {"window": 20}}).
+            strict: If True, fail fast on unknown or broken indicators.
         """
         self.indicators = indicators or []
+        self.strict = strict
 
     def process(self, data: pd.DataFrame, metadata: ProcessingMetadata) -> pd.DataFrame:
         """
@@ -49,12 +51,25 @@ class TechnicalIndicatorStep:
         if not self.indicators:
             return data.copy()
 
-        generator = TechnicalFeatureGenerator(self.indicators)
+        generator = TechnicalFeatureGenerator(self.indicators, strict=self.strict)
         result = generator.generate(data)
+        generator_metadata = generator.get_metadata()["last_run"]
 
         metadata.technical_indicators = self.indicators
+        metadata.requested_technical_indicators = generator_metadata["requested"]
+        metadata.applied_technical_indicators = generator_metadata["applied"]
+        metadata.skipped_technical_indicators = generator_metadata["skipped"]
+        metadata.failed_technical_indicators = generator_metadata["failed"]
+        metadata.strict_indicators = self.strict
         metadata.add_required_columns([col for col in result.columns if col not in data.columns])
-        logger.debug("Applied technical indicators: {indicators}", indicators=self.indicators)
+        logger.debug(
+            "Applied technical indicators: requested={requested}, applied={applied}, "
+            "skipped={skipped}, failed={failed}",
+            requested=metadata.requested_technical_indicators,
+            applied=metadata.applied_technical_indicators,
+            skipped=metadata.skipped_technical_indicators,
+            failed=metadata.failed_technical_indicators,
+        )
 
         return result
 

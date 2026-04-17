@@ -44,6 +44,26 @@ processed_data, metadata = processor.data_processing_pipeline(
 
 Steps are added conditionally — sentiment enrichment only runs if `news_data` is provided, analyst estimates only if `analyst_grades`/`analyst_ratings` are provided, etc.
 
+For a more explicit assembly flow, use the typed config objects plus `build_pipeline()`:
+
+```python
+from quantrl_lab.data.processing import (
+    CrossSectionalConfig,
+    ProcessingPipelineConfig,
+    SplitConfig,
+)
+
+pipeline_config = ProcessingPipelineConfig(
+    indicators=["SMA", "RSI"],
+    cross_sectional=CrossSectionalConfig(columns=["Close"], methods=["rank"]),
+    split=SplitConfig(splits={"train": 0.7, "test": 0.3}),
+)
+
+pipeline = processor.build_pipeline(pipeline_config=pipeline_config)
+print(pipeline.describe())
+processed_data, metadata = processor.data_processing_pipeline(pipeline_config=pipeline_config)
+```
+
 ### Low-Level Builder API (Custom Workflows)
 
 For full control, construct a `DataPipeline` manually and chain steps using the builder pattern:
@@ -130,7 +150,7 @@ from quantrl_lab.data.processing.steps import (
 
 # 1. Ask alpha research for suggestions (outside the pipeline)
 selector = AlphaSelector(raw_df, verbose=True)
-suggested = selector.suggest_indicators(metric="sharpe_ratio", top_k=5)
+suggested = selector.suggest_indicators(metric="sharpe_ratio", top_k=5, selection_mode="strategy")
 # Returns e.g.: [{"RSI": {"window": 14}}, {"SMA": {"window": 50}}]
 
 # 2. User decision — inspect, filter, or mix with manual picks
@@ -159,7 +179,8 @@ When using the high-level API, steps are added in this order:
 3. `MarketContextStep` — only if sector/industry data is provided
 4. `SentimentEnrichmentStep` — only if `news_data` is provided
 5. `NumericConversionStep` — always added
-6. `ColumnCleanupStep` — always added
+6. `CrossSectionalStep` — only if cross-sectional config is provided
+7. `ColumnCleanupStep` — always added
 
 After pipeline execution, NaN rows are dropped (indicator warm-up periods), and data is optionally split.
 

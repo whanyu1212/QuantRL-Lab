@@ -125,3 +125,23 @@ def test_metadata_updated(panel_df, metadata):
     step = CrossSectionalStep(columns=["RSI_14"], methods=["zscore"])
     step.process(panel_df, metadata)
     assert "RSI_14_cs_zscore" in metadata.cross_sectional_features
+
+
+def test_date_column_supported_without_datetime_index(metadata):
+    """Cross-sectional step should work with a date column instead of
+    datetime index."""
+    dates = pd.date_range("2023-01-01", periods=2, freq="D")
+    df = pd.DataFrame(
+        {
+            "Date": [dates[0], dates[0], dates[1], dates[1]],
+            "Symbol": ["AAPL", "MSFT", "AAPL", "MSFT"],
+            "RSI_14": [40.0, 60.0, 30.0, 70.0],
+        }
+    )
+
+    step = CrossSectionalStep(columns=["RSI_14"], methods=["zscore"], date_column="Date")
+    result = step.process(df, metadata)
+
+    assert "RSI_14_cs_zscore" in result.columns
+    for _, group in result.groupby("Date"):
+        assert abs(group["RSI_14_cs_zscore"].mean()) < 1e-6

@@ -6,7 +6,7 @@ transformations. Each step in the pipeline processes the DataFrame and
 updates metadata.
 """
 
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import pandas as pd
 from loguru import logger
@@ -112,11 +112,39 @@ class DataPipeline:
         """
         return self._steps.copy()
 
+    def get_step_names(self) -> List[str]:
+        """
+        Return the ordered human-readable step names in the pipeline.
+
+        Returns:
+            List[str]: Step names in execution order.
+        """
+        return [step.get_step_name() for step in self._steps]
+
+    def describe(self) -> Dict[str, object]:
+        """
+        Describe the assembled pipeline for debugging and experiment
+        logging.
+
+        Returns:
+            Dict[str, object]: Summary containing step count and ordered step metadata.
+        """
+        return {
+            "step_count": len(self._steps),
+            "steps": [
+                {
+                    "index": index + 1,
+                    "name": step.get_step_name(),
+                    "type": type(step).__name__,
+                }
+                for index, step in enumerate(self._steps)
+            ],
+        }
+
     def __len__(self) -> int:
         """Return number of steps in pipeline."""
         return len(self._steps)
 
     def __repr__(self) -> str:
         """Return string representation of pipeline."""
-        step_names = [step.get_step_name() for step in self._steps]
-        return f"DataPipeline({len(self._steps)} steps: {step_names})"
+        return f"DataPipeline({len(self._steps)} steps: {self.get_step_names()})"

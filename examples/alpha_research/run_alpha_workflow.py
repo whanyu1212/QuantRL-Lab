@@ -42,7 +42,7 @@ def main():
     # ── 2. Select best indicators via AlphaSelector ───────────────────────────
     console.rule("[bold cyan]Step 1: Indicator Selection[/bold cyan]")
     selector = AlphaSelector(data)
-    selected = selector.suggest_indicators(metric="ic", threshold=0.02, top_k=5)
+    selected = selector.suggest_indicators(metric="ic", threshold=0.02, top_k=5, selection_mode="feature")
 
     if not selected:
         console.print("[yellow]No indicators passed the IC threshold. Using defaults.[/yellow]")

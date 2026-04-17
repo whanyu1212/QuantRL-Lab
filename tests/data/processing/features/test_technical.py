@@ -113,6 +113,13 @@ class TestTechnicalFeatureGeneratorGenerate:
         assert "SMA_20" in result.columns
         # No error raised
 
+    def test_generate_strict_mode_raises_on_unknown_indicator(self, sample_ohlcv_data):
+        """Strict mode should fail fast on unknown indicators."""
+        generator = TechnicalFeatureGenerator(["UNKNOWN_INDICATOR", "SMA"], strict=True)
+
+        with pytest.raises(ValueError, match="UNKNOWN_INDICATOR"):
+            generator.generate(sample_ohlcv_data)
+
 
 class TestTechnicalFeatureGeneratorMetadata:
     """Test TechnicalFeatureGenerator.get_metadata() method."""
