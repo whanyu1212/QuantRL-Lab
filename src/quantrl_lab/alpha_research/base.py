@@ -1,5 +1,6 @@
 from abc import ABC, abstractmethod
 from enum import Enum
+from typing import Any, Dict, List
 
 import pandas as pd
 
@@ -63,12 +64,55 @@ class VectorizedTradingStrategy(ABC):
     @abstractmethod
     def get_required_columns(self) -> list:
         """
-        Return list of required columns for this strategy.
+        Return the list of DataFrame columns this strategy needs.
 
-        Raises:
-            NotImplementedError: If not implemented
+        Called after instantiation to validate that all indicator-generated
+        columns were successfully resolved before signals are generated.
 
         Returns:
-            list: List of required column names
+            list: List of required column names (actual column strings, not
+                parameter names).
         """
         raise NotImplementedError
+
+    @classmethod
+    def resolve_columns(cls, new_cols: List[str], current_params: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Resolve indicator-generated column names into constructor
+        kwargs.
+
+        A-7: Each strategy owns its own column-wiring logic so that
+        ``AlphaRunner._resolve_strategy_args`` is a simple one-line dispatch
+        rather than a long per-strategy if-chain.  Override in subclasses
+        that need multi-column wiring (MACD, Bollinger Bands, Stochastic,
+        ADX).  The default implementation handles the common single-column
+        case (``indicator_col``).
+
+        Args:
+            new_cols: Columns added to the DataFrame by the indicator step.
+            current_params: Strategy params already supplied by the user
+                (never overridden).
+
+        Returns:
+            Dict of additional kwargs to pass to the strategy constructor.
+        """
+        resolved: Dict[str, Any] = {}
+        if "indicator_col" not in current_params and new_cols:
+            resolved["indicator_col"] = new_cols[0]
+        return resolved
+
+    def validate_columns(self, data: pd.DataFrame) -> List[str]:
+        """
+        Return a list of required columns that are missing from *data*.
+
+        A-2: Enables ``AlphaRunner`` to warn early when column wiring
+        produced None values, rather than silently generating all-HOLD
+        signals.
+
+        Args:
+            data (pd.DataFrame): DataFrame after indicator calculation.
+
+        Returns:
+            List of missing column names (empty list when all present).
+        """
+        return [col for col in self.get_required_columns() if col is not None and col not in data.columns]
