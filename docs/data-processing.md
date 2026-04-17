@@ -19,13 +19,40 @@ Both produce the same output: a cleaned, feature-enriched DataFrame (and optiona
 | `SentimentEnrichmentStep` | Merges news sentiment scores | `news_data`, `provider`, `fillna_strategy` |
 | `AnalystEstimatesStep` | Merges analyst grades / ratings | `grades_df`, `ratings_df` |
 | `MarketContextStep` | Merges sector / industry performance | `sector_perf_df`, `industry_perf_df` |
-| `CrossSectionalStep` | Computes cross-sectional features across a basket | `columns`, `methods` |
+| `CrossSectionalStep` | Computes cross-sectional features across a basket | `columns`, `methods`, `date_column` |
 
 ---
 
 ## High-Level Usage: `DataProcessor`
 
 Use `DataProcessor` when you want a single call to handle everything — indicators, sentiment, analyst data, numeric conversion, cleanup, and optional splitting.
+
+### Typed config assembly
+
+`DataProcessor` now supports typed pipeline config objects when you want a clearer, more inspectable assembly flow:
+
+```python
+from quantrl_lab.data.processing import (
+    CleanupConfig,
+    CrossSectionalConfig,
+    ProcessingPipelineConfig,
+    SplitConfig,
+)
+
+pipeline_config = ProcessingPipelineConfig(
+    indicators=[{"SMA": {"window": 20}}, "RSI"],
+    cross_sectional=CrossSectionalConfig(columns=["Close"], methods=["rank"]),
+    split=SplitConfig(splits={"train": 0.7, "test": 0.3}),
+    cleanup=CleanupConfig(),
+    strict_indicators=True,
+)
+
+pipeline = processor.build_pipeline(pipeline_config=pipeline_config)
+print(pipeline.get_step_names())
+print(pipeline.describe())
+
+processed, metadata = processor.data_processing_pipeline(pipeline_config=pipeline_config)
+```
 
 ### Minimal example
 
@@ -229,6 +256,18 @@ print(pipeline)
 print(len(pipeline))   # 2
 ```
 
+`DataPipeline.describe()` returns a structured summary:
+
+```python
+{
+    "step_count": 2,
+    "steps": [
+        {"index": 1, "name": "Technical Indicators", "type": "TechnicalIndicatorStep"},
+        {"index": 2, "name": "Column Cleanup", "type": "ColumnCleanupStep"},
+    ],
+}
+```
+
 ---
 
 ## Step Reference
@@ -368,6 +407,11 @@ Added columns are prefixed with `sector_` and `industry_` respectively. Pass onl
 ### `CrossSectionalStep`
 
 Computes cross-sectional features across a **basket of stocks** (panel data). Groups by date and normalises each feature relative to all stocks present on that day. Only meaningful with 2+ symbols; silently bypasses if a single symbol is detected.
+
+The step now works with either:
+- a `DatetimeIndex`
+- a date-like column such as `Date` / `Timestamp`
+- an explicit `date_column=...` override
 
 ```python
 from quantrl_lab.data.processing.steps import CrossSectionalStep

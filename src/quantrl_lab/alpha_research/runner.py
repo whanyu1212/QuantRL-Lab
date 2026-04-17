@@ -10,6 +10,7 @@ from sklearn.feature_selection import mutual_info_regression
 
 from quantrl_lab.data.indicators.registry import IndicatorRegistry
 
+from .indicator_research import FEATURE_SELECTION_MODE
 from .metrics import (
     calculate_forward_returns,
     calculate_pearson_ic,
@@ -17,6 +18,9 @@ from .metrics import (
 )
 from .models import AlphaJob, AlphaResult
 from .registry import VectorizedStrategyRegistry
+
+# IndicatorRegistry is used by _calculate_indicators; kept as a named import
+# so the import is explicit even though resolve_columns no longer uses it.
 
 console = Console()
 
@@ -49,11 +53,12 @@ class AlphaRunner:
 
         try:
             # 1. Validate Data
-            self._validate_data(job.data)
+            # Returns a (possibly column-normalised) copy — never the original job.data
+            validated_data = self._validate_data(job.data)
 
             # 2. Calculate Indicators
-            old_cols = set(job.data.columns)
-            data_with_indicators = self._calculate_indicators(job.data, job.indicator_name, job.indicator_params)
+            old_cols = set(validated_data.columns)
+            data_with_indicators = self._calculate_indicators(validated_data, job.indicator_name, job.indicator_params)
             new_cols = list(set(data_with_indicators.columns) - old_cols)
 
             # 3. Create Strategy
@@ -63,18 +68,47 @@ class AlphaRunner:
                 if param in strategy_params:
                     del strategy_params[param]
 
-            # Resolve strategy specific column arguments (pass indicator_name for registry lookup)
+            # A-7: Delegate column wiring to the strategy class itself.
+            # Each strategy implements resolve_columns() so this runner no
+            # longer needs a per-strategy if-chain.
             strategy_cls = VectorizedStrategyRegistry.get(job.strategy_name)
-            resolved_args = self._resolve_strategy_args(
-                strategy_cls, new_cols, strategy_params, indicator_name=job.indicator_name
-            )
+            resolved_args = strategy_cls.resolve_columns(new_cols, strategy_params)
             strategy_params.update(resolved_args)
 
             strategy = VectorizedStrategyRegistry.create(
                 job.strategy_name, allow_short=job.allow_short, **strategy_params
             )
 
+            # A-2: Validate that all required columns are present before generating
+            # signals. Catches broken wiring early instead of silently returning
+            # all-HOLD signals (which score zero IC and waste the whole job run).
+            missing_cols = strategy.validate_columns(data_with_indicators)
+            if missing_cols and self.verbose:
+                console.print(
+                    f"[yellow]Warning: {job.strategy_name} for {job.indicator_name} "
+                    f"is missing columns {missing_cols}. Signals will default to HOLD.[/yellow]"
+                )
+
             # 4. Generate Signals
+            analysis_horizon = job.strategy_params.get("ic_horizon", 5)
+
+            if job.evaluation_mode == FEATURE_SELECTION_MODE:
+                scores = strategy.generate_scores(data_with_indicators)
+                feature_metrics = self._analyze_predictive_power(
+                    data_with_indicators,
+                    scores,
+                    horizon=analysis_horizon,
+                    prefix="feature_",
+                )
+                feature_metrics.update(self._summarize_scores(scores))
+                feature_metrics.update(self._alias_primary_metrics(feature_metrics, prefix="feature_"))
+                return AlphaResult(
+                    job=job,
+                    metrics=feature_metrics,
+                    scores=scores,
+                    status="completed",
+                )
+
             signals = strategy.generate_signals(data_with_indicators)
 
             # 5. Simulate Portfolio
@@ -86,13 +120,17 @@ class AlphaRunner:
             )
 
             # 6. Statistical Signal Analysis (IC, etc.)
-            signal_analysis = self._analyze_signal_predictive_power(
-                data_with_indicators, signals, horizon=job.strategy_params.get("ic_horizon", 5)
+            signal_analysis = self._analyze_predictive_power(
+                data_with_indicators,
+                signals,
+                horizon=analysis_horizon,
+                prefix="signal_",
             )
 
             # 7. Metrics
             metrics = self._calculate_metrics(portfolio_results)
             metrics.update(signal_analysis)
+            metrics.update(self._alias_primary_metrics(signal_analysis, prefix="signal_"))
 
             return AlphaResult(
                 job=job,
@@ -108,112 +146,6 @@ class AlphaRunner:
                 console.print(f"[red]Job Failed: {e}[/red]")
                 console.print(tb)
             return AlphaResult(job=job, metrics={}, status="failed", error=tb)
-
-    def _resolve_strategy_args(
-        self,
-        strategy_cls: Any,
-        new_cols: List[str],
-        current_params: Dict[str, Any],
-        indicator_name: str = "",
-    ) -> Dict[str, Any]:
-        """
-        Resolve column arguments for strategy from indicator-generated
-        columns.
-
-        Uses ``IndicatorRegistry`` metadata (``output_columns``) as the
-        authoritative source of column names, so that strategy wiring does not
-        break when the registry changes its naming conventions.  Hardcoded
-        substring matching is kept only as a last-resort fallback for
-        indicators registered without explicit ``output_columns``.
-
-        Args:
-            strategy_cls: The strategy class to instantiate.
-            new_cols: Columns added to the DataFrame by the indicator calculation.
-            current_params: Strategy parameters already supplied by the user
-                (these are never overridden).
-            indicator_name: Registry name of the indicator, used to fetch
-                ``IndicatorMetadata.output_columns`` (optional but recommended).
-
-        Returns:
-            Dict[str, Any]: Additional keyword arguments to pass to the strategy.
-        """
-        import inspect
-
-        init_signature = inspect.signature(strategy_cls.__init__)
-        init_params = init_signature.parameters
-        resolved = {}
-
-        # --- Registry-aware column lookup ---
-        # Prefer metadata.output_columns over substring guessing so the wiring
-        # stays valid even if the registry renames its output columns.
-        registry_cols: List[str] = []
-        if indicator_name:
-            try:
-                meta = IndicatorRegistry.get_metadata(indicator_name)
-                # Only keep columns that were actually added to the DataFrame
-                registry_cols = [c for c in meta.output_columns if c in new_cols]
-            except KeyError:
-                pass  # Unknown indicator — fall back to substring heuristics
-
-        def find_col(substring: str) -> Any:
-            """Fallback: find first new column whose name contains substring."""
-            matches = [c for c in new_cols if substring in c]
-            if not matches and self.verbose:
-                console.print(
-                    f"[yellow]Warning: could not resolve column for '{substring}' "
-                    f"in indicator '{indicator_name}'. New columns: {new_cols}[/yellow]"
-                )
-            return matches[0] if matches else None
-
-        def registry_col(substring: str) -> Any:
-            """Check registry columns first, then fall back to substring
-            search."""
-            matches = [c for c in registry_cols if substring in c]
-            return matches[0] if matches else find_col(substring)
-
-        # 1. Generic 'indicator_col' — single-output indicators (RSI, SMA, ATR, CCI…)
-        if "indicator_col" in init_params and "indicator_col" not in current_params:
-            if registry_cols:
-                resolved["indicator_col"] = registry_cols[0]
-            elif new_cols:
-                resolved["indicator_col"] = new_cols[0]
-
-        # 2. MACD: fast_col = MACD line, slow_col = Signal line
-        if "fast_col" in init_params and "slow_col" in init_params:
-            if "fast_col" not in current_params:
-                resolved["fast_col"] = registry_col("MACD_line")
-            if "slow_col" not in current_params:
-                resolved["slow_col"] = registry_col("MACD_signal")
-
-        # 3. Bollinger Bands: upper / lower / middle bands
-        if "upper_col" in init_params and "lower_col" in init_params:
-            if "upper_col" not in current_params:
-                resolved["upper_col"] = registry_col("BB_upper")
-            if "lower_col" not in current_params:
-                resolved["lower_col"] = registry_col("BB_lower")
-            if "middle_col" not in current_params and "middle_col" in init_params:
-                resolved["middle_col"] = registry_col("BB_middle")
-
-        # 4. Stochastic: %K and optional %D
-        if "k_col" in init_params:
-            if "k_col" not in current_params:
-                resolved["k_col"] = registry_col("STOCH_%K")
-            if "d_col" in init_params and "d_col" not in current_params:
-                resolved["d_col"] = registry_col("STOCH_%D")
-
-        # 5. OBV
-        if "obv_col" in init_params and "obv_col" not in current_params:
-            resolved["obv_col"] = registry_col("OBV")
-
-        # 6. ADX: adx_col / pdi_col / mdi_col
-        if "adx_col" in init_params and "adx_col" not in current_params:
-            resolved["adx_col"] = registry_col("ADX")
-        if "pdi_col" in init_params and "pdi_col" not in current_params:
-            resolved["pdi_col"] = registry_col("PDI")
-        if "mdi_col" in init_params and "mdi_col" not in current_params:
-            resolved["mdi_col"] = registry_col("MDI")
-
-        return resolved
 
     def run_batch(self, jobs: List[AlphaJob], n_jobs: int = 1) -> List[AlphaResult]:
         """
@@ -247,12 +179,25 @@ class AlphaRunner:
 
         return results
 
-    def _validate_data(self, data: pd.DataFrame) -> None:
+    def _validate_data(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Validate input data for required columns, types, and quality.
 
+        Returns a (possibly column-renamed) copy of the DataFrame rather than
+        mutating the caller's object in-place.
+
+        BUG FIX (A-3): The original implementation called
+        ``data.rename(columns=..., inplace=True)`` which mutated the shared
+        ``AlphaJob.data`` DataFrame directly. In batch runs where multiple jobs
+        reference the same DataFrame, this silently renamed columns under
+        subsequent jobs, causing them to fail with "missing column" errors.
+        The fix returns a new DataFrame so the caller's object is never touched.
+
         Args:
             data (pd.DataFrame): Input market data.
+
+        Returns:
+            pd.DataFrame: Validated (and if necessary, column-normalised) copy.
 
         Raises:
             ValueError: If validation fails.
@@ -278,7 +223,9 @@ class AlphaRunner:
         if rename_map:
             if self.verbose:
                 console.print(f"[yellow]Auto-normalising column names: {rename_map}[/yellow]")
-            data.rename(columns=rename_map, inplace=True)
+            # Return a renamed copy — do NOT mutate the caller's DataFrame
+            data = data.rename(columns=rename_map)
+
         if data.empty:
             raise ValueError("Data is empty")
 
@@ -301,6 +248,8 @@ class AlphaRunner:
             problematic_rows = (data["High"] < data["Low"]).sum()
             raise ValueError(f"Invalid data: High < Low in {problematic_rows} rows")
 
+        return data
+
     def _calculate_indicators(
         self, data: pd.DataFrame, indicator_name: str, indicator_params: Dict[str, Any]
     ) -> pd.DataFrame:
@@ -310,28 +259,38 @@ class AlphaRunner:
         except Exception as e:
             raise ValueError(f"Failed to calculate indicator {indicator_name}: {e}")
 
-    def _analyze_signal_predictive_power(
-        self, data: pd.DataFrame, signals: pd.Series, horizon: int = 5
+    def _analyze_predictive_power(
+        self,
+        data: pd.DataFrame,
+        values: pd.Series,
+        horizon: int = 5,
+        prefix: str = "",
     ) -> Dict[str, float]:
         """
-        Analyze the predictive power of signals using Information
-        Coefficient (IC).
+        Analyze predictive power using Information Coefficient (IC).
 
         Args:
             data (pd.DataFrame): Market data with Close prices.
-            signals (pd.Series): Trading signals.
+            values (pd.Series): Signals or continuous feature scores.
             horizon (int): Forward-looking horizon for returns (in periods).
+            prefix (str): Prefix for returned metric names.
 
         Returns:
             Dict[str, float]: Dictionary of signal quality metrics.
         """
         forward_returns = calculate_forward_returns(data["Close"], periods=horizon)
 
-        valid_mask = signals.notna() & forward_returns.notna()
+        valid_mask = values.notna() & forward_returns.notna()
         if not valid_mask.any():
-            return {"ic": 0.0, "rank_ic": 0.0, "ic_p_value": 1.0, "rank_ic_p_value": 1.0, "mutual_info": 0.0}
+            return {
+                f"{prefix}ic": 0.0,
+                f"{prefix}rank_ic": 0.0,
+                f"{prefix}ic_p_value": 1.0,
+                f"{prefix}rank_ic_p_value": 1.0,
+                f"{prefix}mutual_info": 0.0,
+            }
 
-        s = signals[valid_mask]
+        s = values[valid_mask]
         r = forward_returns[valid_mask]
 
         ic, ic_p = calculate_pearson_ic(s, r)
@@ -344,11 +303,34 @@ class AlphaRunner:
             mi = 0.0
 
         return {
-            "ic": float(ic),
-            "rank_ic": float(rank_ic),
-            "ic_p_value": float(ic_p),
-            "rank_ic_p_value": float(rank_ic_p),
-            "mutual_info": float(mi),
+            f"{prefix}ic": float(ic),
+            f"{prefix}rank_ic": float(rank_ic),
+            f"{prefix}ic_p_value": float(ic_p),
+            f"{prefix}rank_ic_p_value": float(rank_ic_p),
+            f"{prefix}mutual_info": float(mi),
+        }
+
+    def _alias_primary_metrics(self, metrics: Dict[str, float], prefix: str) -> Dict[str, float]:
+        """Expose the requested mode's predictive metrics under the
+        legacy names."""
+        aliased: Dict[str, float] = {}
+        for key in ["ic", "rank_ic", "ic_p_value", "rank_ic_p_value", "mutual_info"]:
+            prefixed_key = f"{prefix}{key}"
+            if prefixed_key in metrics:
+                aliased[key] = float(metrics[prefixed_key])
+        return aliased
+
+    def _summarize_scores(self, scores: pd.Series) -> Dict[str, float]:
+        """Return lightweight diagnostics for feature-mode score
+        distributions."""
+        clean_scores = scores.dropna()
+        if clean_scores.empty:
+            return {"score_mean": 0.0, "score_std": 0.0, "score_abs_mean": 0.0}
+
+        return {
+            "score_mean": float(clean_scores.mean()),
+            "score_std": float(clean_scores.std()),
+            "score_abs_mean": float(clean_scores.abs().mean()),
         }
 
     def _simulate_portfolio(

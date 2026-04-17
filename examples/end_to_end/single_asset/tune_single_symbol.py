@@ -3,12 +3,10 @@ Single-stock hyperparameter tuning script.
 
 Validates the full workflow end-to-end on a single symbol with Optuna:
   1. Fetch OHLCV data
-  2. Alpha Research — suggest indicators
-  3. Fetch optional enrichment data (FMP, Alpaca)
-  4. Build and execute the DataPipeline (via shared utilities)
-  5. Train/eval/test split (3-way)
-  6. Tune PPO hyperparameters using Optuna (optimizing on the eval set)
-  7. Report best hyperparameters
+  2. DataProcessor runs alpha selection and builds the full feature pipeline
+  3. Train/eval/test split (3-way, inline)
+  4. Tune PPO hyperparameters using Optuna (optimizing on the eval set)
+  5. Report best hyperparameters
 """
 
 import os
@@ -28,9 +26,6 @@ console = Console()
 from shared.data_utils import (  # noqa: E402
     get_date_range,
     init_data_sources,
-    process_symbol,
-    select_alpha_indicators,
-    train_eval_test_split_by_date,
 )
 
 SYMBOL = "AAPL"
@@ -95,31 +90,47 @@ def fetch_sync_enrichment(sources, symbol: str, start_date, end_date) -> dict:
     return enrichment
 
 
-def build_processed_data(symbol: str) -> "pd.DataFrame":  # noqa: F821
-    """Fetch, enrich, and process data for a single symbol."""
-    # 1. Initialise sources and compute date range
+def build_processed_data(symbol: str):
+    """
+    Fetch and process data for a single symbol.
+
+    Returns ``(train_df, eval_df, test_df)`` ready for tuning.
+    Alpha indicator selection is performed explicitly via
+    ``alpha_research`` before the resulting indicator specs are passed
+    into ``DataProcessor``.
+    """
+    from quantrl_lab.alpha_research import build_processing_config_from_alpha_selection
+    from quantrl_lab.data.processing import DataProcessor
+
     sources = init_data_sources()
     start_date, end_date = get_date_range(PERIOD_YEARS)
 
-    # 2. OHLCV
     raw_df = sources.loader.get_historical_ohlcv_data(symbols=[symbol], start=start_date, end=end_date, timeframe="1d")
     if "Date" in raw_df.columns:
         raw_df = raw_df.set_index("Date")
     console.print(f"[cyan]Raw OHLCV:[/cyan] {raw_df.shape}")
 
-    # 3. Alpha Research — suggest indicators
-    indicators = select_alpha_indicators({symbol: raw_df}, metric="ic", threshold=0.02, top_k=4, verbose=True)
+    processor = DataProcessor(ohlcv_data=raw_df)
+    processing_config, _ = build_processing_config_from_alpha_selection(
+        raw_df,
+        {"metric": "ic", "threshold": 0.02, "top_k": 4},
+        split_config={"train": 0.70, "eval": 0.15, "test": 0.15},
+        verbose=True,
+    )
+    splits, metadata = processor.data_processing_pipeline(
+        pipeline_config=processing_config,
+    )
 
-    # 4. Optional enrichment (sync)
-    enrichment = fetch_sync_enrichment(sources, symbol, start_date, end_date)
-
-    # 5. Build pipeline, execute, drop NaNs
-    processed_df = process_symbol(symbol, raw_df, indicators, enrichment, verbose=True)
-
-    # Drop non-numeric columns that the trading env cannot cast to float32
-    processed_df = processed_df.select_dtypes(include="number")
-    console.print(f"[green]Final shape:[/green] {processed_df.shape}")
-    return processed_df
+    train_df = splits["train"].select_dtypes(include="number")
+    eval_df = splits["eval"].select_dtypes(include="number")
+    test_df = splits["test"].select_dtypes(include="number")
+    console.print(
+        f"[green]Train:[/green] {train_df.shape}  "
+        f"[green]Eval:[/green] {eval_df.shape}  "
+        f"[green]Test:[/green] {test_df.shape}"
+    )
+    console.print(f"[green]Features:[/green] {list(train_df.columns)}")
+    return train_df, eval_df, test_df
 
 
 # ── Tuning ────────────────────────────────────────────────────────────────────
@@ -128,15 +139,11 @@ def build_processed_data(symbol: str) -> "pd.DataFrame":  # noqa: F821
 def main():
     console.rule(f"[bold blue]Single-Stock Tuning — {SYMBOL}[/bold blue]")
 
-    # --- Phase 1: Data ---
+    # --- Phase 1: Data (fetch + alpha selection + 3-way split) ---
     console.rule("[dim]Phase 1: Data[/dim]")
-    processed_df = build_processed_data(SYMBOL)
-    console.print(f"[green]Date range:[/green] {processed_df.index.min().date()} → {processed_df.index.max().date()}")
-    console.print(f"[green]Features:[/green] {list(processed_df.columns)}")
-
-    # --- Phase 2: Train/Eval/Test split ---
-    console.rule("[dim]Phase 2: Split[/dim]")
-    train_df, eval_df, test_df = train_eval_test_split_by_date(processed_df, train_ratio=0.7, eval_ratio=0.15)
+    train_df, eval_df, test_df = build_processed_data(SYMBOL)
+    console.print(f"[green]Train date range:[/green] {train_df.index.min().date()} → {train_df.index.max().date()}")
+    console.print(f"[green]Test date range:[/green]  {test_df.index.min().date()} → {test_df.index.max().date()}")
 
     if len(train_df) <= WINDOW_SIZE:
         console.print(f"[red]Train set too small ({len(train_df)} rows <= window_size={WINDOW_SIZE})[/red]")
@@ -148,8 +155,8 @@ def main():
         console.print(f"[red]Test set too small ({len(test_df)} rows <= window_size={WINDOW_SIZE})[/red]")
         return
 
-    # --- Phase 3: Setup Environment using Builder ---
-    console.rule("[dim]Phase 3: Environment[/dim]")
+    # --- Phase 2: Setup Environment using Builder ---
+    console.rule("[dim]Phase 2: Environment[/dim]")
     from quantrl_lab.environments.stock.strategies.actions.standard import StandardActionStrategy
     from quantrl_lab.environments.stock.strategies.observations.feature_aware import FeatureAwareObservationStrategy
     from quantrl_lab.environments.stock.strategies.rewards.composite import CompositeReward
@@ -184,8 +191,8 @@ def main():
     )
     env_config = builder.build()
 
-    # --- Phase 4: Run Tuning Experiment ---
-    console.rule("[dim]Phase 4: Hyperparameter Tuning[/dim]")
+    # --- Phase 3: Run Tuning Experiment ---
+    console.rule("[dim]Phase 3: Hyperparameter Tuning[/dim]")
     from stable_baselines3 import PPO
 
     from quantrl_lab.experiments.backtesting.core import ExperimentJob
@@ -224,8 +231,8 @@ def main():
     for key, value in study.best_params.items():
         console.print(f"  [yellow]{key}[/yellow]: {value}")
 
-    # --- Phase 5: Refit on train+eval, evaluate on test ---
-    console.rule("[dim]Phase 5: Refit & Final Evaluation[/dim]")
+    # --- Phase 4: Refit on train+eval, evaluate on test ---
+    console.rule("[dim]Phase 4: Refit & Final Evaluation[/dim]")
 
     import pandas as pd
 

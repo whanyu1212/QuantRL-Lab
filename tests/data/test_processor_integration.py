@@ -157,6 +157,64 @@ class TestDataProcessorSplitting:
         assert train_last < val_first
         assert val_last < test_first
 
+    def test_panel_split_preserves_symbol_by_default(self):
+        """Multi-symbol split outputs should retain Symbol by
+        default."""
+        dates = pd.date_range("2020-01-01", periods=6, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": list(dates) * 2,
+                "Open": list(range(6)) + list(range(10, 16)),
+                "High": list(range(100, 106)) + list(range(110, 116)),
+                "Low": list(range(50, 56)) + list(range(60, 66)),
+                "Close": list(range(70, 76)) + list(range(80, 86)),
+                "Volume": [1000] * 12,
+                "Symbol": ["AAPL"] * 6 + ["MSFT"] * 6,
+            }
+        )
+
+        processor = DataProcessor(df)
+        result, _ = processor.data_processing_pipeline(
+            split_config={
+                "train": ("2020-01-01", "2020-01-03"),
+                "test": ("2020-01-04", "2020-01-06"),
+            }
+        )
+
+        assert "Symbol" in result["train"].columns
+        assert "Symbol" in result["test"].columns
+        assert "Date" not in result["train"].columns
+        assert set(result["train"]["Symbol"]) == {"AAPL", "MSFT"}
+
+    def test_panel_split_honors_explicit_symbol_drop(self):
+        """Explicit cleanup requests should still be honored after
+        split."""
+        dates = pd.date_range("2020-01-01", periods=6, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": list(dates) * 2,
+                "Open": list(range(6)) + list(range(10, 16)),
+                "High": list(range(100, 106)) + list(range(110, 116)),
+                "Low": list(range(50, 56)) + list(range(60, 66)),
+                "Close": list(range(70, 76)) + list(range(80, 86)),
+                "Volume": [1000] * 12,
+                "Symbol": ["AAPL"] * 6 + ["MSFT"] * 6,
+            }
+        )
+
+        processor = DataProcessor(df)
+        result, _ = processor.data_processing_pipeline(
+            split_config={
+                "train": ("2020-01-01", "2020-01-03"),
+                "test": ("2020-01-04", "2020-01-06"),
+            },
+            cleanup_config={"columns_to_drop": ["Date", "Symbol"]},
+        )
+
+        assert "Symbol" not in result["train"].columns
+        assert "Symbol" not in result["test"].columns
+        assert "Date" not in result["train"].columns
+
 
 class TestDataProcessorDirectSplitterUsage:
     """Test using splitters directly (new API)."""
@@ -300,3 +358,78 @@ class TestDataProcessorCleanup:
             {"CMF": {"window": 10}},
             {"SUPERTREND": {"window": 10, "multiplier": 3.0}},
         ]
+
+    def test_indicator_metadata_tracks_requested_applied_and_skipped(self):
+        """Metadata should capture requested, applied, and skipped
+        indicators."""
+        dates = pd.date_range("2020-01-01", periods=20, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Open": range(20),
+                "High": [x + 5 for x in range(20)],
+                "Low": [x for x in range(20)],
+                "Close": [x + 2 for x in range(20)],
+                "Volume": [1000 + x for x in range(20)],
+            }
+        )
+
+        processor = DataProcessor(df)
+        result, metadata = processor.data_processing_pipeline(indicators=["UNKNOWN_INDICATOR", {"SMA": {"window": 3}}])
+
+        assert "SMA_3" in result.columns
+        assert metadata["requested_technical_indicators"] == ["UNKNOWN_INDICATOR", {"SMA": {"window": 3}}]
+        assert metadata["applied_technical_indicators"] == [{"SMA": {"window": 3}}]
+        assert metadata["failed_technical_indicators"] == []
+        assert metadata["skipped_technical_indicators"] == [
+            {
+                "indicator": "UNKNOWN_INDICATOR",
+                "config": "UNKNOWN_INDICATOR",
+                "reason": "not registered in IndicatorRegistry",
+            }
+        ]
+        assert metadata["strict_indicators"] is False
+
+    def test_indicator_metadata_tracks_failures(self):
+        """Metadata should capture failed indicators without hiding
+        later successes."""
+        dates = pd.date_range("2020-01-01", periods=20, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Open": range(20),
+                "High": [x + 5 for x in range(20)],
+                "Low": [x for x in range(20)],
+                "Close": [x + 2 for x in range(20)],
+                "Volume": [1000 + x for x in range(20)],
+            }
+        )
+
+        processor = DataProcessor(df)
+        result, metadata = processor.data_processing_pipeline(indicators=[{"SMA": {"window": "bad"}}, "RSI"])
+
+        assert "RSI_14" in result.columns
+        assert metadata["applied_technical_indicators"] == ["RSI"]
+        assert metadata["skipped_technical_indicators"] == []
+        assert metadata["failed_technical_indicators"][0]["indicator"] == "SMA"
+        assert metadata["failed_technical_indicators"][0]["config"] == {"SMA": {"window": "bad"}}
+        assert "window must be an integer" in metadata["failed_technical_indicators"][0]["error"]
+
+    def test_strict_indicators_fail_fast(self):
+        """Strict mode should reject unknown indicators."""
+        dates = pd.date_range("2020-01-01", periods=20, freq="D")
+        df = pd.DataFrame(
+            {
+                "Date": dates,
+                "Open": range(20),
+                "High": [x + 5 for x in range(20)],
+                "Low": [x for x in range(20)],
+                "Close": [x + 2 for x in range(20)],
+                "Volume": [1000 + x for x in range(20)],
+            }
+        )
+
+        processor = DataProcessor(df)
+
+        with pytest.raises(ValueError, match="UNKNOWN_INDICATOR"):
+            processor.data_processing_pipeline(indicators=["UNKNOWN_INDICATOR"], strict_indicators=True)

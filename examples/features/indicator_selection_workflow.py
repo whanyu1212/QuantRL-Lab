@@ -51,7 +51,10 @@ def main():
     # We test a default grid of RSI, MACD, SMA, BB, etc.
     console.print("Testing candidate indicators...")
     best_indicators = selector.suggest_indicators(
-        metric="sharpe_ratio", threshold=0.0, top_k=3  # Only keep positive Sharpe  # Top 3
+        metric="sharpe_ratio",
+        threshold=0.0,
+        top_k=3,
+        selection_mode="strategy",
     )
 
     if not best_indicators:

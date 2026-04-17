@@ -37,6 +37,10 @@ def calculate_information_coefficient(signal: pd.Series, forward_returns: pd.Ser
     if len(df) < 2:
         return 0.0
 
+    # A-8: constant signal or returns → correlation is undefined (NaN) → treat as 0
+    if df.iloc[:, 0].nunique() <= 1 or df.iloc[:, 1].nunique() <= 1:
+        return 0.0
+
     return df.iloc[:, 0].corr(df.iloc[:, 1])
 
 
@@ -53,6 +57,10 @@ def calculate_pearson_ic(signal: pd.Series, forward_returns: pd.Series) -> Tuple
     """
     df = pd.concat([signal, forward_returns], axis=1).dropna()
     if len(df) < 2:
+        return 0.0, 1.0
+
+    # A-8: constant signal or returns → correlation is undefined (NaN) → treat as 0
+    if df.iloc[:, 0].nunique() <= 1 or df.iloc[:, 1].nunique() <= 1:
         return 0.0, 1.0
 
     ic, p_value = pearsonr(df.iloc[:, 0], df.iloc[:, 1])
@@ -76,6 +84,10 @@ def calculate_rank_ic(signal: pd.Series, forward_returns: pd.Series) -> Tuple[fl
     """
     df = pd.concat([signal, forward_returns], axis=1).dropna()
     if len(df) < 2:
+        return 0.0, 1.0
+
+    # A-8: constant signal or returns → correlation is undefined (NaN) → treat as 0
+    if df.iloc[:, 0].nunique() <= 1 or df.iloc[:, 1].nunique() <= 1:
         return 0.0, 1.0
 
     correlation, p_value = spearmanr(df.iloc[:, 0], df.iloc[:, 1])
