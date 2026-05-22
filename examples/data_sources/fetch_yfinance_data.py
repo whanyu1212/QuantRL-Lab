@@ -1,5 +1,5 @@
 """
-Example: Fetching data from Yahoo Finance
+Example: Fetching data from Yahoo Finance.
 
 Yahoo Finance provides free access to:
 - Historical OHLCV (price) data

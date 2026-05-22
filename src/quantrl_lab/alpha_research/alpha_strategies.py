@@ -454,8 +454,9 @@ class OnBalanceVolumeStrategy(VectorizedTradingStrategy):
 
     def generate_signals(self, data: pd.DataFrame) -> pd.Series:
         """
-        Generate trading signals based on On-Balance Volume strategy. A
-        simple strategy is to buy when the OBV is rising and sell when
+        Generate trading signals based on On-Balance Volume strategy.
+
+        A simple strategy is to buy when the OBV is rising and sell when
         it's falling. We can use a moving average of OBV to determine
         the trend.
 
@@ -587,8 +588,9 @@ class CCIStrategy(VectorizedTradingStrategy):
 
     def generate_scores(self, data: pd.DataFrame) -> pd.Series:
         """
-        Score based on CCI value. CCI is theoretically unbounded but
-        usually +/- 200.
+        Score based on CCI value.
+
+        CCI is theoretically unbounded but usually +/- 200.
 
         Mean Reversion Logic:
         High CCI -> Sell (-Score)

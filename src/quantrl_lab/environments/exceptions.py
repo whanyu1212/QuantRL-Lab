@@ -5,7 +5,6 @@ This module defines a hierarchy of exceptions for the environment
 module, enabling precise error handling for environment-related issues.
 """
 
-
 class EnvironmentError(Exception):
     """Base exception for all environment-related errors."""
 

@@ -158,6 +158,7 @@ async def _fetch_all_symbol_data(
         raw_data:   ``{symbol: ohlcv_df}``
         enrichment: ``{symbol: {ratings_df, sector_perf_df, ...}}``
     """
+
     async with aiohttp.ClientSession() as session:
         console.print(f"[bold blue]Fetching OHLCV for {len(symbols)} symbols concurrently...[/bold blue]")
         ohlcv_tasks = [sources.loader.async_fetch_ohlcv(sym, start_date, end_date) for sym in symbols]

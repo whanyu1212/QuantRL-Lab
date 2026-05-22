@@ -238,8 +238,9 @@ class YFinanceDataLoader(DataSource, FundamentalDataCapable, HistoricalDataCapab
         period: Optional[str] = None,
     ) -> pd.DataFrame:
         """
-        Fetch OHLCV data for a single symbol (blocking). Used by
-        async_fetch_ohlcv.
+        Fetch OHLCV data for a single symbol (blocking).
+
+        Used by async_fetch_ohlcv.
 
         Args:
             symbol (str): Stock symbol to fetch.

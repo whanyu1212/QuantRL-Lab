@@ -1,5 +1,6 @@
 """
-QuantRL-Lab: A modular reinforcement learning framework for quantitative trading.
+QuantRL-Lab: A modular reinforcement learning framework for quantitative
+trading.
 
 Main modules:
 - alpha_research: Signal discovery and validation

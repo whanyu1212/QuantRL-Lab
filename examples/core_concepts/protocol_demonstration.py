@@ -1,8 +1,8 @@
 """
-Example: Demonstrating Protocol-Based Feature Detection
+Example: Demonstrating Protocol-Based Feature Detection.
 
-This example shows how to use runtime protocol checking to detect
-which capabilities a data source supports.
+This example shows how to use runtime protocol checking to detect which
+capabilities a data source supports.
 """
 
 from quantrl_lab.data.exceptions import AuthenticationError

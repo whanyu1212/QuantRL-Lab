@@ -87,6 +87,7 @@ class AsyncHTTPRequestWrapper:
             Optional[Union[Dict[str, Any], List[Any]]]: Parsed JSON response,
                 or None if all retries are exhausted.
         """
+
         async with self._semaphore:
             for attempt in range(self.max_retries + 1):
                 try:
