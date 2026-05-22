@@ -1,6 +1,7 @@
 # Data sources
 # Configuration
 from .config import DataConfig, config
+from .crypto import fetch_crypto_data
 
 # Exceptions
 from .exceptions import (
