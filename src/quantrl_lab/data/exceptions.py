@@ -5,6 +5,7 @@ This module provides a hierarchy of exceptions for better error handling
 and more precise error reporting in data operations.
 """
 
+
 class DataSourceError(Exception):
     """
     Base exception for all data source operations.
