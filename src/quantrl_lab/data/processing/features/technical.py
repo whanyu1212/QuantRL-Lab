@@ -85,8 +85,9 @@ class TechnicalFeatureGenerator:
 
     def generate(self, data: pd.DataFrame, **kwargs) -> pd.DataFrame:
         """
-        Generate DataFrame with technical indicators. Automatically
-        handles panel data by grouping by Symbol to prevent time-series
+        Generate DataFrame with technical indicators.
+
+        Automatically handles panel data by grouping by Symbol to prevent time-series
         crossover between different assets.
 
         Args:

@@ -1,5 +1,5 @@
 """
-Example: Fetching data from Alpha Vantage
+Example: Fetching data from Alpha Vantage.
 
 Alpha Vantage provides:
 - Historical OHLCV data (daily and intraday)

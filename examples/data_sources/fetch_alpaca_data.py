@@ -1,5 +1,5 @@
 """
-Example: Fetching data from Alpaca
+Example: Fetching data from Alpaca.
 
 Alpaca provides:
 - Historical OHLCV data

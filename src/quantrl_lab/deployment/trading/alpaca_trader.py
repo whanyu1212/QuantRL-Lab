@@ -571,7 +571,6 @@ class AlpacaTradingClient:
         Returns:
             List[alpaca.trading.models.Order]: List of orders that match the search criteria.
         """
-
         if isinstance(symbol, str):
             symbol = [symbol]
 

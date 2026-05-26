@@ -156,7 +156,8 @@ class AlphaRunner:
                 pass  # Unknown indicator — fall back to substring heuristics
 
         def find_col(substring: str) -> Any:
-            """Fallback: find first new column whose name contains substring."""
+            """Fallback: find first new column whose name contains
+            substring."""
             matches = [c for c in new_cols if substring in c]
             if not matches and self.verbose:
                 console.print(

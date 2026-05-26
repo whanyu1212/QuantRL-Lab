@@ -111,8 +111,9 @@ class CompositeReward(BaseRewardStrategy):
         return total_reward
 
     def on_step_end(self, env: TradingEnvProtocol):
-        """Optional: A hook to update any internal state if needed.
-        This method is called at the end of each step in the environment.
+        """
+        Optional: A hook to update any internal state if needed. This
+        method is called at the end of each step in the environment.
 
         Args:
             env (TradingEnvProtocol): The trading environment instance.

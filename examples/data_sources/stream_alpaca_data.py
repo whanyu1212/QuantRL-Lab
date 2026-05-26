@@ -1,5 +1,5 @@
 """
-Example: Streaming real-time data from Alpaca
+Example: Streaming real-time data from Alpaca.
 
 This script demonstrates how to:
 1. Connect to Alpaca's WebSocket stream

@@ -1,8 +1,8 @@
 """
-Example: File-Based Data Processing Configuration
+Example: File-Based Data Processing Configuration.
 
-This example demonstrates how to load indicator configurations from external
-YAML files using the new DataProcessor.load_indicators utility.
+This example demonstrates how to load indicator configurations from
+external YAML files using the new DataProcessor.load_indicators utility.
 """
 
 from quantrl_lab.data import DataProcessor, YFinanceDataLoader
